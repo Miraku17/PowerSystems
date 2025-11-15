@@ -1,8 +1,28 @@
 @import "tailwindcss";
 
+/* Power Systems Inc Theme Variables */
 :root {
+  /* Background Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --background-secondary: #F5F5F0;
+  --background-tertiary: #FAFAFA;
+
+  /* Text Colors */
+  --foreground: #2C2C2C;
+  --foreground-secondary: #6B6B6B;
+  --foreground-light: #B0BEC5;
+
+  /* Brand Colors */
+  --primary-blue: #2B4C7E;
+  --primary-dark-blue: #1A2F4F;
+  --primary-red: #D32F2F;
+  --primary-light-blue: #4A6FA5;
+
+  /* Interactive States */
+  --hover-blue: #1A2F4F;
+  --focus-ring: #4A6FA5;
+  --error: #D32F2F;
+  --success: #2E7D32;
 }
 
 @theme inline {
@@ -12,15 +32,203 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Optional Dark Mode Support */
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
+    --background-secondary: #1a1a1a;
+    --background-tertiary: #2a2a2a;
     --foreground: #ededed;
+    --foreground-secondary: #b0b0b0;
+    --foreground-light: #808080;
   }
 }
 
+/* Base Styles */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Focus Styles */
+*:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Input Field Enhancements */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+textarea,
+select {
+  transition: all 0.2s ease-in-out;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.1);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary-blue);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark-blue);
+}
+
+/* Button Transitions */
+button {
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+}
+
+/* Custom Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Selection Styling */
+::selection {
+  background-color: var(--primary-light-blue);
+  color: white;
+}
+
+::-moz-selection {
+  background-color: var(--primary-light-blue);
+  color: white;
+}
+
+/* Custom Select Option Styling */
+select option:hover {
+  background-color: #2B4C7E !important;
+  background: #2B4C7E !important;
+  color: white !important;
+}
+
+select option:checked,
+select option:focus {
+  background-color: #2B4C7E !important;
+  background: linear-gradient(#2B4C7E, #2B4C7E) !important;
+  color: white !important;
+}
+
+/* Firefox specific */
+@-moz-document url-prefix() {
+  select option:hover {
+    background-color: #2B4C7E !important;
+    color: white !important;
+  }
+}
+
+/* Webkit/Blink specific */
+select option:hover {
+  background: #2B4C7E !important;
+  color: white !important;
+}
+
+select option:checked {
+  background: linear-gradient(#2B4C7E, #2B4C7E) !important;
+  color: white !important;
+}
+
+/* Hide scrollbar for nav tabs and sidebar navigation */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Hide scrollbar for sidebar navigation */
+nav.overflow-y-auto::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
 }

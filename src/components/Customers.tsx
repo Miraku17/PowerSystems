@@ -46,8 +46,7 @@ export default function Customers() {
   const loadCustomers = async () => {
     try {
       const response = await customerService.getAll();
-      // Handle double-wrapped response: response.data.data
-      const customersData = response.data?.data || response.data;
+      const customersData = response.data || [];
       setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
       toast.error("Failed to load customers");

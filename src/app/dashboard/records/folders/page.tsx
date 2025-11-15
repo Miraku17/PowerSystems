@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   DocumentTextIcon,
@@ -29,7 +29,7 @@ interface FormRecord {
   };
 }
 
-export default function RecordsPage() {
+function RecordsPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -80,7 +80,7 @@ export default function RecordsPage() {
     try {
       setIsLoading(true);
       const response = await companyFormService.getAll();
-      const templatesData = response.data?.data || response.data;
+      const templatesData = response.data || [];
       const templates = Array.isArray(templatesData) ? templatesData : [];
       setFormTemplates(templates);
     } catch (error) {
@@ -442,5 +442,14 @@ export default function RecordsPage() {
         </>
       )}
     </div>
+  );
+}
+
+
+export default function RecordsPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <RecordsPageContent />
+    </Suspense>
   );
 }

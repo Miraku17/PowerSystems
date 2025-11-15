@@ -117,7 +117,7 @@ export default function DashboardLayout({
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       console.error("Error loading companies:", error);
@@ -128,7 +128,7 @@ export default function DashboardLayout({
   const loadCompanyForms = async () => {
     try {
       const response = await companyFormService.getAll();
-      const formsData = response.data?.data || response.data;
+      const formsData = response.data || [];
       setCompanyForms(Array.isArray(formsData) ? formsData : []);
     } catch (error) {
       console.error("Error loading company forms:", error);

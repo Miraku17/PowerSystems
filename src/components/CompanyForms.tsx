@@ -90,8 +90,7 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
   const loadForms = async () => {
     try {
       const response = await companyFormService.getAll();
-      // Handle double-wrapped response: response.data.data
-      const formsData = response.data?.data || response.data;
+      const formsData = response.data || [];
       setForms(Array.isArray(formsData) ? formsData : []);
     } catch (error) {
       toast.error("Failed to load forms");
@@ -103,7 +102,7 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       console.error("Error loading companies:", error);
@@ -114,7 +113,7 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
   const loadCustomers = async () => {
     try {
       const response = await customerService.getAll();
-      const customersData = response.data?.data || response.data;
+      const customersData = response.data || [];
       setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
       console.error("Error loading customers:", error);
@@ -304,13 +303,9 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
       const submitData = {
         name: formData.name,
         formType: formData.formType,
-        companyId: formData.companyId
-          ? parseInt(formData.companyId)
-          : undefined,
-        customerId: formData.customerId
-          ? parseInt(formData.customerId)
-          : undefined,
-        engineId: formData.engineId ? parseInt(formData.engineId) : undefined,
+        companyId: formData.companyId || undefined,
+        customerId: formData.customerId || undefined,
+        engineId: formData.engineId || undefined,
         fields: mappedFields,
       };
       console.log("Creating form with data:", submitData);
@@ -350,13 +345,9 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
       const submitData = {
         name: formData.name,
         formType: formData.formType,
-        companyId: formData.companyId
-          ? parseInt(formData.companyId)
-          : undefined,
-        customerId: formData.customerId
-          ? parseInt(formData.customerId)
-          : undefined,
-        engineId: formData.engineId ? parseInt(formData.engineId) : undefined,
+        companyId: formData.companyId || undefined,
+        customerId: formData.customerId || undefined,
+        engineId: formData.engineId || undefined,
         fields: mappedFields,
       };
       const loadingToast = toast.loading("Updating form...");

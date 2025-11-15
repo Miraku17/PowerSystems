@@ -45,7 +45,7 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
   const loadCustomers = async () => {
     try {
       const response = await customerService.getAll();
-      const customersData = response.data?.data || response.data;
+      const customersData = response.data || [];
       setCustomers(Array.isArray(customersData) ? customersData : []);
     } catch (error) {
       console.error("Error loading customers:", error);
@@ -56,7 +56,7 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
   const loadEngines = async () => {
     try {
       const response = await engineService.getAll();
-      const enginesData = response.data?.data || response.data;
+      const enginesData = response.data || [];
       setEngines(Array.isArray(enginesData) ? enginesData : []);
     } catch (error) {
       console.error("Error loading engines:", error);
@@ -85,7 +85,7 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
       try {
         setIsLoading(true);
         const response = await companyFormService.getById(formId);
-        const formData = response.data?.data || response.data;
+        const formData = response.data || null;
         setFormTemplate(formData);
         console.log("Loaded form template:", formData);
       } catch (error) {

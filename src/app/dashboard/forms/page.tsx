@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { CompanyForm } from "@/types";
 import CompanyForms from "@/components/CompanyForms";
@@ -8,7 +8,7 @@ import FormInstances from "@/components/FormInstances";
 import { companyFormService } from "@/services";
 import toast from "react-hot-toast";
 
-export default function FormsPage() {
+function FormsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [forms, setForms] = useState<CompanyForm[]>([]);
@@ -47,7 +47,7 @@ export default function FormsPage() {
   const loadForms = async () => {
     try {
       const response = await companyFormService.getAll();
-      const formsData = response.data?.data || response.data;
+      const formsData = response.data || [];
       setForms(Array.isArray(formsData) ? formsData : []);
     } catch (error) {
       toast.error("Failed to load forms");
@@ -134,5 +134,13 @@ export default function FormsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FormsPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <FormsPageContent />
+    </Suspense>
   );
 }

@@ -1,5 +1,5 @@
 import apiClient from "@/lib/axios";
-import { ApiResponse, Engine } from "@/types";
+import { ApiResponse, Engine, CreateEngineData } from "@/types";
 
 export const engineService = {
   // Get all engines
@@ -15,9 +15,7 @@ export const engineService = {
   },
 
   // Create new engine
-  create: async (
-    data: Omit<Engine, "id" | "createdAt" | "updatedAt">
-  ) => {
+  create: async (data: CreateEngineData) => {
     const response = await apiClient.post<ApiResponse<Engine>>(
       "/engines",
       data

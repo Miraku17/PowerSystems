@@ -96,6 +96,10 @@ export interface Engine {
   updatedAt: Date;
 }
 
+export type CreateEngineData = Omit<Engine, "id" | "createdAt" | "updatedAt" | "company"> & {
+  companyId: number;
+};
+
 /**
  * Company Form Field Types
  */

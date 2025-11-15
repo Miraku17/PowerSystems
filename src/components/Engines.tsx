@@ -55,8 +55,7 @@ export default function Engines({
     try {
       const response = await engineService.getAll();
       console.log("Engines API Response:", response);
-      // Handle double-wrapped response: response.data.data
-      const enginesData = response.data?.data || response.data;
+      const enginesData = response.data || [];
       if (Array.isArray(enginesData)) {
         setEngines(enginesData);
         console.log("Loaded engines:", enginesData.length);
@@ -76,7 +75,7 @@ export default function Engines({
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       console.error("Error loading companies:", error);
@@ -153,7 +152,7 @@ export default function Engines({
       coolantAdditive: engine.coolantAdditive,
       turboModel: engine.turboModel,
       turboSN: engine.turboSN,
-      companyId: engine.company.id,
+      companyId: Number(engine.company.id),
     });
     setShowModal(true);
   };

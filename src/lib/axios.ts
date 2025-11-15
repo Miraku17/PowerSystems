@@ -12,7 +12,7 @@ const apiClient = axios.create({
 // Request interceptor for adding auth token if needed
 apiClient.interceptors.request.use(
   (config) => {
-    console.log("Making request to:", config.baseURL + config.url);
+    console.log("Making request to:", (config.baseURL || "") + config.url);
     console.log("Request config:", config);
     return config;
   },

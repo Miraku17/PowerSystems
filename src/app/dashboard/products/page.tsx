@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Engines from "@/components/Engines";
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -90,5 +90,13 @@ export default function ProductsPage() {
         </div>
       ) : null}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <ProductsPageContent />
+    </Suspense>
   );
 }

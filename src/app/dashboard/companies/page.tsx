@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Company } from "@/types";
 import Companies from "@/components/Companies";
@@ -8,7 +8,7 @@ import Engines from "@/components/Engines";
 import { companyService } from "@/services";
 import toast from "react-hot-toast";
 
-export default function CompaniesPage() {
+function CompaniesPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -47,7 +47,7 @@ export default function CompaniesPage() {
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       toast.error("Failed to load companies");
@@ -135,5 +135,14 @@ export default function CompaniesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+
+export default function CompaniesPage() {
+  return (
+    <Suspense fallback={<div className="p-8">Loading...</div>}>
+      <CompaniesPageContent />
+    </Suspense>
   );
 }

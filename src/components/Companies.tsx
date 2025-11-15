@@ -49,8 +49,7 @@ export default function Companies({
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      // Handle double-wrapped response: response.data.data
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       toast.error("Failed to load companies");

@@ -12,6 +12,7 @@ import {
   CogIcon,
 } from "@heroicons/react/24/outline";
 import { CompanyCardsGridSkeleton } from "./Skeletons";
+import CustomSelect from "./CustomSelect";
 interface CompanyEnginesProps {
   companyId: string;
 }
@@ -20,6 +21,10 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
   const [engines, setEngines] = useState<Engine[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterCompany, setFilterCompany] = useState("all");
+  const [filterLocation, setFilterLocation] = useState("all");
+  const [filterType, setFilterType] = useState("all");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedEngine, setSelectedEngine] = useState<Engine | null>(null);
@@ -36,8 +41,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
     try {
       const response = await engineService.getAll();
       console.log("Engines API Response:", response);
-      // Handle double-wrapped response: response.data.data
-      const enginesData = response.data?.data || response.data;
+      const enginesData = response.data || [];
       if (Array.isArray(enginesData)) {
         setEngines(enginesData);
         console.log("Loaded engines:", enginesData.length);
@@ -57,7 +61,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
   const loadCompanies = async () => {
     try {
       const response = await companyService.getAll();
-      const companiesData = response.data?.data || response.data;
+      const companiesData = response.data || [];
       setCompanies(Array.isArray(companiesData) ? companiesData : []);
     } catch (error) {
       console.error("Error loading companies:", error);
@@ -134,7 +138,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
       coolantAdditive: engine.coolantAdditive,
       turboModel: engine.turboModel,
       turboSN: engine.turboSN,
-      companyId: engine.company.id,
+      companyId: Number(engine.company.id),
     });
     setShowModal(true);
   };
@@ -188,11 +192,42 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
     }
   };
 
-  // Filter engines by company and search term
+  // Extract unique locations from engines
+  const locations = Array.from(
+    new Set(
+      engines
+        .filter((engine) => engine.location && engine.location.trim() !== "")
+        .map((engine) => engine.location)
+    )
+  );
+
+  // Extract unique engine models/types
+  const types = Array.from(
+    new Set(
+      engines
+        .filter((engine) => engine.model && engine.model.trim() !== "")
+        .map((engine) => engine.model)
+    )
+  );
+
+  // Filter engines by company, location, type and search term
   const filteredEngines = Array.isArray(engines)
     ? engines.filter((engine) => {
         // Company ID filter
         const matchesCompanyId = String(engine.company.id) === String(companyId);
+
+        // Company filter
+        const matchesCompanyFilter =
+          filterCompany === "all" ||
+          String(engine.company.id) === String(filterCompany);
+
+        // Location filter
+        const matchesLocationFilter =
+          filterLocation === "all" || engine.location === filterLocation;
+
+        // Type/Model filter
+        const matchesTypeFilter =
+          filterType === "all" || engine.model === filterType;
 
         // Search filter
         const matchesSearch =
@@ -200,7 +235,12 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
           engine.serialNo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           engine.location?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        return matchesCompanyId && matchesSearch;
+        return matchesCompanyId && matchesCompanyFilter && matchesLocationFilter && matchesTypeFilter && matchesSearch;
+      })
+      .sort((a, b) => {
+        // Sort by model name
+        const comparison = a.model.localeCompare(b.model);
+        return sortOrder === "asc" ? comparison : -comparison;
       })
     : [];
 

@@ -64,9 +64,14 @@ export interface Customer {
 export interface Company {
   id: string;
   name: string;
+  imageUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type CreateCompanyData = Omit<Company, "id" | "createdAt" | "updatedAt" | "imageUrl"> & {
+  image?: File;
+};
 
 /**
  * Engine Types
@@ -91,13 +96,15 @@ export interface Engine {
   coolantAdditive: string;
   turboModel: string;
   turboSN: string;
+  imageUrl?: string;
   company: Company;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export type CreateEngineData = Omit<Engine, "id" | "createdAt" | "updatedAt" | "company"> & {
+export type CreateEngineData = Omit<Engine, "id" | "createdAt" | "updatedAt" | "company" | "imageUrl"> & {
   companyId: number;
+  image?: File;
 };
 
 /**

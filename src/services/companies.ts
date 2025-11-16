@@ -1,5 +1,5 @@
 import apiClient from "@/lib/axios";
-import { Company, ApiResponse } from "@/types";
+import { Company, ApiResponse, CreateCompanyData } from "@/types";
 
 export const companyService = {
   // Get all companies
@@ -17,26 +17,72 @@ export const companyService = {
   },
 
   // Create new company
-  create: async (data: Omit<Company, "id" | "createdAt" | "updatedAt">) => {
+  create: async (data: CreateCompanyData) => {
+    const formData = new FormData();
+
+    // Append all text fields
+    Object.keys(data).forEach((key) => {
+      if (
+        key !== "image" &&
+        data[key as keyof CreateCompanyData] !== undefined
+      ) {
+        formData.append(key, String(data[key as keyof CreateCompanyData]));
+      }
+    });
+
+    // Append image if provided
+    if (data.image) {
+      formData.append("image", data.image);
+    }
+
     const response = await apiClient.post<ApiResponse<Company>>(
       "/companies",
-      data
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   },
 
   // Update company
-  update: async (id: string, data: Partial<Company>) => {
-    const response = await apiClient.put<ApiResponse<Company>>(
+  update: async (id: string, data: Partial<CreateCompanyData>) => {
+    const formData = new FormData();
+
+    // Append all text fields
+    Object.keys(data).forEach((key) => {
+      if (
+        key !== "image" &&
+        data[key as keyof CreateCompanyData] !== undefined
+      ) {
+        formData.append(key, String(data[key as keyof CreateCompanyData]));
+      }
+    });
+
+    // Append image if provided
+    if (data.image) {
+      formData.append("image", data.image);
+    }
+
+    const response = await apiClient.patch<ApiResponse<Company>>(
       `/companies/${id}`,
-      data
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
     );
     return response.data;
   },
 
   // Delete company
   delete: async (id: string) => {
-    const response = await apiClient.delete<ApiResponse<void>>(`/companies/${id}`);
+    const response = await apiClient.delete<ApiResponse<void>>(
+      `/companies/${id}`
+    );
     return response.data;
   },
 };

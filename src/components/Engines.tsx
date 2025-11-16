@@ -103,6 +103,8 @@ export default function Engines({
     turboSN: "",
     companyId: 0,
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const handleOpenCreateModal = () => {
     setModalMode("create");
@@ -127,6 +129,8 @@ export default function Engines({
       turboSN: "",
       companyId: 0,
     });
+    setSelectedImage(null);
+    setImagePreview(null);
     setShowModal(true);
   };
 
@@ -154,12 +158,30 @@ export default function Engines({
       turboSN: engine.turboSN,
       companyId: Number(engine.company.id),
     });
+    setSelectedImage(null);
+    setImagePreview(engine.imageUrl || null);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedEngine(null);
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -176,7 +198,11 @@ export default function Engines({
     setIsSubmitting(true);
     try {
       const loadingToast = toast.loading("Creating engine...");
-      await engineService.create(formData);
+      const dataToSubmit = {
+        ...formData,
+        ...(selectedImage && { image: selectedImage }),
+      };
+      await engineService.create(dataToSubmit);
       await loadEngines();
       toast.success("Engine created successfully!", { id: loadingToast });
       handleCloseModal();
@@ -193,7 +219,11 @@ export default function Engines({
     setIsSubmitting(true);
     try {
       const loadingToast = toast.loading("Updating engine...");
-      await engineService.update(selectedEngine.id, formData);
+      const dataToSubmit = {
+        ...formData,
+        ...(selectedImage && { image: selectedImage }),
+      };
+      await engineService.update(selectedEngine.id, dataToSubmit);
       await loadEngines();
       toast.success("Engine updated successfully!", { id: loadingToast });
       handleCloseModal();
@@ -398,9 +428,17 @@ export default function Engines({
                 </button>
               </div>
 
-              {/* Placeholder Image */}
-              <div className="w-full h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-                <CogIcon className="h-24 w-24 text-white opacity-50" />
+              {/* Engine Image */}
+              <div className="w-full h-48 bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center relative">
+                {engine.imageUrl ? (
+                  <img
+                    src={engine.imageUrl}
+                    alt={engine.model}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <CogIcon className="h-24 w-24 text-white opacity-50" />
+                )}
               </div>
 
               {/* Card Content */}
@@ -804,6 +842,42 @@ export default function Engines({
                       placeholder="Turbo serial number"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                  Engine Image
+                </h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Upload Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Preview
+                      </label>
+                      <div className="relative w-full h-64 border border-gray-300 rounded-lg overflow-hidden">
+                        <img
+                          src={imagePreview}
+                          alt="Engine preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -32,6 +32,8 @@ export default function Companies({
   const [formData, setFormData] = useState({
     name: "",
   });
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
@@ -63,6 +65,8 @@ export default function Companies({
   const handleOpenCreateModal = () => {
     setModalMode("create");
     setFormData({ name: "" });
+    setSelectedImage(null);
+    setImagePreview(null);
     setShowModal(true);
   };
 
@@ -70,12 +74,30 @@ export default function Companies({
     setModalMode("edit");
     setSelectedCompany(company);
     setFormData({ name: company.name });
+    setSelectedImage(null);
+    setImagePreview(company.imageUrl || null);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedCompany(null);
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -92,7 +114,11 @@ export default function Companies({
     setIsLoading(true);
     try {
       const loadingToast = toast.loading("Creating company...");
-      await companyService.create(formData);
+      const dataToSubmit = {
+        ...formData,
+        ...(selectedImage && { image: selectedImage }),
+      };
+      await companyService.create(dataToSubmit);
       await loadCompanies();
       toast.success("Company created successfully!", { id: loadingToast });
       handleCloseModal();
@@ -109,7 +135,11 @@ export default function Companies({
     setIsLoading(true);
     try {
       const loadingToast = toast.loading("Updating company...");
-      await companyService.update(selectedCompany.id, formData);
+      const dataToSubmit = {
+        ...formData,
+        ...(selectedImage && { image: selectedImage }),
+      };
+      await companyService.update(selectedCompany.id, dataToSubmit);
       await loadCompanies();
       toast.success("Company updated successfully!", { id: loadingToast });
       handleCloseModal();
@@ -191,7 +221,7 @@ export default function Companies({
               onClick={() => onCompanyClick?.(company.id)}
             >
               {/* Action Icons at Top Right */}
-              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center space-x-1.5 sm:space-x-2 z-10">
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center space-x-1.5 sm:space-x-2 z-20">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -214,9 +244,31 @@ export default function Companies({
                 </button>
               </div>
 
-              {/* Placeholder Image */}
-              <div className="w-full h-40 sm:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <BuildingOfficeIcon className="h-16 w-16 sm:h-24 sm:w-24 text-white opacity-50" />
+              {/* Company Image */}
+              <div className="w-full h-40 sm:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center relative overflow-hidden">
+                {company.imageUrl ? (
+                  <>
+                    {/* Blurred Background */}
+                    <div
+                      className="absolute inset-0 w-full h-full"
+                      style={{
+                        backgroundImage: `url(${company.imageUrl})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        filter: 'blur(20px)',
+                        transform: 'scale(1.1)',
+                      }}
+                    />
+                    {/* Actual Image */}
+                    <img
+                      src={company.imageUrl}
+                      alt={company.name}
+                      className="relative w-full h-full object-contain z-10"
+                    />
+                  </>
+                ) : (
+                  <BuildingOfficeIcon className="h-16 w-16 sm:h-24 sm:w-24 text-white opacity-50" />
+                )}
               </div>
 
               {/* Card Content */}
@@ -274,6 +326,35 @@ export default function Companies({
                   placeholder="Enter company name"
                 />
               </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Image
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Image Preview */}
+              {imagePreview && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preview
+                  </label>
+                  <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
+                    <img
+                      src={imagePreview}
+                      alt="Company preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
                 <button

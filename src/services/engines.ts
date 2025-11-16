@@ -16,18 +16,56 @@ export const engineService = {
 
   // Create new engine
   create: async (data: CreateEngineData) => {
+    const formData = new FormData();
+
+    // Append all text fields
+    Object.keys(data).forEach((key) => {
+      if (key !== 'image' && data[key as keyof CreateEngineData] !== undefined) {
+        formData.append(key, String(data[key as keyof CreateEngineData]));
+      }
+    });
+
+    // Append image if provided
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+
     const response = await apiClient.post<ApiResponse<Engine>>(
       "/engines",
-      data
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
     return response.data;
   },
 
   // Update engine
-  update: async (id: string, data: Partial<Engine>) => {
+  update: async (id: string, data: Partial<CreateEngineData>) => {
+    const formData = new FormData();
+
+    // Append all text fields
+    Object.keys(data).forEach((key) => {
+      if (key !== 'image' && data[key as keyof CreateEngineData] !== undefined) {
+        formData.append(key, String(data[key as keyof CreateEngineData]));
+      }
+    });
+
+    // Append image if provided
+    if (data.image) {
+      formData.append('image', data.image);
+    }
+
     const response = await apiClient.put<ApiResponse<Engine>>(
       `/engines/${id}`,
-      data
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      }
     );
     return response.data;
   },

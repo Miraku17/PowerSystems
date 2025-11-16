@@ -103,33 +103,33 @@ export default function Chatbot() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-110 z-50"
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-200 hover:scale-110 z-50"
           aria-label="Open chat"
         >
-          <ChatBubbleLeftRightIcon className="h-6 w-6" />
+          <ChatBubbleLeftRightIcon className="h-5 w-5 sm:h-6 sm:w-6" />
         </button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[600px] w-full h-full bg-white sm:rounded-lg shadow-2xl flex flex-col z-50 border-0 sm:border sm:border-gray-200">
           {/* Header */}
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
+          <div className="bg-blue-600 text-white px-4 py-3 sm:rounded-t-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <ChatBubbleLeftRightIcon className="h-5 w-5" />
-              <h3 className="font-semibold">PSI Assistant</h3>
+              <h3 className="font-semibold text-base sm:text-lg">PSI Assistant</h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}
               className="hover:bg-blue-700 rounded-full p-1 transition-colors"
               aria-label="Close chat"
             >
-              <XMarkIcon className="h-5 w-5" />
+              <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
             {messages.map((message, index) => (
               <div
                 key={index}
@@ -138,13 +138,13 @@ export default function Chatbot() {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-lg px-3 py-2 sm:px-4 ${
                     message.role === "user"
                       ? "bg-blue-600 text-white"
                       : "bg-gray-100 text-gray-900"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm sm:text-base whitespace-pre-wrap break-words">{message.content}</p>
                   <p
                     className={`text-xs mt-1 ${
                       message.role === "user" ? "text-blue-100" : "text-gray-500"
@@ -160,7 +160,7 @@ export default function Chatbot() {
             ))}
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-gray-100 text-gray-900 rounded-lg px-4 py-2">
+                <div className="bg-gray-100 text-gray-900 rounded-lg px-3 py-2 sm:px-4">
                   <div className="flex space-x-2">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
@@ -173,7 +173,7 @@ export default function Chatbot() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-gray-200 p-3 sm:p-4 bg-white">
             <div className="flex space-x-2">
               <input
                 type="text"
@@ -182,12 +182,12 @@ export default function Chatbot() {
                 onKeyPress={handleKeyPress}
                 placeholder="Type your message..."
                 disabled={isLoading}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 sm:px-4 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
               <button
                 onClick={handleSend}
                 disabled={!input.trim() || isLoading}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-2 sm:px-4 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex-shrink-0"
                 aria-label="Send message"
               >
                 <PaperAirplaneIcon className="h-5 w-5" />

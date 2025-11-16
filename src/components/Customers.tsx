@@ -168,7 +168,7 @@ export default function Customers() {
       <div className="flex justify-end">
         <button
           onClick={handleOpenCreateModal}
-          className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
+          className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg hover:opacity-90 transition-colors"
           style={{ backgroundColor: "#2B4C7E" }}
         >
           Add Customer
@@ -180,20 +180,22 @@ export default function Customers() {
         <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Search customers by name, email, or contact person..."
+          placeholder="Search customers..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
-      {/* Table */}
+      {/* Table - Desktop View */}
       {isLoading ? (
         <TableSkeleton rows={8} />
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+        <>
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -269,6 +271,65 @@ export default function Customers() {
             </table>
           </div>
         </div>
+
+          {/* Mobile Card View - Hidden on desktop */}
+          <div className="md:hidden space-y-4">
+            {filteredCustomers.length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+                {searchTerm
+                  ? "No customers found matching your search."
+                  : "No customers yet. Click 'Add Customer' to create one."}
+              </div>
+            ) : (
+              filteredCustomers.map((customer) => (
+                <div
+                  key={customer.id}
+                  className="bg-white rounded-lg shadow-md p-4 space-y-3"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900 text-base">
+                        {customer.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {customer.customer}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 ml-2">
+                      <button
+                        onClick={() => handleOpenEditModal(customer)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <PencilIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(customer.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-start">
+                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Equipment:</span>
+                      <span className="text-gray-600">{customer.equipment}</span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Contact:</span>
+                      <span className="text-gray-600">{customer.contactPerson}</span>
+                    </div>
+                    <div className="flex items-start">
+                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Email:</span>
+                      <span className="text-gray-600 break-all">{customer.email}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </>
       )}
 
       {/* Modal */}
@@ -286,9 +347,9 @@ export default function Customers() {
             }
           }}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 {modalMode === "create" ? "Add New Customer" : "Edit Customer"}
               </h3>
               <button
@@ -299,7 +360,7 @@ export default function Customers() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -403,17 +464,17 @@ export default function Customers() {
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors text-sm sm:text-base"
                   style={{ backgroundColor: "#2B4C7E" }}
                 >
                   {modalMode === "create" ? "Create Customer" : "Save Changes"}

@@ -151,7 +151,7 @@ export default function Companies({
       <div className="flex justify-end">
         <button
           onClick={handleOpenCreateModal}
-          className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors"
+          className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg hover:opacity-90 transition-colors"
           style={{ backgroundColor: "#2B4C7E" }}
         >
           Add Company
@@ -163,10 +163,10 @@ export default function Companies({
         <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
         <input
           type="text"
-          placeholder="Search companies by name..."
+          placeholder="Search companies..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
@@ -174,16 +174,16 @@ export default function Companies({
       {isInitialLoading ? (
         <CompanyCardsGridSkeleton />
       ) : filteredCompanies.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <BuildingOfficeIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg">
+        <div className="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
+          <BuildingOfficeIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500 text-base sm:text-lg">
             {searchTerm
               ? "No companies found matching your search."
               : "No companies yet. Click 'Add Company' to create one."}
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredCompanies.map((company) => (
             <div
               key={company.id}
@@ -191,13 +191,13 @@ export default function Companies({
               onClick={() => onCompanyClick?.(company.id)}
             >
               {/* Action Icons at Top Right */}
-              <div className="absolute top-3 right-3 flex items-center space-x-2 z-10">
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center space-x-1.5 sm:space-x-2 z-10">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleOpenEditModal(company);
                   }}
-                  className="p-2 bg-white rounded-full shadow-md hover:bg-blue-50 transition-colors"
+                  className="p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-blue-50 transition-colors"
                   title="Edit"
                 >
                   <PencilIcon className="h-4 w-4 text-blue-600" />
@@ -207,7 +207,7 @@ export default function Companies({
                     e.stopPropagation();
                     handleDelete(company.id);
                   }}
-                  className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
+                  className="p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
                   title="Delete"
                 >
                   <TrashIcon className="h-4 w-4 text-red-600" />
@@ -215,13 +215,13 @@ export default function Companies({
               </div>
 
               {/* Placeholder Image */}
-              <div className="w-full h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-                <BuildingOfficeIcon className="h-24 w-24 text-white opacity-50" />
+              <div className="w-full h-40 sm:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+                <BuildingOfficeIcon className="h-16 w-16 sm:h-24 sm:w-24 text-white opacity-50" />
               </div>
 
               {/* Card Content */}
-              <div className="p-4">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">
+              <div className="p-3 sm:p-4">
+                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 truncate">
                   {company.name}
                 </h3>
               </div>
@@ -245,9 +245,9 @@ export default function Companies({
             }
           }}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
                 {modalMode === "create" ? "Add New Company" : "Edit Company"}
               </h3>
               <button
@@ -258,7 +258,7 @@ export default function Companies({
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Name
@@ -275,19 +275,19 @@ export default function Companies({
                 />
               </div>
 
-              <div className="flex items-center justify-end space-x-3 pt-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
                 <button
                   type="button"
                   onClick={handleCloseModal}
                   disabled={isLoading}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   style={{ backgroundColor: "#2B4C7E" }}
                 >
                   {isLoading

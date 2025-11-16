@@ -32,7 +32,6 @@ export default function AuthPage() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   // Password visibility states
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -158,7 +157,20 @@ export default function AuthPage() {
           id: loadingToast,
           duration: 5000,
         });
-        setSuccess(true);
+
+        // Reset form and switch to login
+        setRegisterFormData({
+          email: "",
+          firstName: "",
+          lastName: "",
+          username: "",
+          address: "",
+          phone: "",
+          password: "",
+          verifyPassword: "",
+        });
+        setCurrentStep(1);
+        setIsLogin(true);
       } else {
         toast.error(result.message || "Registration failed", {
           id: loadingToast,
@@ -237,71 +249,6 @@ export default function AuthPage() {
       </div>
     </div>
   );
-
-  if (success) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 flex items-center justify-center p-4 relative overflow-hidden">
-        {/* Animated background pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(59,130,246,0.1),transparent_50%)]"></div>
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary-red rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
-        <div className="w-full max-w-md sm:max-w-2xl lg:max-w-5xl relative z-10">
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden backdrop-blur-sm">
-            <div className="grid lg:grid-cols-2">
-              <div className="bg-gradient-to-br from-primary-blue to-primary-darkBlue p-6 sm:p-8 flex items-center justify-center lg:order-first order-last">
-                <div className="text-center">
-                  <Image
-                    src="/images/powersystemslogov2.png"
-                    alt="Power Systems Inc"
-                    width={200}
-                    height={200}
-                    className="mx-auto mb-4"
-                  />
-                  <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-wider">
-                    Power Systems Inc
-                  </h1>
-                </div>
-              </div>
-              <div className="p-6 sm:p-8 flex items-center justify-center bg-white">
-                <div className="text-center max-w-md">
-                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg
-                      className="w-8 h-8 text-green-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 13l4 4L19 7"
-                      ></path>
-                    </svg>
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-primary-blue mb-4">
-                    Registration Successful!
-                  </h2>
-                  <p className="text-sm sm:text-base text-secondary-gray mb-6">
-                    Your account has been created successfully. You can now log
-                    in with your credentials.
-                  </p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="w-full text-white py-3 px-4 rounded-lg transition-colors duration-200 font-medium hover:opacity-90"
-                    style={{ backgroundColor: "#2B4C7E" }}
-                  >
-                    Go to Login
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
 
   return (
     <main className="min-h-screen bg-gray-200 flex items-center justify-center p-4 relative overflow-hidden">
@@ -751,24 +698,6 @@ export default function AuthPage() {
             </div>
 
             {/* Sliding Logo Component */}
-            {/* Mobile-friendly header - visible on small screens */}
-            <div className="lg:hidden bg-gradient-to-br from-primary-blue to-primary-darkBlue p-6 text-center rounded-t-2xl">
-              <div className="flex items-center justify-center mb-2">
-                <Image
-                  src="/images/powersystemslogov2.png"
-                  alt="Power Systems Inc"
-                  width={60}
-                  height={60}
-                />
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-1 tracking-wider">
-                Power Systems Inc
-              </h2>
-              <p className="text-blue-100 text-xs sm:text-sm">
-                Energy Solutions & Management
-              </p>
-            </div>
-
             {/* Desktop sliding panel - hidden on mobile */}
             <div
               className={`hidden lg:block absolute transition-all duration-500 ease-in-out ${

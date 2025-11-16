@@ -73,7 +73,7 @@ function FormsPageContent() {
           }}
         >
           {/* Create Form Tab */}
-          <button
+          {/* <button
             onClick={() => {
               setActiveTab("create");
               router.push("/dashboard/forms");
@@ -85,7 +85,7 @@ function FormsPageContent() {
             }`}
           >
             All Form Templates
-          </button>
+          </button> */}
 
           {/* Form Tabs (by form ID) */}
           {isLoading ? (

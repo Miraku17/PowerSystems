@@ -423,7 +423,7 @@ export default function DashboardLayout({
                         ) : item.submenuType === "forms" ? (
                           <>
                             {/* Create Form */}
-                            {/* <button
+                            <button
                               onClick={() => {
                                 router.push(item.href);
                                 setSidebarOpen(false);
@@ -435,7 +435,7 @@ export default function DashboardLayout({
                               }`}
                             >
                               All Form Templates
-                            </button> */}
+                            </button>
 
                             {/* Individual Forms */}
                             {companyForms.length === 0 ? (

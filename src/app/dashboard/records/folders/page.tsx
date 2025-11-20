@@ -589,18 +589,14 @@ function RecordsPageContent() {
 
               {/* Form Body */}
               <div className="px-6 py-6 max-h-[70vh] overflow-y-auto">
-                {/* Job Order Field */}
+                {/* Job Order - Read only */}
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Job Order
                   </label>
-                  <input
-                    type="text"
-                    value={editJobOrder}
-                    onChange={(e) => setEditJobOrder(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter job order number"
-                  />
+                  <div className="text-gray-900 font-medium">
+                    {editJobOrder || 'N/A'}
+                  </div>
                 </div>
 
                 {/* Dynamic Form Sections */}

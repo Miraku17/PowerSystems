@@ -700,6 +700,24 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
                       ))}
                     </select>
                   </div>
+
+                  {/* Job Order field - only shown in edit mode, disabled */}
+                  {modalMode === "edit" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Job Order
+                      </label>
+                      <input
+                        type="text"
+                        disabled
+                        value="N/A - Set when filling form"
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Job Order is assigned when filling out the form
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

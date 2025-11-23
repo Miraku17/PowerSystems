@@ -244,19 +244,33 @@ function RecordsPageContent() {
     return "N/A";
   };
 
+  // Helper function to get customer name from record
+  const getCustomer = (record: FormRecord): string => {
+    // Check in basicInformation section for customer-related fields
+    const basicInfo = record.data?.basicInformation;
+    if (basicInfo) {
+      // Try different possible customer field names
+      return basicInfo.customer || basicInfo.customerName || basicInfo.name || "N/A";
+    }
+    return "N/A";
+  };
+
   // Filter records by search term and date range
   const filteredRecords = records.filter((record) => {
-    // Filter by job order search term
+    // Filter by job order or customer search term
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       const jobOrder = getJobOrder(record);
+      const customer = getCustomer(record);
 
-      // Don't match 'N/A' - only match actual job orders
-      if (jobOrder === "N/A") {
-        return false;
-      }
+      // Check if job order matches
+      const jobOrderMatches = jobOrder !== "N/A" && jobOrder.toLowerCase().includes(searchLower);
 
-      if (!jobOrder.toLowerCase().includes(searchLower)) {
+      // Check if customer matches
+      const customerMatches = customer !== "N/A" && customer.toLowerCase().includes(searchLower);
+
+      // Return true if either matches
+      if (!jobOrderMatches && !customerMatches) {
         return false;
       }
     }
@@ -380,7 +394,7 @@ function RecordsPageContent() {
               {/* Search Box */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Search by Job Order
+                  Search by Job Order or Customer
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -388,7 +402,7 @@ function RecordsPageContent() {
                   </div>
                   <input
                     type="text"
-                    placeholder="Enter Job Order..."
+                    placeholder="Enter Job Order or Customer..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -456,7 +470,7 @@ function RecordsPageContent() {
                   </span>
                   {searchTerm && (
                     <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                      Job Order: "{searchTerm}"
+                      Search: "{searchTerm}"
                       <button
                         onClick={() => setSearchTerm("")}
                         className="hover:bg-blue-200 rounded-full p-0.5"
@@ -524,6 +538,9 @@ function RecordsPageContent() {
                         Job Order
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Customer
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Date Created
                       </th>
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -536,6 +553,9 @@ function RecordsPageContent() {
                       <tr key={record.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {getJobOrder(record)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {getCustomer(record)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                           {new Date(record.dateCreated).toLocaleDateString(

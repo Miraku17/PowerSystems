@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CompanyForm, DynamicField, FormSection } from "@/types";
-import { companyFormService, customerService, engineService, formRecordService } from "@/services";
+import { companyFormService, customerService, engineService, formRecordService, userService } from "@/services";
 import {
   PlusIcon,
   DocumentTextIcon,
@@ -25,12 +25,14 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
   // Autocomplete state
   const [customers, setCustomers] = useState<any[]>([]);
   const [engines, setEngines] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
-  // Load customers and engines on mount
+  // Load customers, engines, and users on mount
   useEffect(() => {
     loadCustomers();
     loadEngines();
+    loadUsers();
   }, []);
 
   const loadCustomers = async () => {
@@ -52,6 +54,17 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
     } catch (error) {
       console.error("Error loading engines:", error);
       setEngines([]);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      const response = await userService.getAll();
+      const usersData = response.data || [];
+      setUsers(Array.isArray(usersData) ? usersData : []);
+    } catch (error) {
+      console.error("Error loading users:", error);
+      setUsers([]);
     }
   };
 
@@ -253,6 +266,24 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
     );
   };
 
+  const getFilteredUsers = (searchValue: string) => {
+    if (!searchValue) return users;
+    const search = searchValue.toLowerCase();
+    return users.filter(
+      (user) =>
+        user.firstName?.toLowerCase().includes(search) ||
+        user.lastName?.toLowerCase().includes(search) ||
+        user.username?.toLowerCase().includes(search) ||
+        `${user.firstName} ${user.lastName}`.toLowerCase().includes(search)
+    );
+  };
+
+  // Check if field is a signature/employee field
+  const isSignatureField = (fieldName: string): boolean => {
+    const signatureFields = ['servicetechnician', 'approvedby', 'acknowledgedby'];
+    return signatureFields.includes(fieldName.toLowerCase());
+  };
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -312,6 +343,57 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
     // Check if this field should have autocomplete
     const isCustomerField = fieldNameLower.includes("customer");
     const isEngineField = fieldNameLower.includes("engine");
+    const isUserField = isSignatureField(field.name);
+
+    // Render user/employee autocomplete for signature fields
+    if (
+      isUserField &&
+      (field.type === "text" || field.type === "textarea")
+    ) {
+      const filteredUsers = getFilteredUsers(displayValue as string);
+      return (
+        <div className="autocomplete-container relative">
+          <input
+            type="text"
+            required={field.required}
+            value={displayValue}
+            onChange={(e) => {
+              handleFieldChange(field.name, e.target.value);
+              handleFieldChange(`${field.name}_display`, e.target.value);
+            }}
+            onFocus={() => setActiveDropdown(field.name)}
+            placeholder={field.placeholder}
+            className="w-full px-2 py-1.5 border-0 border-b-2 border-gray-300 focus:border-blue-600 focus:outline-none bg-transparent"
+          />
+          {activeDropdown === field.name && filteredUsers.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  onClick={() => {
+                    const fullName = `${user.firstName} ${user.lastName}`;
+                    handleFieldChange(field.name, fullName);
+                    handleFieldChange(`${field.name}_display`, fullName);
+                    setActiveDropdown(null);
+                  }}
+                  className="px-4 py-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-gray-900">
+                    {user.firstName} {user.lastName}
+                  </div>
+                  <div className="text-sm text-gray-600">{user.username}</div>
+                  {user.email && (
+                    <div className="text-xs text-gray-500">
+                      {user.email}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
 
     // Render customer autocomplete
     if (

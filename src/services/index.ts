@@ -4,3 +4,4 @@ export { engineService } from "./engines";
 export { companyService } from "./companies";
 export { companyFormService } from "./companyForms";
 export { formRecordService } from "./formRecords";
+export { userService } from "./users";

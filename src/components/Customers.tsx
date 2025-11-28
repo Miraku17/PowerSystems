@@ -243,7 +243,7 @@ export default function Customers() {
                       Reporter / Customer
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Contact Info
+                      Contact Person
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Equipment

@@ -1,25 +1,28 @@
-import apiClient from "@/lib/axios";
+import axios from "axios";
 import { ApiResponse, Customer } from "@/types";
+
+// Create a local client that doesn't use the external base URL
+const localApiClient = axios.create();
 
 export const customerService = {
   // Get all customers
   getAll: async () => {
-    const response = await apiClient.get<ApiResponse<Customer[]>>("/customers");
+    const response = await localApiClient.get<ApiResponse<Customer[]>>("/api/customers");
     return response.data;
   },
 
   // Get customer by ID
   getById: async (id: string) => {
-    const response = await apiClient.get<ApiResponse<Customer>>(
-      `/customers/${id}`
+    const response = await localApiClient.get<ApiResponse<Customer>>(
+      `/api/customers/${id}`
     );
     return response.data;
   },
 
   // Create new customer
   create: async (data: Omit<Customer, "id" | "createdAt" | "updatedAt">) => {
-    const response = await apiClient.post<ApiResponse<Customer>>(
-      "/customers",
+    const response = await localApiClient.post<ApiResponse<Customer>>(
+      "/api/customers",
       data
     );
     return response.data;
@@ -27,8 +30,8 @@ export const customerService = {
 
   // Update customer
   update: async (id: string, data: Partial<Customer>) => {
-    const response = await apiClient.put<ApiResponse<Customer>>(
-      `/customers/${id}`,
+    const response = await localApiClient.put<ApiResponse<Customer>>(
+      `/api/customers/${id}`,
       data
     );
     return response.data;
@@ -36,7 +39,7 @@ export const customerService = {
 
   // Delete customer
   delete: async (id: string) => {
-    const response = await apiClient.delete<ApiResponse<void>>(`/customers/${id}`);
+    const response = await localApiClient.delete<ApiResponse<void>>(`/api/customers/${id}`);
     return response.data;
   },
 };

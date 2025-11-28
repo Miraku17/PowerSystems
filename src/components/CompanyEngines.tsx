@@ -87,7 +87,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
     coolantAdditive: "",
     turboModel: "",
     turboSN: "",
-    companyId: 0,
+    companyId: "",
   });
 
   const handleOpenCreateModal = () => {
@@ -111,7 +111,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
       coolantAdditive: "",
       turboModel: "",
       turboSN: "",
-      companyId: 0,
+      companyId: "",
     });
     setShowModal(true);
   };
@@ -138,7 +138,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
       coolantAdditive: engine.coolantAdditive,
       turboModel: engine.turboModel,
       turboSN: engine.turboSN,
-      companyId: Number(engine.company.id),
+      companyId: engine.company.id,
     });
     setShowModal(true);
   };
@@ -428,12 +428,12 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          companyId: parseInt(e.target.value),
+                          companyId: e.target.value,
                         })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
-                      <option value={0}>Select a company...</option>
+                      <option value="">Select a company...</option>
                       {companies.map((company) => (
                         <option key={company.id} value={company.id}>
                           {company.name}

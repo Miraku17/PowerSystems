@@ -14,6 +14,7 @@ import {
   ChevronDownIcon,
   ClipboardDocumentListIcon,
   DocumentDuplicateIcon,
+  DocumentTextIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { Company } from "@/types";
@@ -160,12 +161,11 @@ export default function DashboardLayout({
       hasSubmenu: true,
       submenuType: "companies",
     },
+
     {
-      name: "Form Templates",
-      icon: DocumentDuplicateIcon,
-      href: "/dashboard/forms",
-      hasSubmenu: true,
-      submenuType: "forms",
+      name: "Fill Up Form",
+      icon: DocumentTextIcon,
+      href: "/dashboard/fill-up-form",
     },
     {
       name: "Form Records",

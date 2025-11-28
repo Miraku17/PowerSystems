@@ -103,7 +103,7 @@ export interface Engine {
 }
 
 export type CreateEngineData = Omit<Engine, "id" | "createdAt" | "updatedAt" | "company" | "imageUrl"> & {
-  companyId: number;
+  companyId: string;
   image?: File;
 };
 

@@ -13,7 +13,6 @@ export default function DeutzCommissioningReport() {
     address: '',
     email_address: '',
     commissioning_location: '',
-    job_order_no: '',
     commissioning_date: '',
     engine_model: '',
     engine_serial_no: '',
@@ -31,6 +30,51 @@ export default function DeutzCommissioningReport() {
     fuel_pump_code: '',
     turbo_model: '',
     turbo_serial_no: '',
+    controller_brand: '',
+    controller_model: '',
+    // Inspection Prior Test
+    inspection_summary: '',
+    check_oil_level: '',
+    check_air_filter: '',
+    check_hoses_clamps: '',
+    check_engine_support: '',
+    check_v_belt: '',
+    check_water_level: '',
+    crankshaft_end_play: '',
+    inspector: '',
+    inspection_comments: '',
+    // Operational Readings
+    rpm_idle_speed: '',
+    rpm_full_speed: '',
+    oil_pressure_idle: '',
+    oil_pressure_full: '',
+    oil_temperature: '',
+    engine_smoke: '',
+    engine_vibration: '',
+    check_engine_leakage: '',
+    // Cylinder
+    cylinder_head_temp: '',
+    cylinder_no: '',
+    cylinder_a1: '',
+    cylinder_a2: '',
+    cylinder_a3: '',
+    cylinder_a4: '',
+    cylinder_a5: '',
+    cylinder_a6: '',
+    cylinder_b1: '',
+    cylinder_b2: '',
+    cylinder_b3: '',
+    cylinder_b4: '',
+    cylinder_b5: '',
+    cylinder_b6: '',
+    // Parts Reference
+    starter_part_no: '',
+    alternator_part_no: '',
+    v_belt_part_no: '',
+    air_filter_part_no: '',
+    oil_filter_part_no: '',
+    fuel_filter_part_no: '',
+    pre_fuel_filter_part_no: '',
     remarks: '',
     recommendation: '',
     attending_technician: '',
@@ -83,7 +127,6 @@ export default function DeutzCommissioningReport() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
-                <Input label="Job Order No." name="job_order_no" value={formData.job_order_no} onChange={handleChange} />
                 <Input label="Commissioning No." name="commissioning_no" value={formData.commissioning_no} onChange={handleChange} />
                 
                 <div className="lg:col-span-2">
@@ -142,28 +185,30 @@ export default function DeutzCommissioningReport() {
                 <Input label="Fuel Pump Serial No." name="fuel_pump_serial_no" value={formData.fuel_pump_serial_no} onChange={handleChange} />
                 <Input label="Turbo Model" name="turbo_model" value={formData.turbo_model} onChange={handleChange} />
                 <Input label="Turbo Serial No." name="turbo_serial_no" value={formData.turbo_serial_no} onChange={handleChange} />
-                
-                <Input label="Controller Brand" name="controller_brand" value={formData.controller_brand} onChange={handleChange} />
-                <Input label="Controller Model" name="controller_model" value={formData.controller_model} onChange={handleChange} />
             </div>
         </div>
 
-        {/* Section 4: Inspection Checklist */}
+        {/* Section 4: Inspection Prior Test */}
         <div>
             <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                <h3 className="text-lg font-bold text-gray-800 uppercase">Inspection Checklist (Pre-Start)</h3>
+                <h3 className="text-lg font-bold text-gray-800 uppercase">Inspection Prior Test</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <Select label="Check Oil Level" name="check_oil_level" value={formData.check_oil_level} onChange={handleChange} options={['Ok', 'Low', 'High', 'N/A']} />
-                <Select label="Check Air Filter" name="check_air_filter" value={formData.check_air_filter} onChange={handleChange} options={['Ok', 'Dirty', 'Damaged', 'N/A']} />
-                <Select label="Check Hoses & Clamps" name="check_hoses_clamps" value={formData.check_hoses_clamps} onChange={handleChange} options={['Ok', 'Loose', 'Leaking', 'N/A']} />
-                
-                <Select label="Check Engine Support" name="check_engine_support" value={formData.check_engine_support} onChange={handleChange} options={['Ok', 'Loose', 'Damaged', 'N/A']} />
-                <Select label="Check V-Belt" name="check_v_belt" value={formData.check_v_belt} onChange={handleChange} options={['Ok', 'Loose', 'Worn', 'N/A']} />
-                <Select label="Check Water Level" name="check_water_level" value={formData.check_water_level} onChange={handleChange} options={['Ok', 'Low', 'Leaking', 'N/A']} />
-                
-                <Input label="Crankshaft End Play" name="crankshaft_end_play" value={formData.crankshaft_end_play} onChange={handleChange} />
+            <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 space-y-6">
+                <TextArea label="Summary" name="inspection_summary" value={formData.inspection_summary} onChange={handleChange} />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                    <Input label="1. Check Oil Level" name="check_oil_level" value={formData.check_oil_level} onChange={handleChange} />
+                    <Input label="2. Check Air Filter Element" name="check_air_filter" value={formData.check_air_filter} onChange={handleChange} />
+                    <Input label="3. Check Hoses and Clamps if Properly Tightened" name="check_hoses_clamps" value={formData.check_hoses_clamps} onChange={handleChange} />
+                    <Input label="4. Check Engine Support if Properly Tightened" name="check_engine_support" value={formData.check_engine_support} onChange={handleChange} />
+                    <Input label="5. Check V-Belt" name="check_v_belt" value={formData.check_v_belt} onChange={handleChange} />
+                    <Input label="6. Check Water Level (for Water Cooled)" name="check_water_level" value={formData.check_water_level} onChange={handleChange} />
+                    <Input label="7. Crankshaft End Play" name="crankshaft_end_play" value={formData.crankshaft_end_play} onChange={handleChange} />
+                    <Input label="Inspector" name="inspector" value={formData.inspector} onChange={handleChange} />
+                </div>
+
+                <TextArea label="Comments / Action" name="inspection_comments" value={formData.inspection_comments} onChange={handleChange} />
             </div>
         </div>
 
@@ -231,23 +276,24 @@ export default function DeutzCommissioningReport() {
             </div>
         </div>
 
-        {/* Section 7: Parts Reference */}
+        {/* Section 7: Parts Reference & Controller */}
         <div>
             <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                <h3 className="text-lg font-bold text-gray-800 uppercase">Parts Reference (Part No.)</h3>
+                <h3 className="text-lg font-bold text-gray-800 uppercase">Parts Reference & Controller</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <Input label="Starter" name="starter_part_no" value={formData.starter_part_no} onChange={handleChange} />
-                <Input label="Alternator" name="alternator_part_no" value={formData.alternator_part_no} onChange={handleChange} />
-                <Input label="V-Belt" name="v_belt_part_no" value={formData.v_belt_part_no} onChange={handleChange} />
-                <Input label="Air Filter" name="air_filter_part_no" value={formData.air_filter_part_no} onChange={handleChange} />
-                
-                <Input label="Oil Filter" name="oil_filter_part_no" value={formData.oil_filter_part_no} onChange={handleChange} />
-                <Input label="Fuel Filter" name="fuel_filter_part_no" value={formData.fuel_filter_part_no} onChange={handleChange} />
-                <div className="md:col-span-2">
-                    <Input label="Pre-Fuel Filter" name="pre_fuel_filter_part_no" value={formData.pre_fuel_filter_part_no} onChange={handleChange} />
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+                <Input label="Starter Part No." name="starter_part_no" value={formData.starter_part_no} onChange={handleChange} />
+                <Input label="Alternator Part No." name="alternator_part_no" value={formData.alternator_part_no} onChange={handleChange} />
+                <Input label="V-Belt Part No." name="v_belt_part_no" value={formData.v_belt_part_no} onChange={handleChange} />
+
+                <Input label="Air Filter Part No." name="air_filter_part_no" value={formData.air_filter_part_no} onChange={handleChange} />
+                <Input label="Oil Filter Part No." name="oil_filter_part_no" value={formData.oil_filter_part_no} onChange={handleChange} />
+                <Input label="Fuel Filter Part No." name="fuel_filter_part_no" value={formData.fuel_filter_part_no} onChange={handleChange} />
+
+                <Input label="Pre-Fuel Filter Part No." name="pre_fuel_filter_part_no" value={formData.pre_fuel_filter_part_no} onChange={handleChange} />
+                <Input label="Controller Brand" name="controller_brand" value={formData.controller_brand} onChange={handleChange} />
+                <Input label="Controller Model" name="controller_model" value={formData.controller_model} onChange={handleChange} />
             </div>
         </div>
 
@@ -255,7 +301,7 @@ export default function DeutzCommissioningReport() {
         <div>
             <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                <h3 className="text-lg font-bold text-gray-800 uppercase">Remarks & Summary</h3>
+                <h3 className="text-lg font-bold text-gray-800 uppercase">Remarks & Recommendations</h3>
             </div>
             <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 space-y-6">
                 <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} />
@@ -269,12 +315,8 @@ export default function DeutzCommissioningReport() {
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
                 <div className="flex flex-col justify-end">
-                    <Input label="Inspector" name="inspector" value={formData.inspector} onChange={handleChange} />
-                    <p className="text-xs text-center text-gray-400 mt-1 italic">Inspector</p>
-                </div>
-                 <div className="flex flex-col justify-end">
                     <Input label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} />
                     <p className="text-xs text-center text-gray-400 mt-1 italic">Technician</p>
                 </div>

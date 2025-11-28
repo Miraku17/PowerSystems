@@ -6,7 +6,6 @@ export default function DeutzServiceForm() {
   const [formData, setFormData] = useState({
     reporting_person_name: '',
     telephone_fax: '',
-    job_order: '',
     report_date: '',
     customer_name: '',
     contact_person: '',
@@ -93,7 +92,6 @@ export default function DeutzServiceForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Date" name="report_date" type="date" value={formData.report_date} onChange={handleChange} />
-                <Input label="Job Order No." name="job_order" value={formData.job_order} onChange={handleChange} />
                 <Input label="Date Failed" name="date_failed" type="date" value={formData.date_failed} onChange={handleChange} />
                 
                 <div className="lg:col-span-2">

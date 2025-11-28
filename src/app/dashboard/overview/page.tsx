@@ -22,9 +22,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Defs,
-  LinearGradient,
-  Stop
 } from "recharts";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";

@@ -10,6 +10,8 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   BuildingOfficeIcon,
+  PlusIcon,
+  PhotoIcon
 } from "@heroicons/react/24/outline";
 import { CompanyCardsGridSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
@@ -104,7 +106,6 @@ export default function Companies({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Show confirmation modal instead of directly submitting
     if (modalMode === "create") {
       setShowCreateConfirm(true);
     } else {
@@ -178,220 +179,205 @@ export default function Companies({
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex justify-end">
+    <div className="space-y-6 max-w-[1600px] mx-auto animate-fadeIn">
+      {/* Header & Search */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="relative w-full sm:w-96">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search companies..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
+          />
+        </div>
         <button
           onClick={handleOpenCreateModal}
-          className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg hover:opacity-90 transition-colors"
-          style={{ backgroundColor: "#2B4C7E" }}
+          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200"
         >
+          <PlusIcon className="h-5 w-5 mr-2" />
           Add Company
         </button>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search companies..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
       </div>
 
       {/* Cards Grid */}
       {isInitialLoading ? (
         <CompanyCardsGridSkeleton />
       ) : filteredCompanies.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 sm:p-12 text-center">
-          <BuildingOfficeIcon className="h-12 w-12 sm:h-16 sm:w-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500 text-base sm:text-lg">
-            {searchTerm
-              ? "No companies found matching your search."
-              : "No companies yet. Click 'Add Company' to create one."}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+          <BuildingOfficeIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500 text-lg font-medium">
+            {searchTerm ? "No companies found matching your search." : "No companies yet."}
+          </p>
+          <p className="text-gray-400 text-sm mt-1">
+            Click 'Add Company' to get started.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredCompanies.map((company) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredCompanies.map((company, index) => (
             <div
               key={company.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
+              className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
               onClick={() => onCompanyClick?.(company.id)}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Action Icons at Top Right */}
-              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex items-center space-x-1.5 sm:space-x-2 z-20">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenEditModal(company);
-                  }}
-                  className="p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-blue-50 transition-colors"
-                  title="Edit"
-                >
-                  <PencilIcon className="h-4 w-4 text-blue-600" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(company.id);
-                  }}
-                  className="p-1.5 sm:p-2 bg-white rounded-full shadow-md hover:bg-red-50 transition-colors"
-                  title="Delete"
-                >
-                  <TrashIcon className="h-4 w-4 text-red-600" />
-                </button>
-              </div>
+              {/* Image Area */}
+              <div className="relative h-48 w-full bg-gray-50 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Actions Overlay */}
+                <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditModal(company);
+                    }}
+                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"
+                    title="Edit"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(company.id);
+                    }}
+                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition-colors shadow-sm"
+                    title="Delete"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
 
-              {/* Company Image */}
-              <div className="w-full h-40 sm:h-48 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center relative overflow-hidden">
                 {company.imageUrl ? (
                   <>
-                    {/* Skeleton Loader */}
-                    {loadingImages[company.id] && (
+                   {loadingImages[company.id] && (
                       <div className="absolute inset-0 w-full h-full bg-gray-200 animate-pulse z-20" />
                     )}
-
-                    {/* Blurred Background */}
-                    <div
-                      className="absolute inset-0 w-full h-full"
-                      style={{
-                        backgroundImage: `url(${company.imageUrl})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        filter: 'blur(20px)',
-                        transform: 'scale(1.1)',
-                      }}
-                    />
-
-                    {/* Actual Image */}
                     <Image
                       src={company.imageUrl}
                       alt={company.name}
                       fill
-                      className="relative object-contain z-10"
-                      onLoadingComplete={() => {
-                        setLoadingImages(prev => ({ ...prev, [company.id]: false }));
-                      }}
-                      onLoadStart={() => {
-                        setLoadingImages(prev => ({ ...prev, [company.id]: true }));
-                      }}
+                      className="object-contain p-4 transform group-hover:scale-110 transition-transform duration-500"
+                      onLoadingComplete={() => setLoadingImages(prev => ({ ...prev, [company.id]: false }))}
+                      onLoadStart={() => setLoadingImages(prev => ({ ...prev, [company.id]: true }))}
                       unoptimized
                     />
                   </>
                 ) : (
-                  <BuildingOfficeIcon className="h-16 w-16 sm:h-24 sm:w-24 text-white opacity-50" />
+                  <div className="flex items-center justify-center h-full">
+                    <BuildingOfficeIcon className="h-16 w-16 text-gray-300" />
+                  </div>
                 )}
               </div>
 
               {/* Card Content */}
-              <div className="p-3 sm:p-4">
-                <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-2 truncate">
+              <div className="p-4 border-t border-gray-50">
+                <h3 className="text-lg font-bold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
                   {company.name}
                 </h3>
+                <p className="text-xs text-gray-500 mt-1 flex items-center">
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  Active Partner
+                </p>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Create/Edit Modal */}
       {showModal && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              handleCloseModal();
-            }
+            if (e.target === e.currentTarget) handleCloseModal();
           }}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                {modalMode === "create" ? "Add New Company" : "Edit Company"}
-              </h3>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 animate-slideUp overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gray-50/50">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {modalMode === "create" ? "Add New Company" : "Edit Company"}
+                </h3>
+                <p className="text-sm text-gray-500 mt-0.5">Manage partner details.</p>
+              </div>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Company Name <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter company name"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                    placeholder="Enter company name"
+                  />
+                </div>
               </div>
 
-              {/* Image Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <div className="space-y-4">
+                <label className="block text-sm font-medium text-gray-700">Company Logo/Image</label>
+                
+                <div className="flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <PhotoIcon className="w-8 h-8 text-gray-400 mb-2" />
+                            <p className="text-sm text-gray-500"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                        </div>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                    </label>
+                </div>
 
-              {/* Image Preview */}
-              {imagePreview && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preview
-                  </label>
-                  <div className="relative w-full h-48 border border-gray-300 rounded-lg overflow-hidden">
+                {imagePreview && (
+                  <div className="relative w-full h-48 border border-gray-200 rounded-xl overflow-hidden bg-gray-50">
                     <img
                       src={imagePreview}
                       alt="Company preview"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain p-4"
                     />
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={handleCloseModal}
                   disabled={isLoading}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="px-5 py-2.5 text-white rounded-xl font-medium hover:bg-[#1A2F4F] shadow-lg hover:shadow-xl transition-all disabled:opacity-50 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   style={{ backgroundColor: "#2B4C7E" }}
                 >
-                  {isLoading
-                    ? "Saving..."
-                    : modalMode === "create"
-                    ? "Create Company"
-                    : "Save Changes"}
+                  {isLoading ? "Saving..." : modalMode === "create" ? "Create Company" : "Save Changes"}
                 </button>
               </div>
             </form>

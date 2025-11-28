@@ -1,20 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import {
   HomeIcon,
   UsersIcon,
   BuildingOfficeIcon,
   CogIcon,
-  DocumentTextIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
   ClipboardDocumentListIcon,
   DocumentDuplicateIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import { Company } from "@/types";
 import { companyService, companyFormService, authService } from "@/services";
@@ -175,11 +175,11 @@ export default function DashboardLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50 flex font-sans">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-transparent bg-opacity-50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm transition-opacity"
           onClick={() => setSidebarOpen(false)}
           aria-hidden="true"
         ></div>
@@ -187,409 +187,297 @@ export default function DashboardLayout({
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out bg-gradient-to-b from-[#2B4C7E] to-[#1A2F4F] shadow-2xl lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${sidebarCollapsed ? "w-20" : "w-64"}`}
-        style={{ backgroundColor: "#2B4C7E" }}
+        } ${sidebarCollapsed ? "w-20" : "w-72"}`}
       >
-        <div className="flex flex-col h-screen">
-          {/* Logo Section with Menu Toggle */}
-          <div
-            className={`flex items-center ${
-              sidebarCollapsed
-                ? "flex-col justify-center px-4 py-4 space-y-3"
-                : "justify-between px-6 py-4"
-            }`}
-          >
-            {sidebarCollapsed ? (
-              <>
+        {/* Logo Section */}
+        <div className="flex items-center h-20 px-6 border-b border-white/10 relative">
+          {sidebarCollapsed ? (
+            <div className="w-full flex justify-center">
+              <div className="w-10 h-10 relative">
                 <Image
                   src="/images/powersystemslogov2.png"
-                  alt="Power Systems Inc"
-                  width={70}
-                  height={70}
+                  alt="Logo"
+                  fill
+                  className="object-contain drop-shadow-md"
                 />
-                <button
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="hidden lg:block text-white hover:text-gray-300 transition-colors"
-                  title="Expand sidebar"
-                >
-                  <Bars3Icon className="h-6 w-6" />
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="hidden lg:block text-white hover:text-gray-300 transition-colors"
-                    title="Collapse sidebar"
-                  >
-                    <Bars3Icon className="h-6 w-6" />
-                  </button>
-                  <Image
-                    src="/images/powersystemslogov2.png"
-                    alt="Power Systems Inc"
-                    width={40}
-                    height={40}
-                  />
-                  <span className="text-white font-bold text-lg">
-                    Power Systems Inc.
-                  </span>
-                </div>
-                <button
-                  onClick={() => setSidebarOpen(false)}
-                  className="lg:hidden text-white hover:text-gray-300"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Navigation */}
-          <nav
-            className="flex-1 px-4 py-6 space-y-2 overflow-y-auto"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-3 overflow-hidden">
+              <div className="w-10 h-10 relative flex-shrink-0">
+                <Image
+                  src="/images/powersystemslogov2.png"
+                  alt="Logo"
+                  fill
+                  className="object-contain drop-shadow-md"
+                />
+              </div>
+              <span className="text-white font-bold text-lg tracking-tight truncate">
+                Power Systems
+              </span>
+            </div>
+          )}
+          
+          {/* Mobile Close Button */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden absolute right-4 text-white/70 hover:text-white transition-colors"
           >
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const isActive =
-                pathname === item.href || pathname.startsWith(item.href + "/");
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
 
-              if (item.hasSubmenu) {
-                const isExpanded =
-                  item.submenuType === "companies"
-                    ? companiesExpanded
-                    : item.submenuType === "forms"
-                    ? formsExpanded
-                    : productsExpanded;
-                const setExpanded =
-                  item.submenuType === "companies"
-                    ? setCompaniesExpanded
-                    : item.submenuType === "forms"
-                    ? setFormsExpanded
-                    : setProductsExpanded;
+        {/* Toggle Button (Desktop) */}
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className="hidden lg:flex absolute -right-3 top-24 bg-white text-[#2B4C7E] p-1 rounded-full shadow-md border border-gray-100 hover:bg-gray-50 transition-transform hover:scale-110 z-50"
+        >
+          <ChevronLeftIcon className={`h-4 w-4 transition-transform duration-300 ${sidebarCollapsed ? "rotate-180" : ""}`} />
+        </button>
 
-                return (
-                  <div key={item.href}>
-                    <button
-                      onClick={() => {
-                        if (sidebarCollapsed) {
-                          setSidebarCollapsed(false);
-                          setExpanded(true);
-                        } else {
-                          setExpanded(!isExpanded);
-                        }
-                      }}
-                      className={`w-full flex items-center rounded-lg transition-colors ${
-                        sidebarCollapsed
-                          ? "justify-center px-4 py-3"
-                          : "justify-between px-4 py-3"
-                      } ${isActive ? "text-white" : "text-blue-100"}`}
-                      style={
-                        isActive
-                          ? { backgroundColor: "rgba(255, 255, 255, 0.15)" }
-                          : {}
-                      }
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor =
-                            "rgba(74, 111, 165, 0.3)";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.backgroundColor = "";
-                        }
-                      }}
-                      title={sidebarCollapsed ? item.name : ""}
-                    >
-                      {sidebarCollapsed ? (
-                        <Icon className="h-6 w-6" />
-                      ) : (
-                        <>
-                          <div className="flex items-center space-x-3">
-                            <Icon className="h-6 w-6" />
-                            <span className="font-medium">{item.name}</span>
-                          </div>
-                          <ChevronDownIcon
-                            className={`h-5 w-5 transition-transform ${
-                              isExpanded ? "rotate-180" : ""
-                            }`}
-                          />
-                        </>
-                      )}
-                    </button>
-
-                    {/* Submenu */}
-                    {isExpanded && !sidebarCollapsed && (
-                      <div className="mt-2 ml-4 space-y-1">
-                        {item.submenuType === "companies" ? (
-                          <>
-                            {/* All Companies */}
-                            <button
-                              onClick={() => {
-                                router.push(item.href);
-                                setSidebarOpen(false);
-                              }}
-                              className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                pathname === item.href && !activeCompanyTab
-                                  ? "text-white bg-white/10"
-                                  : "text-blue-100 hover:bg-white/5"
-                              }`}
-                            >
-                              All Companies
-                            </button>
-
-                            {/* Individual Companies */}
-                            {companies.length === 0 ? (
-                              // Skeleton loaders for companies
-                              <>
-                                {[1, 2, 3].map((i) => (
-                                  <div
-                                    key={i}
-                                    className="w-full px-4 py-2 animate-pulse"
-                                  >
-                                    <div className="h-4 bg-blue-300/20 rounded w-3/4"></div>
-                                  </div>
-                                ))}
-                              </>
-                            ) : (
-                              companies.map((company) => {
-                                // Convert both to strings for comparison
-                                const isCompanyActive =
-                                  pathname.includes("/companies") &&
-                                  activeCompanyTab === String(company.id);
-
-                                return (
-                                  <button
-                                    key={company.id}
-                                    onClick={() => {
-                                      router.push(
-                                        `${item.href}?tab=${company.id}`
-                                      );
-                                      setSidebarOpen(false);
-                                    }}
-                                    className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                      isCompanyActive
-                                        ? "text-white bg-white/10"
-                                        : "text-blue-100 hover:bg-white/5"
-                                    }`}
-                                  >
-                                    {company.name}
-                                  </button>
-                                );
-                              })
-                            )}
-                          </>
-                        ) : item.submenuType === "products" ? (
-                          <>
-                            {/* Engines */}
-                            <button
-                              onClick={() => {
-                                router.push(`${item.href}?tab=engines`);
-                                setSidebarOpen(false);
-                              }}
-                              className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                pathname.includes("/products") &&
-                                activeProductTab === "engines"
-                                  ? "text-white bg-white/10"
-                                  : "text-blue-100 hover:bg-white/5"
-                              }`}
-                            >
-                              Engines
-                            </button>
-
-                            {/* Pumps */}
-                            <button
-                              onClick={() => {
-                                router.push(`${item.href}?tab=pumps`);
-                                setSidebarOpen(false);
-                              }}
-                              className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                pathname.includes("/products") &&
-                                activeProductTab === "pumps"
-                                  ? "text-white bg-white/10"
-                                  : "text-blue-100 hover:bg-white/5"
-                              }`}
-                            >
-                              Pumps
-                            </button>
-                          </>
-                        ) : item.submenuType === "forms" ? (
-                          <>
-                            {/* Create Form */}
-                            {/* <button
-                              onClick={() => {
-                                router.push(item.href);
-                                setSidebarOpen(false);
-                              }}
-                              className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                pathname === item.href && !activeFormTab
-                                  ? "text-white bg-white/10"
-                                  : "text-blue-100 hover:bg-white/5"
-                              }`}
-                            >
-                              All Form Templates
-                            </button> */}
-
-                            {/* Individual Forms */}
-                            {companyForms.length === 0 ? (
-                              // Skeleton loaders for forms
-                              <>
-                                {[1, 2, 3].map((i) => (
-                                  <div
-                                    key={i}
-                                    className="w-full px-4 py-2 animate-pulse"
-                                  >
-                                    <div className="h-4 bg-blue-300/20 rounded w-3/4"></div>
-                                  </div>
-                                ))}
-                              </>
-                            ) : (
-                              companyForms.map((form) => {
-                                // Convert both to strings for comparison
-                                const isFormActive =
-                                  pathname.includes("/forms") &&
-                                  activeFormTab === String(form.id);
-
-                                return (
-                                  <button
-                                    key={form.id}
-                                    onClick={() => {
-                                      router.push(
-                                        `${item.href}?tab=${form.id}`
-                                      );
-                                      setSidebarOpen(false);
-                                    }}
-                                    className={`w-full flex items-center px-4 py-2 rounded-lg text-sm transition-colors ${
-                                      isFormActive
-                                        ? "text-white bg-white/10"
-                                        : "text-blue-100 hover:bg-white/5"
-                                    }`}
-                                  >
-                                    {form.name}
-                                  </button>
-                                );
-                              })
-                            )}
-                          </>
-                        ) : null}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            
+            if (item.hasSubmenu) {
+              const isExpanded =
+                item.submenuType === "companies"
+                  ? companiesExpanded
+                  : item.submenuType === "forms"
+                  ? formsExpanded
+                  : productsExpanded;
+              const setExpanded =
+                item.submenuType === "companies"
+                  ? setCompaniesExpanded
+                  : item.submenuType === "forms"
+                  ? setFormsExpanded
+                  : setProductsExpanded;
 
               return (
-                <button
-                  key={item.href}
-                  onClick={() => {
-                    router.push(item.href);
-                    setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center rounded-lg transition-colors ${
-                    sidebarCollapsed
-                      ? "justify-center px-4 py-3"
-                      : "space-x-3 px-4 py-3"
-                  } ${isActive ? "text-white" : "text-blue-100"}`}
-                  style={
-                    isActive
-                      ? { backgroundColor: "rgba(255, 255, 255, 0.15)" }
-                      : {}
-                  }
-                  onMouseEnter={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor =
-                        "rgba(74, 111, 165, 0.3)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isActive) {
-                      e.currentTarget.style.backgroundColor = "";
-                    }
-                  }}
-                  title={sidebarCollapsed ? item.name : ""}
-                >
-                  <Icon className="h-6 w-6" />
-                  {!sidebarCollapsed && (
-                    <span className="font-medium">{item.name}</span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+                <div key={item.href} className="group">
+                  <button
+                    onClick={() => {
+                      if (sidebarCollapsed) {
+                        setSidebarCollapsed(false);
+                        setExpanded(true);
+                      } else {
+                        setExpanded(!isExpanded);
+                      }
+                    }}
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-all duration-200 relative ${
+                      isActive
+                        ? "bg-white/10 text-white shadow-lg backdrop-blur-sm"
+                        : "text-blue-100 hover:bg-white/5 hover:text-white"
+                    }`}
+                    title={sidebarCollapsed ? item.name : ""}
+                  >
+                    <div className={`flex items-center ${sidebarCollapsed ? "justify-center w-full" : "space-x-3"}`}>
+                      <Icon className={`h-6 w-6 flex-shrink-0 ${isActive ? "text-blue-300" : "group-hover:text-blue-300 transition-colors"}`} />
+                      {!sidebarCollapsed && <span className="font-medium text-sm">{item.name}</span>}
+                    </div>
+                    {!sidebarCollapsed && (
+                      <ChevronDownIcon
+                        className={`h-4 w-4 text-blue-200 transition-transform duration-300 ${
+                          isExpanded ? "rotate-180" : ""
+                        }`}
+                      />
+                    )}
+                    {sidebarCollapsed && isActive && (
+                      <div className="absolute left-0 w-1 h-8 bg-blue-400 rounded-r-full top-1/2 -translate-y-1/2" />
+                    )}
+                  </button>
 
-          {/* Logout Button */}
-          <div className="px-4 py-4">
-            <button
-              onClick={handleLogout}
-              className={`w-full flex items-center rounded-lg text-blue-100 transition-colors ${
-                sidebarCollapsed
-                  ? "justify-center px-4 py-3"
-                  : "space-x-3 px-4 py-3"
-              }`}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor =
-                  "rgba(74, 111, 165, 0.3)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "";
-              }}
-              title={sidebarCollapsed ? "Logout" : ""}
-            >
-              <ArrowLeftOnRectangleIcon className="h-6 w-6" />
-              {!sidebarCollapsed && <span className="font-medium">Logout</span>}
-            </button>
+                  {/* Submenu */}
+                  <div 
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                      isExpanded && !sidebarCollapsed ? "max-h-[500px] opacity-100 mt-1" : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="pl-10 pr-2 space-y-1 border-l border-white/10 ml-6 my-1">
+                      {/* Submenu Items Logic */}
+                      {item.submenuType === "companies" && (
+                        <>
+                          <button
+                            onClick={() => { router.push(item.href); setSidebarOpen(false); }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                              pathname === item.href && !activeCompanyTab
+                                ? "text-white font-medium bg-white/10"
+                                : "text-blue-200/80 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            All Companies
+                          </button>
+                          {companies.map((company) => (
+                            <button
+                              key={company.id}
+                              onClick={() => {
+                                router.push(`${item.href}?tab=${company.id}`);
+                                setSidebarOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                                pathname.includes("/companies") && activeCompanyTab === String(company.id)
+                                  ? "text-white font-medium bg-white/10"
+                                  : "text-blue-200/80 hover:text-white hover:bg-white/5"
+                              }`}
+                            >
+                              {company.name}
+                            </button>
+                          ))}
+                        </>
+                      )}
+
+                      {item.submenuType === "products" && (
+                        <>
+                          <button
+                            onClick={() => { router.push(`${item.href}?tab=engines`); setSidebarOpen(false); }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                              pathname.includes("/products") && activeProductTab === "engines"
+                                ? "text-white font-medium bg-white/10"
+                                : "text-blue-200/80 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            Engines
+                          </button>
+                          <button
+                            onClick={() => { router.push(`${item.href}?tab=pumps`); setSidebarOpen(false); }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                              pathname.includes("/products") && activeProductTab === "pumps"
+                                ? "text-white font-medium bg-white/10"
+                                : "text-blue-200/80 hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            Pumps
+                          </button>
+                        </>
+                      )}
+
+                      {item.submenuType === "forms" && (
+                        <>
+                          {companyForms.map((form) => (
+                            <button
+                              key={form.id}
+                              onClick={() => {
+                                router.push(`${item.href}?tab=${form.id}`);
+                                setSidebarOpen(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors truncate ${
+                                pathname.includes("/forms") && activeFormTab === String(form.id)
+                                  ? "text-white font-medium bg-white/10"
+                                  : "text-blue-200/80 hover:text-white hover:bg-white/5"
+                              }`}
+                            >
+                              {form.name}
+                            </button>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={item.href}
+                onClick={() => {
+                  router.push(item.href);
+                  setSidebarOpen(false);
+                }}
+                className={`w-full flex items-center px-3 py-3 rounded-xl transition-all duration-200 group relative ${
+                  isActive
+                    ? "bg-white/10 text-white shadow-lg backdrop-blur-sm"
+                    : "text-blue-100 hover:bg-white/5 hover:text-white"
+                } ${sidebarCollapsed ? "justify-center" : "space-x-3"}`}
+                title={sidebarCollapsed ? item.name : ""}
+              >
+                <Icon className={`h-6 w-6 flex-shrink-0 ${isActive ? "text-blue-300" : "group-hover:text-blue-300 transition-colors"}`} />
+                {!sidebarCollapsed && <span className="font-medium text-sm">{item.name}</span>}
+                {sidebarCollapsed && isActive && (
+                  <div className="absolute left-0 w-1 h-8 bg-blue-400 rounded-r-full top-1/2 -translate-y-1/2" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Profile Section */}
+        <div className="p-4 border-t border-white/10 bg-[#1A2F4F]/50">
+          <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "space-x-3"}`}>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold shadow-md border-2 border-white/20">
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            {!sidebarCollapsed && (
+              <div className="flex-1 overflow-hidden">
+                <p className="text-sm font-semibold text-white truncate">{userName}</p>
+                <p className="text-xs text-blue-200 truncate">Administrator</p>
+              </div>
+            )}
+            {!sidebarCollapsed && (
+              <button
+                onClick={handleLogout}
+                className="p-2 text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                title="Logout"
+              >
+                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+              </button>
+            )}
           </div>
+          {sidebarCollapsed && (
+             <button
+             onClick={handleLogout}
+             className="mt-4 w-full p-2 flex justify-center text-blue-200 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+             title="Logout"
+           >
+             <ArrowLeftOnRectangleIcon className="h-6 w-6" />
+           </button>
+          )}
         </div>
       </aside>
 
       {/* Main Content */}
       <div
-        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 relative ${
-          sidebarCollapsed ? "lg:ml-20" : "lg:ml-64"
+        className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
         }`}
       >
-        {/* Top Bar */}
-        <header className="bg-white shadow-sm sticky top-0 z-30 relative">
-          <div className="flex items-center justify-between px-4 py-4">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden text-gray-600 hover:text-gray-900"
-              >
-                <Bars3Icon className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="hidden sm:inline text-sm text-gray-600">
-                {userName}
-              </span>
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold"
-                style={{ backgroundColor: "#2B4C7E" }}
-              >
-                {userName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()}
-              </div>
+        {/* Top Mobile Bar */}
+        <header className="lg:hidden bg-white shadow-sm sticky top-0 z-30">
+          <div className="flex items-center justify-between px-4 py-3">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="text-gray-600 hover:text-[#2B4C7E] transition-colors"
+            >
+              <Bars3Icon className="h-7 w-7" />
+            </button>
+            <span className="font-bold text-gray-800">Power Systems</span>
+            <div className="w-8 h-8 rounded-full bg-[#2B4C7E] flex items-center justify-center text-white text-sm font-bold">
+              {userName.charAt(0).toUpperCase()}
             </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8 bg-gray-50 flex-1 overflow-x-hidden">
+          {children}
+        </main>
       </div>
 
       {/* Chatbot */}
       <Chatbot />
     </div>
+  );
+}
+
+// Helper Component for Menu Icons (Optional internal usage)
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
   );
 }

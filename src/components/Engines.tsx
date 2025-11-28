@@ -70,7 +70,7 @@ export default function Engines({
     coolantAdditive: "",
     turboModel: "",
     turboSN: "",
-    companyId: 0,
+    companyId: "",
   });
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export default function Engines({
       coolantAdditive: "",
       turboModel: "",
       turboSN: "",
-      companyId: 0,
+      companyId: "",
     });
     setSelectedImage(null);
     setImagePreview(null);
@@ -157,7 +157,7 @@ export default function Engines({
       coolantAdditive: engine.coolantAdditive,
       turboModel: engine.turboModel,
       turboSN: engine.turboSN,
-      companyId: Number(engine.company.id),
+      companyId: engine.company.id,
     });
     setSelectedImage(null);
     setImagePreview(engine.imageUrl || null);
@@ -476,10 +476,10 @@ export default function Engines({
                     <select
                       required
                       value={formData.companyId}
-                      onChange={(e) => setFormData({ ...formData, companyId: parseInt(e.target.value) })}
+                      onChange={(e) => setFormData({ ...formData, companyId: e.target.value })}
                       className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
                     >
-                      <option value={0}>Select a company...</option>
+                      <option value="">Select a company...</option>
                       {companies.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
                     </select>
                   </div>

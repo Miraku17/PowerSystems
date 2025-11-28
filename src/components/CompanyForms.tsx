@@ -264,11 +264,11 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
       { id: `${Date.now()}-11`, name: "engineRunHours", label: "Run Hours", type: "text", required: false, order: currentFields.length + 10, section: section },
       { id: `${Date.now()}-12`, name: "engineFuelPumpSN", label: "Fuel Pump S/N", type: "text", required: false, order: currentFields.length + 11, section: section },
       { id: `${Date.now()}-13`, name: "engineFuelPumpCode", label: "Fuel Pump Code", type: "text", required: false, order: currentFields.length + 12, section: section },
-      { id: `${Date.now()}-14`, name: "engineLubeOil", label: "Lube Oil", type: "text", required: false, order: currentFields.length + 13, section: section },
+      { id: `${Date.now()}-14`, name: "engineLube Oil", label: "Lube Oil", type: "text", required: false, order: currentFields.length + 13, section: section },
       { id: `${Date.now()}-15`, name: "engineFuelType", label: "Fuel Type", type: "text", required: false, order: currentFields.length + 14, section: section },
       { id: `${Date.now()}-16`, name: "engineCoolantAdditive", label: "Coolant Additive", type: "text", required: false, order: currentFields.length + 15, section: section },
       { id: `${Date.now()}-17`, name: "engineTurboModel", label: "Turbo Model", type: "text", required: false, order: currentFields.length + 16, section: section },
-      { id: `${Date.now()}-18`, name: "engineTurboSN", label: "Turbo S/N", type: "text", required: false, order: currentFields.length + 17, section: section },
+      { id: `${Date.now()}-18`, name: "engineTurboSN", label: "Turbo S/N", type: "text", required: false, order: currentFields.length + 17, section: section }
     ];
     setDynamicFields([...currentFields, ...engineFields]);
     setShowAddFieldMenu({ ...showAddFieldMenu, [section]: false });
@@ -805,7 +805,7 @@ export default function CompanyForms({ forms, setForms }: CompanyFormsProps) {
                                     <button
                                       type="button"
                                       onClick={() => handleAddEngineFields(section.name)}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                                     >
                                       Engine Fields
                                     </button>

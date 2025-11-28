@@ -25,6 +25,41 @@ export async function POST(request: Request) {
       );
     }
 
+    // Fetch detailed user profile from 'users' table
+    const { data: profile, error: profileError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", data.user.id)
+      .single();
+
+    let userObj;
+
+    if (profile) {
+      // Map DB profile to frontend User interface
+      userObj = {
+        id: profile.id,
+        email: profile.email,
+        firstName: profile.first_name,
+        lastName: profile.last_name,
+        username: profile.username,
+        address: profile.address,
+        phone: profile.phone,
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
+      };
+    } else {
+      // Fallback to metadata if profile fetch fails
+      console.warn("User profile not found, falling back to metadata");
+      userObj = {
+        id: data.user.id,
+        email: data.user.email,
+        firstName: data.user.user_metadata?.first_name || "",
+        lastName: data.user.user_metadata?.last_name || "",
+        username: data.user.user_metadata?.username || "",
+        // Other fields might be missing in metadata
+      };
+    }
+
     // In a real-world scenario, you might want to set cookies here or return the token
     // For now, we'll return the user and token as requested
     return NextResponse.json(
@@ -32,7 +67,7 @@ export async function POST(request: Request) {
         success: true,
         message: "Login successful",
         data: {
-          user: data.user,
+          user: userObj,
           access_token: data.session.access_token,
         },
       },

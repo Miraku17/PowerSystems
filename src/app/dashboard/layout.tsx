@@ -161,7 +161,7 @@ export default function DashboardLayout({
       submenuType: "companies",
     },
     {
-      name: "Form Templates",
+      name: "Forms Creation",
       icon: DocumentDuplicateIcon,
       href: "/dashboard/forms",
       hasSubmenu: true,

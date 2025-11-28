@@ -9,9 +9,50 @@ import {
   TrashIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  PlusIcon,
+  UserIcon,
+  BuildingOfficeIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  WrenchScrewdriverIcon
 } from "@heroicons/react/24/outline";
 import { TableSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
+
+// Helper to generate consistent colors for avatars
+const getAvatarColor = (name: string) => {
+  const colors = [
+    "bg-blue-100 text-blue-700",
+    "bg-green-100 text-green-700",
+    "bg-yellow-100 text-yellow-700",
+    "bg-purple-100 text-purple-700",
+    "bg-pink-100 text-pink-700",
+    "bg-indigo-100 text-indigo-700",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const Avatar = ({ name }: { name: string }) => {
+  const initials = name
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+  const colorClass = getAvatarColor(name);
+
+  return (
+    <div
+      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${colorClass}`}
+    >
+      {initials}
+    </div>
+  );
+};
 
 export default function Customers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -51,7 +92,7 @@ export default function Customers() {
     } catch (error) {
       toast.error("Failed to load customers");
       console.error("Error loading customers:", error);
-      setCustomers([]); // Set empty array on error
+      setCustomers([]);
     } finally {
       setIsLoading(false);
     }
@@ -163,166 +204,177 @@ export default function Customers() {
     : [];
 
   return (
-    <div className="space-y-6">
-      {/* Header Actions */}
-      <div className="flex justify-end">
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+        <div className="relative w-full sm:w-96">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search customers, emails, contacts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
+          />
+        </div>
         <button
           onClick={handleOpenCreateModal}
-          className="px-3 py-2 sm:px-4 text-sm sm:text-base text-white rounded-lg hover:opacity-90 transition-colors"
-          style={{ backgroundColor: "#2B4C7E" }}
+          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
+          <PlusIcon className="h-5 w-5 mr-2" />
           Add Customer
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-        <input
-          type="text"
-          placeholder="Search customers..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-
-      {/* Table - Desktop View */}
+      {/* Content Section */}
       {isLoading ? (
         <TableSkeleton rows={8} />
       ) : (
         <>
-          {/* Desktop Table View - Hidden on mobile */}
-          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+          {/* Desktop View */}
+          <div className="hidden md:block bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Reporter Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Equipment
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact Person
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredCustomers.length === 0 ? (
+                <thead className="bg-gray-50/50">
                   <tr>
-                    <td
-                      colSpan={6}
-                      className="px-6 py-8 text-center text-gray-500"
-                    >
-                      {searchTerm
-                        ? "No customers found matching your search."
-                        : "No customers yet. Click 'Add Customer' to create one."}
-                    </td>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Reporter / Customer
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Contact Info
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Equipment
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ) : (
-                  filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {customer.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {customer.equipment}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {customer.customer}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {customer.contactPerson}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {customer.email}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        <div className="flex items-center space-x-3">
-                          <button
-                            onClick={() => handleOpenEditModal(customer)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <PencilIcon className="h-5 w-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(customer.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredCustomers.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center">
+                          <UserIcon className="h-12 w-12 text-gray-300 mb-3" />
+                          <p className="text-gray-500 text-lg font-medium">No customers found</p>
+                          <p className="text-gray-400 text-sm mt-1">Try adjusting your search or add a new customer.</p>
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredCustomers.map((customer) => (
+                      <tr key={customer.id} className="hover:bg-gray-50/50 transition-colors duration-150 group">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <Avatar name={customer.name || customer.customer} />
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                              <div className="text-sm text-gray-500 flex items-center mt-0.5">
+                                <BuildingOfficeIcon className="h-3.5 w-3.5 mr-1" />
+                                {customer.customer}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex flex-col space-y-1">
+                            <div className="text-sm text-gray-900 flex items-center">
+                              <UserIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                              {customer.contactPerson}
+                            </div>
+                            <div className="text-sm text-gray-500 flex items-center">
+                              <EnvelopeIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                              {customer.email}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                            <WrenchScrewdriverIcon className="h-3 w-3 mr-1" />
+                            {customer.equipment}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <button
+                              onClick={() => handleOpenEditModal(customer)}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(customer.id)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-          {/* Mobile Card View - Hidden on desktop */}
-          <div className="md:hidden space-y-4">
+          {/* Mobile View */}
+          <div className="md:hidden grid grid-cols-1 gap-4">
             {filteredCustomers.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-                {searchTerm
-                  ? "No customers found matching your search."
-                  : "No customers yet. Click 'Add Customer' to create one."}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                <UserIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">No customers found</p>
               </div>
             ) : (
               filteredCustomers.map((customer) => (
                 <div
                   key={customer.id}
-                  className="bg-white rounded-lg shadow-md p-4 space-y-3"
+                  className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 space-y-4"
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 text-base">
-                        {customer.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {customer.customer}
-                      </p>
+                    <div className="flex items-center space-x-3">
+                      <Avatar name={customer.name} />
+                      <div>
+                        <h3 className="font-semibold text-gray-900">{customer.name}</h3>
+                        <p className="text-sm text-gray-500">{customer.customer}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2 ml-2">
+                    <div className="flex space-x-1">
                       <button
                         onClick={() => handleOpenEditModal(customer)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
                       >
                         <PencilIcon className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleDelete(customer.id)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
-
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-start">
-                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Equipment:</span>
-                      <span className="text-gray-600">{customer.equipment}</span>
+                  
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex items-center text-gray-600 bg-gray-50 p-2 rounded-lg">
+                      <WrenchScrewdriverIcon className="h-4 w-4 mr-2 text-gray-400" />
+                      <span className="font-medium mr-2">Equipment:</span>
+                      {customer.equipment}
                     </div>
-                    <div className="flex items-start">
-                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Contact:</span>
-                      <span className="text-gray-600">{customer.contactPerson}</span>
+                    <div className="flex items-center text-gray-600">
+                      <UserIcon className="h-4 w-4 mr-2 text-gray-400" />
+                      {customer.contactPerson}
                     </div>
-                    <div className="flex items-start">
-                      <span className="font-medium text-gray-700 w-28 flex-shrink-0">Email:</span>
-                      <span className="text-gray-600 break-all">{customer.email}</span>
+                    <div className="flex items-center text-gray-600">
+                      <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
+                      {customer.email}
                     </div>
                   </div>
                 </div>
@@ -332,150 +384,149 @@ export default function Customers() {
         </>
       )}
 
-      {/* Modal */}
+      {/* Create/Edit Modal */}
       {showModal && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(4px)",
           }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              handleCloseModal();
-            }
+            if (e.target === e.currentTarget) handleCloseModal();
           }}
         >
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4">
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
-              <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                {modalMode === "create" ? "Add New Customer" : "Edit Customer"}
-              </h3>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all animate-slideUp">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {modalMode === "create" ? "Add New Customer" : "Edit Customer"}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {modalMode === "create" ? "Enter details for the new customer record." : "Update existing customer information."}
+                </p>
+              </div>
               <button
                 onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600"
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Reporter Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Reporter name"
-                  />
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Reporter Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <UserIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                      placeholder="e.g. John Doe"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Equipment
-                  </label>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Equipment</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <WrenchScrewdriverIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.equipment}
+                      onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                      className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                      placeholder="e.g. Generator X-100"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Customer Name</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.customer}
+                      onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+                      className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                      placeholder="e.g. Acme Corp"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Contact Person</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <UserIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={formData.contactPerson}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                      placeholder="e.g. Jane Smith"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <EnvelopeIcon className="h-5 w-5 text-gray-400" />
+                  </div>
                   <input
-                    type="text"
+                    type="email"
                     required
-                    value={formData.equipment}
-                    onChange={(e) =>
-                      setFormData({ ...formData, equipment: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Equipment"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                    placeholder="e.g. jane@example.com"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.customer}
-                    onChange={(e) =>
-                      setFormData({ ...formData, customer: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Customer name"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Person
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.contactPerson}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        contactPerson: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Contact person"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Email address"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address
-                </label>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Address</label>
                 <textarea
                   required
                   rows={3}
                   value={formData.address}
-                  onChange={(e) =>
-                    setFormData({ ...formData, address: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  placeholder="Full address"
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm resize-none"
+                  placeholder="Full address..."
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4">
+              <div className="flex items-center justify-end gap-3 pt-6 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                  className="px-5 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-white rounded-lg hover:opacity-90 transition-colors text-sm sm:text-base"
-                  style={{ backgroundColor: "#2B4C7E" }}
+                  className="px-5 py-2.5 bg-[#2B4C7E] text-white font-medium rounded-xl hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   {modalMode === "create" ? "Create Customer" : "Save Changes"}
                 </button>

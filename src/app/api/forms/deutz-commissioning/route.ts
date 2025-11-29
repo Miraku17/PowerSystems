@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, getServiceSupabase } from "@/lib/supabase";
 
 export async function GET(request: Request) {
   try {
@@ -41,9 +41,43 @@ export async function GET(request: Request) {
   }
 }
 
+const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
+  if (!base64Data || !base64Data.startsWith('data:image')) return '';
+  
+  try {
+    // Extract the base64 string
+    const base64Image = base64Data.split(';base64,').pop();
+    if (!base64Image) return '';
+
+    const buffer = Buffer.from(base64Image, 'base64');
+
+    const { data, error } = await serviceSupabase.storage
+      .from('signatures')
+      .upload(fileName, buffer, {
+        contentType: 'image/png',
+        upsert: true
+      });
+
+    if (error) {
+      console.error(`Error uploading ${fileName}:`, error);
+      return '';
+    }
+
+    const { data: { publicUrl } } = serviceSupabase.storage
+      .from('signatures')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  } catch (e) {
+    console.error(`Exception uploading ${fileName}:`, e);
+    return '';
+  }
+};
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const serviceSupabase = getServiceSupabase();
 
     // Extract fields matching the database schema
     const {
@@ -117,9 +151,30 @@ export async function POST(request: Request) {
       remarks,
       recommendation,
       attending_technician,
+      attending_technician_signature: rawAttendingSignature,
       approved_by,
+      approved_by_signature: rawApprovedSignature,
       acknowledged_by,
+      acknowledged_by_signature: rawAcknowledgedSignature,
     } = body;
+
+    // Process Signatures
+    const timestamp = Date.now();
+    const attending_technician_signature = await uploadSignature(
+      serviceSupabase,
+      rawAttendingSignature,
+      `commissioning-attending-technician-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawApprovedSignature,
+      `commissioning-approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawAcknowledgedSignature,
+      `commissioning-acknowledged-by-${timestamp}.png`
+    );
 
     // Generate Job Order No.
     const { count, error: countError } = await supabase
@@ -154,7 +209,7 @@ export async function POST(request: Request) {
           email_address,
           commissioning_location,
           job_order_no: generatedJobOrderNo,
-          commissioning_date,
+          commissioning_date: commissioning_date || null,
           engine_model,
           engine_serial_no,
           commissioning_no,
@@ -217,6 +272,9 @@ export async function POST(request: Request) {
           attending_technician,
           approved_by,
           acknowledged_by,
+          attending_technician_signature,
+          approved_by_signature,
+          acknowledged_by_signature,
         },
       ])
       .select();
@@ -229,53 +287,6 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { message: "Report submitted successfully", data },
       { status: 201 }
-    );
-  } catch (error) {
-    console.error("Error processing request:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-}
-
-export async function PATCH(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { error: "Record ID is required" },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-
-    // Update the record in Supabase
-    const { data, error } = await supabase
-      .from("deutz_commissioning_report")
-      .update(body)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error updating record:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    if (!data) {
-      return NextResponse.json(
-        { error: "Record not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: "Report updated successfully", data },
-      { status: 200 }
     );
   } catch (error) {
     console.error("Error processing request:", error);

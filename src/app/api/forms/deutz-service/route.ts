@@ -42,6 +42,39 @@ export async function GET(request: Request) {
   }
 }
 
+// Helper to upload signature server-side
+const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
+  if (!base64Data || !base64Data.startsWith('data:image')) return '';
+  
+  try {
+    const base64Image = base64Data.split(';base64,').pop();
+    if (!base64Image) return '';
+
+    const buffer = Buffer.from(base64Image, 'base64');
+
+    const { data, error } = await serviceSupabase.storage
+      .from('signatures')
+      .upload(fileName, buffer, {
+        contentType: 'image/png',
+        upsert: true
+      });
+
+    if (error) {
+      console.error(`Error uploading ${fileName}:`, error);
+      return '';
+    }
+
+    const { data: { publicUrl } } = serviceSupabase.storage
+      .from('signatures')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  } catch (e) {
+    console.error(`Exception uploading ${fileName}:`, e);
+    return '';
+  }
+};
+
 export async function POST(request: Request) {
   try {
     const supabase = getServiceSupabase();
@@ -85,13 +118,34 @@ export async function POST(request: Request) {
     const warrantable_failure = getString('warrantable_failure');
     const summary_details = getString('summary_details');
     const service_technician = getString('service_technician');
+    const rawServiceTechSignature = getString('service_technician_signature');
     const approved_by = getString('approved_by');
+    const rawApprovedBySignature = getString('approved_by_signature');
     const acknowledged_by = getString('acknowledged_by');
+    const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
     const action_taken = getString('action_taken');
     const observation = getString('observation');
     const findings = getString('findings');
     const recommendations = getString('recommendations');
     
+    // Process Signatures
+    const timestamp = Date.now();
+    const attending_technician_signature = await uploadSignature(
+      supabase,
+      rawServiceTechSignature,
+      `service-technician-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      supabase,
+      rawApprovedBySignature,
+      `approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      supabase,
+      rawAcknowledgedBySignature,
+      `acknowledged-by-${timestamp}.png`
+    );
+
     // Handle Attachment Upload
     let attachmentUrl: string | null = null;
     const attachmentFile = formData.get('attachments') as File | null;
@@ -141,7 +195,7 @@ export async function POST(request: Request) {
           telephone_fax,
           equipment_manufacturer,
           job_order: generatedJobOrder,
-          report_date,
+          report_date: report_date || null,
           customer_name,
           contact_person,
           address,
@@ -153,7 +207,7 @@ export async function POST(request: Request) {
           equipment_serial_no,
           alternator_serial_no,
           location,
-          date_in_service,
+          date_in_service: date_in_service || null,
           rating,
           revolution,
           starting_voltage,
@@ -163,7 +217,7 @@ export async function POST(request: Request) {
           lube_oil_type,
           fuel_type,
           cooling_water_additives,
-          date_failed,
+          date_failed: date_failed || null,
           turbo_model,
           turbo_serial_no,
           customer_complaint,
@@ -172,8 +226,11 @@ export async function POST(request: Request) {
           warrantable_failure,
           summary_details,
           service_technician,
+          attending_technician_signature,
           approved_by,
+          approved_by_signature,
           acknowledged_by,
+          acknowledged_by_signature,
           action_taken,
           observation,
           findings,

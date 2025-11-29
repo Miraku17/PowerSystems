@@ -122,66 +122,16 @@ export default function DeutzCommissioningReport() {
     setFormData(prev => ({ ...prev, [name]: signature }));
   };
 
-  const uploadSignatureToStorage = async (base64Signature: string, fileName: string): Promise<string | null> => {
-    if (!base64Signature) return null;
-
-    try {
-      // Convert base64 to blob
-      const base64Response = await fetch(base64Signature);
-      const blob = await base64Response.blob();
-
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('signatures')
-        .upload(fileName, blob, {
-          contentType: 'image/png',
-          upsert: true
-        });
-
-      if (error) {
-        console.error('Error uploading signature:', error);
-        return null;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('signatures')
-        .getPublicUrl(data.path);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error processing signature:', error);
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const loadingToastId = toast.loading('Submitting report...');
 
     try {
-      // Upload signatures to Supabase storage
-      const timestamp = Date.now();
-      const attendingTechSignatureUrl = await uploadSignatureToStorage(
-        formData.attending_technician_signature,
-        `commissioning-attending-technician-${timestamp}.png`
-      );
-      const approvedBySignatureUrl = await uploadSignatureToStorage(
-        formData.approved_by_signature,
-        `commissioning-approved-by-${timestamp}.png`
-      );
-      const acknowledgedBySignatureUrl = await uploadSignatureToStorage(
-        formData.acknowledged_by_signature,
-        `commissioning-acknowledged-by-${timestamp}.png`
-      );
-
-      // Map form state to API schema with signature URLs
+      // Map form state to API schema
+      // Signatures are sent as base64 strings and handled server-side
       const payload = {
         ...formData,
-        attending_technician_signature: attendingTechSignatureUrl || '',
-        approved_by_signature: approvedBySignatureUrl || '',
-        acknowledged_by_signature: acknowledgedBySignatureUrl || '',
         summary: formData.inspection_summary,
         comments_action: formData.inspection_comments,
       };
@@ -284,9 +234,9 @@ export default function DeutzCommissioningReport() {
         console.error('Error:', errorData);
         toast.error(`Failed to submit report: ${errorData.error || 'Unknown error'}`, { id: loadingToastId });
       }
-    } catch (error) {
-      console.error('Network error:', error);
-      toast.error('A network error occurred. Please try again.', { id: loadingToastId });
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      toast.error(error.message || 'A network error occurred. Please try again.', { id: loadingToastId });
     } finally {
       setIsLoading(false);
     }

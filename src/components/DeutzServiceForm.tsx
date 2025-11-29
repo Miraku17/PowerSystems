@@ -91,72 +91,15 @@ export default function DeutzServiceForm() {
     setFormData((prev) => ({ ...prev, [name]: signature }));
   };
 
-  const uploadSignatureToStorage = async (base64Signature: string, fileName: string): Promise<string | null> => {
-    if (!base64Signature) return null;
-
-    try {
-      // Convert base64 to blob
-      const base64Response = await fetch(base64Signature);
-      const blob = await base64Response.blob();
-
-      // Upload to Supabase storage
-      const { data, error } = await supabase.storage
-        .from('signatures')
-        .upload(fileName, blob, {
-          contentType: 'image/png',
-          upsert: true
-        });
-
-      if (error) {
-        console.error('Error uploading signature:', error);
-        return null;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('signatures')
-        .getPublicUrl(data.path);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error processing signature:', error);
-      return null;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const loadingToastId = toast.loading("Submitting Service Report...");
 
     try {
-      // Upload signatures to Supabase storage
-      const timestamp = Date.now();
-      const serviceTechSignatureUrl = await uploadSignatureToStorage(
-        formData.service_technician_signature,
-        `service-technician-${timestamp}.png`
-      );
-      const approvedBySignatureUrl = await uploadSignatureToStorage(
-        formData.approved_by_signature,
-        `approved-by-${timestamp}.png`
-      );
-      const acknowledgedBySignatureUrl = await uploadSignatureToStorage(
-        formData.acknowledged_by_signature,
-        `acknowledged-by-${timestamp}.png`
-      );
-
       const data = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
-        // Replace base64 signatures with URLs
-        if (key === 'service_technician_signature') {
-          data.append(key, serviceTechSignatureUrl || '');
-        } else if (key === 'approved_by_signature') {
-          data.append(key, approvedBySignatureUrl || '');
-        } else if (key === 'acknowledged_by_signature') {
-          data.append(key, acknowledgedBySignatureUrl || '');
-        } else {
-          data.append(key, value);
-        }
+        data.append(key, value);
       });
       if (selectedFile) {
         data.append("attachments", selectedFile);
@@ -227,9 +170,9 @@ export default function DeutzServiceForm() {
           { id: loadingToastId }
         );
       }
-    } catch (error) {
-      console.error("Network error:", error);
-      toast.error("A network error occurred. Please try again.", {
+    } catch (error: any) {
+      console.error("Submission error:", error);
+      toast.error(error.message || "A network error occurred. Please try again.", {
         id: loadingToastId,
       });
     } finally {

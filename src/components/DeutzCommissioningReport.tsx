@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
+import SignaturePad from './SignaturePad';
+import { supabase } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -85,8 +87,11 @@ export default function DeutzCommissioningReport() {
     remarks: '',
     recommendation: '',
     attending_technician: '',
+    attending_technician_signature: '',
     approved_by: '',
+    approved_by_signature: '',
     acknowledged_by: '',
+    acknowledged_by_signature: '',
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -113,19 +118,74 @@ export default function DeutzCommissioningReport() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleSignatureChange = (name: string, signature: string) => {
+    setFormData(prev => ({ ...prev, [name]: signature }));
+  };
+
+  const uploadSignatureToStorage = async (base64Signature: string, fileName: string): Promise<string | null> => {
+    if (!base64Signature) return null;
+
+    try {
+      // Convert base64 to blob
+      const base64Response = await fetch(base64Signature);
+      const blob = await base64Response.blob();
+
+      // Upload to Supabase storage
+      const { data, error } = await supabase.storage
+        .from('signatures')
+        .upload(fileName, blob, {
+          contentType: 'image/png',
+          upsert: true
+        });
+
+      if (error) {
+        console.error('Error uploading signature:', error);
+        return null;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('signatures')
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error processing signature:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     const loadingToastId = toast.loading('Submitting report...');
-    
-    // Map form state to API schema
-    const payload = {
-      ...formData,
-      summary: formData.inspection_summary,
-      comments_action: formData.inspection_comments,
-    };
 
     try {
+      // Upload signatures to Supabase storage
+      const timestamp = Date.now();
+      const attendingTechSignatureUrl = await uploadSignatureToStorage(
+        formData.attending_technician_signature,
+        `commissioning-attending-technician-${timestamp}.png`
+      );
+      const approvedBySignatureUrl = await uploadSignatureToStorage(
+        formData.approved_by_signature,
+        `commissioning-approved-by-${timestamp}.png`
+      );
+      const acknowledgedBySignatureUrl = await uploadSignatureToStorage(
+        formData.acknowledged_by_signature,
+        `commissioning-acknowledged-by-${timestamp}.png`
+      );
+
+      // Map form state to API schema with signature URLs
+      const payload = {
+        ...formData,
+        attending_technician_signature: attendingTechSignatureUrl || '',
+        approved_by_signature: approvedBySignatureUrl || '',
+        acknowledged_by_signature: acknowledgedBySignatureUrl || '',
+        summary: formData.inspection_summary,
+        comments_action: formData.inspection_comments,
+      };
+
       const response = await fetch('/api/forms/deutz-commissioning', {
         method: 'POST',
         headers: {
@@ -213,8 +273,11 @@ export default function DeutzCommissioningReport() {
           remarks: '',
           recommendation: '',
           attending_technician: '',
+          attending_technician_signature: '',
           approved_by: '',
+          approved_by_signature: '',
           acknowledged_by: '',
+          acknowledged_by_signature: '',
         });
       } else {
         const errorData = await response.json();
@@ -453,17 +516,32 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col space-y-4">
                     <Select label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} options={users.map(user => user.fullName)} />
-                    <p className="text-xs text-center text-gray-400 mt-1 italic">Technician</p>
+                    <SignaturePad
+                        label="Draw Signature"
+                        value={formData.attending_technician_signature}
+                        onChange={(signature: string) => handleSignatureChange('attending_technician_signature', signature)}
+                        subtitle="Technician"
+                    />
                 </div>
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col space-y-4">
                     <Select label="Approved By" name="approved_by" value={formData.approved_by} onChange={handleChange} options={users.map(user => user.fullName)} />
-                    <p className="text-xs text-center text-gray-400 mt-1 italic">Authorized Signature</p>
+                    <SignaturePad
+                        label="Draw Signature"
+                        value={formData.approved_by_signature}
+                        onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
+                        subtitle="Authorized Signature"
+                    />
                 </div>
-                <div className="flex flex-col justify-end">
+                <div className="flex flex-col space-y-4">
                     <Select label="Acknowledged By" name="acknowledged_by" value={formData.acknowledged_by} onChange={handleChange} options={users.map(user => user.fullName)} />
-                    <p className="text-xs text-center text-gray-400 mt-1 italic">Customer Signature</p>
+                    <SignaturePad
+                        label="Draw Signature"
+                        value={formData.acknowledged_by_signature}
+                        onChange={(signature: string) => handleSignatureChange('acknowledged_by_signature', signature)}
+                        subtitle="Customer Signature"
+                    />
                 </div>
             </div>
         </div>
@@ -543,24 +621,69 @@ interface SelectProps {
   options: string[];
 }
 
-const Select = ({ label, name, value, onChange, options }: SelectProps) => (
-    <div className="flex flex-col w-full">
+const Select = ({ label, name, value, onChange, options }: SelectProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectOption = (option: string) => {
+    const syntheticEvent = {
+      target: { name, value: option }
+    } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+    setShowDropdown(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange(e);
+  };
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
       <div className="relative">
-        <select
-            name={name}
-            value={value}
-            onChange={onChange}
-            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 appearance-none shadow-sm"
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={handleInputChange}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8 shadow-sm"
+          placeholder="Select or type a name"
+        />
+        <button
+          type="button"
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700"
         >
-            <option value="">Select a user</option>
+          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+          </svg>
+        </button>
+        {showDropdown && options.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
             {options.map((opt: string) => (
-                <option key={opt} value={opt}>{opt}</option>
+              <div
+                key={opt}
+                onClick={() => handleSelectOption(opt)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
+              >
+                {opt}
+              </div>
             ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
+};

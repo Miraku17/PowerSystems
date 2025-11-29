@@ -298,3 +298,227 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Record ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const body = await request.json();
+    const serviceSupabase = getServiceSupabase();
+
+    // Extract fields matching the database schema (same as POST)
+    const {
+      reporting_person_name,
+      telephone_fax,
+      equipment_name,
+      running_hours,
+      customer_name,
+      contact_person,
+      address,
+      email_address,
+      commissioning_location,
+      commissioning_date,
+      engine_model,
+      engine_serial_no,
+      commissioning_no,
+      equipment_manufacturer,
+      equipment_no,
+      equipment_type,
+      output,
+      revolutions,
+      main_effective_pressure,
+      lube_oil_type,
+      fuel_type,
+      cooling_water_additives,
+      fuel_pump_serial_no,
+      fuel_pump_code,
+      turbo_model,
+      turbo_serial_no,
+      summary,
+      check_oil_level,
+      check_air_filter,
+      check_hoses_clamps,
+      check_engine_support,
+      check_v_belt,
+      check_water_level,
+      crankshaft_end_play,
+      inspector,
+      comments_action,
+      rpm_idle_speed,
+      rpm_full_speed,
+      oil_pressure_idle,
+      oil_pressure_full,
+      oil_temperature,
+      engine_smoke,
+      engine_vibration,
+      check_engine_leakage,
+      cylinder_head_temp,
+      cylinder_no,
+      cylinder_a1,
+      cylinder_a2,
+      cylinder_a3,
+      cylinder_a4,
+      cylinder_a5,
+      cylinder_a6,
+      cylinder_b1,
+      cylinder_b2,
+      cylinder_b3,
+      cylinder_b4,
+      cylinder_b5,
+      cylinder_b6,
+      starter_part_no,
+      alternator_part_no,
+      v_belt_part_no,
+      air_filter_part_no,
+      oil_filter_part_no,
+      fuel_filter_part_no,
+      pre_fuel_filter_part_no,
+      controller_brand,
+      controller_model,
+      remarks,
+      recommendation,
+      attending_technician,
+      attending_technician_signature: rawAttendingSignature,
+      approved_by,
+      approved_by_signature: rawApprovedSignature,
+      acknowledged_by,
+      acknowledged_by_signature: rawAcknowledgedSignature,
+    } = body;
+
+    // Process Signatures
+    const timestamp = Date.now();
+    const attending_technician_signature = await uploadSignature(
+      serviceSupabase,
+      rawAttendingSignature,
+      `commissioning-attending-technician-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawApprovedSignature,
+      `commissioning-approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawAcknowledgedSignature,
+      `commissioning-acknowledged-by-${timestamp}.png`
+    );
+
+    // Construct update object
+    const updateData: any = {
+      reporting_person_name,
+      telephone_fax,
+      equipment_name,
+      running_hours,
+      customer_name,
+      contact_person,
+      address,
+      email_address,
+      commissioning_location,
+      commissioning_date: commissioning_date || null,
+      engine_model,
+      engine_serial_no,
+      commissioning_no,
+      equipment_manufacturer,
+      equipment_no,
+      equipment_type,
+      output,
+      revolutions,
+      main_effective_pressure,
+      lube_oil_type,
+      fuel_type,
+      cooling_water_additives,
+      fuel_pump_serial_no,
+      fuel_pump_code,
+      turbo_model,
+      turbo_serial_no,
+      summary,
+      check_oil_level,
+      check_air_filter,
+      check_hoses_clamps,
+      check_engine_support,
+      check_v_belt,
+      check_water_level,
+      crankshaft_end_play,
+      inspector,
+      comments_action,
+      rpm_idle_speed,
+      rpm_full_speed,
+      oil_pressure_idle,
+      oil_pressure_full,
+      oil_temperature,
+      engine_smoke,
+      engine_vibration,
+      check_engine_leakage,
+      cylinder_head_temp,
+      cylinder_no,
+      cylinder_a1,
+      cylinder_a2,
+      cylinder_a3,
+      cylinder_a4,
+      cylinder_a5,
+      cylinder_a6,
+      cylinder_b1,
+      cylinder_b2,
+      cylinder_b3,
+      cylinder_b4,
+      cylinder_b5,
+      cylinder_b6,
+      starter_part_no,
+      alternator_part_no,
+      v_belt_part_no,
+      air_filter_part_no,
+      oil_filter_part_no,
+      fuel_filter_part_no,
+      pre_fuel_filter_part_no,
+      controller_brand,
+      controller_model,
+      remarks,
+      recommendation,
+      attending_technician,
+      approved_by,
+      acknowledged_by,
+    };
+
+    // Only update signatures if they were processed (non-empty)
+    if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
+    else if (rawAttendingSignature === "") updateData.attending_technician_signature = ""; // Handle clearing
+    
+    if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
+    else if (rawApprovedSignature === "") updateData.approved_by_signature = "";
+
+    if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
+    else if (rawAcknowledgedSignature === "") updateData.acknowledged_by_signature = "";
+
+
+    const { data, error } = await supabase
+      .from("deutz_commissioning_report")
+      .update(updateData)
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating record:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json(
+      { message: "Report updated successfully", data },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error processing request:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}

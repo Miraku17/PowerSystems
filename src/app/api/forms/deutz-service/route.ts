@@ -267,11 +267,136 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+    const serviceSupabase = getServiceSupabase();
+
+    // Extract fields matching the database schema
+    // Note: In POST, service_technician_signature is mapped to attending_technician_signature in DB
+    const {
+      reporting_person_name,
+      telephone_fax,
+      equipment_manufacturer,
+      report_date,
+      customer_name,
+      contact_person,
+      address,
+      email_address,
+      engine_model,
+      engine_serial_no,
+      alternator_brand_model,
+      equipment_model,
+      equipment_serial_no,
+      alternator_serial_no,
+      location,
+      date_in_service,
+      rating,
+      revolution,
+      starting_voltage,
+      running_hours,
+      fuel_pump_serial_no,
+      fuel_pump_code,
+      lube_oil_type,
+      fuel_type,
+      cooling_water_additives,
+      date_failed,
+      turbo_model,
+      turbo_serial_no,
+      customer_complaint,
+      possible_cause,
+      within_coverage_period,
+      warrantable_failure,
+      summary_details,
+      service_technician,
+      attending_technician_signature: rawServiceTechSignature, // Frontend Edit component uses this name
+      service_technician_signature: rawServiceTechSignatureAlt, // Frontend Create component uses this name
+      approved_by,
+      approved_by_signature: rawApprovedBySignature,
+      acknowledged_by,
+      acknowledged_by_signature: rawAcknowledgedBySignature,
+      action_taken,
+      observation,
+      findings,
+      recommendations,
+    } = body;
+
+    // Handle signature field name discrepancy
+    const signatureToProcess = rawServiceTechSignature || rawServiceTechSignatureAlt;
+
+    // Process Signatures
+    const timestamp = Date.now();
+    const attending_technician_signature = await uploadSignature(
+      serviceSupabase,
+      signatureToProcess,
+      `service-technician-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawApprovedBySignature,
+      `approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawAcknowledgedBySignature,
+      `acknowledged-by-${timestamp}.png`
+    );
+
+    // Construct update object
+    const updateData: any = {
+      reporting_person_name,
+      telephone_fax,
+      equipment_manufacturer,
+      report_date: report_date || null,
+      customer_name,
+      contact_person,
+      address,
+      email_address,
+      engine_model,
+      engine_serial_no,
+      alternator_brand_model,
+      equipment_model,
+      equipment_serial_no,
+      alternator_serial_no,
+      location,
+      date_in_service: date_in_service || null,
+      rating,
+      revolution,
+      starting_voltage,
+      running_hours,
+      fuel_pump_serial_no,
+      fuel_pump_code,
+      lube_oil_type,
+      fuel_type,
+      cooling_water_additives,
+      date_failed: date_failed || null,
+      turbo_model,
+      turbo_serial_no,
+      customer_complaint,
+      possible_cause,
+      within_coverage_period,
+      warrantable_failure,
+      summary_details,
+      service_technician,
+      approved_by,
+      acknowledged_by,
+      action_taken,
+      observation,
+      findings,
+      recommendations,
+    };
+
+     // Only update signatures if they were processed (non-empty) or explicitly cleared
+     if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
+     else if (signatureToProcess === "") updateData.attending_technician_signature = "";
+ 
+     if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
+     else if (rawApprovedBySignature === "") updateData.approved_by_signature = "";
+ 
+     if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
+     else if (rawAcknowledgedBySignature === "") updateData.acknowledged_by_signature = "";
 
     // Update the record in Supabase
     const { data, error } = await supabase
       .from("deutz_service_report")
-      .update(body)
+      .update(updateData)
       .eq("id", id)
       .select()
       .single();

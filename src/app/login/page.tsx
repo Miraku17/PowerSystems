@@ -159,11 +159,13 @@ export default function AuthPage() {
     setCurrentStep(2);
   };
 
-  const handlePreviousStep = () => {
-    console.log("handlePreviousStep called. Current step before:", currentStep);
+  const handlePreviousStep = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setError("");
     setCurrentStep(1);
-    console.log("currentStep set to:", 1);
   };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {

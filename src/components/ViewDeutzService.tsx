@@ -131,8 +131,14 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Warranty Coverage</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Field label="Within Coverage Period?" value={data.within_coverage_period} />
-                  <Field label="Warrantable Failure?" value={data.warrantable_failure} />
+                  <Field 
+                    label="Within Coverage Period?" 
+                    value={data.within_coverage_period === true || data.within_coverage_period === "true" || data.within_coverage_period === "Yes" ? "Yes" : "No"} 
+                  />
+                  <Field 
+                    label="Warrantable Failure?" 
+                    value={data.warrantable_failure === true || data.warrantable_failure === "true" || data.warrantable_failure === "Yes" ? "Yes" : "No"} 
+                  />
                 </div>
               </div>
 

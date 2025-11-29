@@ -35,6 +35,12 @@ export async function GET(
     // Helper function to get value or empty string
     const getValue = (value: any) => value || "";
 
+    // Helper function to format boolean values
+    const formatBoolean = (value: any) => {
+      if (value === true || value === "true" || value === "Yes") return "Yes";
+      return "No";
+    };
+
     // Helper function to generate signature image HTML
     const getSignatureImg = (url: string | null) => {
       return url ? `<img src="${url}" class="signature-img" alt="Signature" />` : "";
@@ -77,8 +83,8 @@ export async function GET(
       turbo_serial_no: getValue(record.turbo_serial_no),
       customer_complaint: getValue(record.customer_complaint),
       possible_cause: getValue(record.possible_cause),
-      within_coverage_period: getValue(record.within_coverage_period),
-      warrantable_failure: getValue(record.warrantable_failure),
+      within_coverage_period: formatBoolean(record.within_coverage_period),
+      warrantable_failure: formatBoolean(record.warrantable_failure),
       summary_details: getValue(record.summary_details),
       service_technician: getValue(record.service_technician),
       approved_by: getValue(record.approved_by),

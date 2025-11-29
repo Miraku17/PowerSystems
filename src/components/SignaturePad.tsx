@@ -14,11 +14,17 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
   const sigCanvas = useRef<SignatureCanvas>(null);
 
   useEffect(() => {
-    if (value && sigCanvas.current && sigCanvas.current.isEmpty()) {
-      try {
-        sigCanvas.current.fromDataURL(value);
-      } catch (error) {
-        console.error('Error loading signature:', error);
+    if (sigCanvas.current) {
+      if (value) {
+        if (sigCanvas.current.isEmpty()) {
+          try {
+            sigCanvas.current.fromDataURL(value);
+          } catch (error) {
+            console.error('Error loading signature:', error);
+          }
+        }
+      } else {
+        sigCanvas.current.clear();
       }
     }
   }, [value]);

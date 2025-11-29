@@ -107,7 +107,11 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
 };
 
 export default function EditDeutzService({ data, recordId, onClose, onSaved }: EditDeutzServiceProps) {
-  const [formData, setFormData] = useState(data);
+  const [formData, setFormData] = useState(() => ({
+    ...data,
+    within_coverage_period: data.within_coverage_period === true || data.within_coverage_period === "true" || data.within_coverage_period === "Yes" ? "Yes" : "No",
+    warrantable_failure: data.warrantable_failure === true || data.warrantable_failure === "true" || data.warrantable_failure === "Yes" ? "Yes" : "No",
+  }));
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
 
@@ -137,7 +141,14 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
     const loadingToast = toast.loading('Saving changes...');
 
     try {
-      const response = await apiClient.patch(`/forms/deutz-service?id=${recordId}`, formData);
+      // Convert "Yes"/"No" back to boolean for database storage
+      const payload = {
+        ...formData,
+        within_coverage_period: formData.within_coverage_period === "Yes",
+        warrantable_failure: formData.warrantable_failure === "Yes",
+      };
+
+      const response = await apiClient.patch(`/forms/deutz-service?id=${recordId}`, payload);
 
       if (response.status === 200) {
         toast.success('Service Report updated successfully!', { id: loadingToast });

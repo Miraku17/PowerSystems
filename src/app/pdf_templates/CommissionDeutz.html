@@ -168,10 +168,22 @@
 
         .signature-line {
             border-bottom: 1px solid #000;
-            padding: 30px 10px 5px;
+            min-height: 40px;
+            padding-bottom: 5px;
             margin-bottom: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            align-items: center;
         }
 
+        .signature-img {
+            max-height: 60px;
+            max-width: 100%;
+            display: block;
+            margin-bottom: 5px;
+        }
+        
         .signature-label {
             font-size: 8px;
             font-style: italic;
@@ -544,17 +556,26 @@
         </div>
         <div class="signatures">
             <div class="signature-box">
-                <div class="signature-line">{{attending_technician}}</div>
+                <div class="signature-line">
+                    {{attending_technician_signature_img}}
+                    <div>{{attending_technician}}</div>
+                </div>
                 <div class="field-label">Attending Technician</div>
                 <div class="signature-label">Technician</div>
             </div>
             <div class="signature-box">
-                <div class="signature-line">{{approved_by}}</div>
+                <div class="signature-line">
+                    {{approved_by_signature_img}}
+                    <div>{{approved_by}}</div>
+                </div>
                 <div class="field-label">Approved By</div>
                 <div class="signature-label">Authorized Signature</div>
             </div>
             <div class="signature-box">
-                <div class="signature-line">{{acknowledged_by}}</div>
+                <div class="signature-line">
+                    {{acknowledged_by_signature_img}}
+                    <div>{{acknowledged_by}}</div>
+                </div>
                 <div class="field-label">Acknowledged By</div>
                 <div class="signature-label">Customer Signature</div>
             </div>

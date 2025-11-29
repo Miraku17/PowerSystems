@@ -146,276 +146,590 @@
             text-align: center;
         }
 
-        .signature-line {
-            border-bottom: 1px solid #000;
-            padding: 30px 10px 5px;
-            margin-bottom: 5px;
-        }
+                .signature-line {
 
-        .signature-label {
-            font-size: 8px;
-            font-style: italic;
-            color: #6b7280;
-        }
+                    border-bottom: 1px solid #000;
 
-        .attachments {
-            margin-top: 10px;
-        }
+                    min-height: 40px;
 
-        .attachments li {
-            margin-left: 20px;
-            padding: 3px 0;
-            font-size: 9px;
-        }
+                    padding-bottom: 5px;
 
-        @media print {
-            body {
-                padding: 10px;
-            }
-            .section {
-                page-break-inside: avoid;
-            }
-        }
-    </style>
-</head>
-<body>
-    <!-- Header -->
-    <div class="header">
-        <h1>POWER SYSTEMS, INCORPORATED</h1>
-        <p>2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,</p>
-        <p>Bagumbayan, Libis, Quezon City</p>
-        <p>Tel: (+63-2) 687-9275 to 78 | Fax: (+63-2) 687-9279</p>
-        <p>Email: sales@psi-deutz.com</p>
-        <div class="branches">
-            NAVOTAS " BACOLOD " CEBU " CAGAYAN " DAVAO " GEN SAN " ZAMBOANGA " ILO-ILO " SURIGAO
-        </div>
-    </div>
+                    margin-bottom: 5px;
 
-    <!-- Title -->
-    <div class="title-box">
-        <h2>DEUTZ SERVICE FORM</h2>
-    </div>
+                    display: flex;
 
-    <!-- Job Order -->
-    <div class="job-order">Job Order No: {{job_order}}</div>
+                    flex-direction: column;
 
-    <!-- General Information -->
-    <div class="section">
-        <div class="section-header">
-            <h3>General Information</h3>
-        </div>
-        <div class="field-grid field-grid-4">
-            <div class="field">
-                <div class="field-label">Reporting Person</div>
-                <div class="field-value">{{reporting_person_name}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Date</div>
-                <div class="field-value">{{report_date}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Customer Name</div>
-                <div class="field-value">{{customer_name}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Contact Person</div>
-                <div class="field-value">{{contact_person}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Telephone / Fax</div>
-                <div class="field-value">{{telephone_fax}}</div>
-            </div>
-            <div class="field span-3">
-                <div class="field-label">Address</div>
-                <div class="field-value">{{address}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Email Address</div>
-                <div class="field-value">{{email_address}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Equipment Manufacturer</div>
-                <div class="field-value">{{equipment_manufacturer}}</div>
-            </div>
-        </div>
-    </div>
+                    justify-content: flex-end;
 
-    <!-- Equipment & Engine Details -->
-    <div class="section">
-        <div class="section-header">
-            <h3>Equipment & Engine Details</h3>
-        </div>
-        <div class="field-grid">
-            <div class="field">
-                <div class="field-label">Equipment Model</div>
-                <div class="field-value">{{equipment_model}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Equipment Serial No.</div>
-                <div class="field-value">{{equipment_serial_no}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Engine Model</div>
-                <div class="field-value">{{engine_model}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Engine Serial No.</div>
-                <div class="field-value">{{engine_serial_no}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Alternator Brand/Model</div>
-                <div class="field-value">{{alternator_brand_model}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Alternator Serial No.</div>
-                <div class="field-value">{{alternator_serial_no}}</div>
-            </div>
-        </div>
-    </div>
+                    align-items: center;
 
-    <!-- Operational Data -->
-    <div class="section">
-        <div class="section-header">
-            <h3>Operational Data</h3>
-        </div>
-        <div class="field-grid field-grid-4">
-            <div class="field">
-                <div class="field-label">Location</div>
-                <div class="field-value">{{location}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Date in Service</div>
-                <div class="field-value">{{date_in_service}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Date Failed</div>
-                <div class="field-value">{{date_failed}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Rating</div>
-                <div class="field-value">{{rating}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Revolution (RPM)</div>
-                <div class="field-value">{{revolution}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Starting Voltage</div>
-                <div class="field-value">{{starting_voltage}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Running Hours</div>
-                <div class="field-value">{{running_hours}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Lube Oil Type</div>
-                <div class="field-value">{{lube_oil_type}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Fuel Type</div>
-                <div class="field-value">{{fuel_type}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Fuel Pump Code</div>
-                <div class="field-value">{{fuel_pump_code}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Fuel Pump Serial No.</div>
-                <div class="field-value">{{fuel_pump_serial_no}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Cooling Water Additives</div>
-                <div class="field-value">{{cooling_water_additives}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Turbo Model</div>
-                <div class="field-value">{{turbo_model}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Turbo Serial No.</div>
-                <div class="field-value">{{turbo_serial_no}}</div>
-            </div>
-        </div>
-    </div>
+                }
 
-    <!-- Warranty Coverage -->
-    <div class="section">
-        <div class="section-header">
-            <h3>Warranty Coverage</h3>
-        </div>
-        <div class="field-grid">
-            <div class="field">
-                <div class="field-label">Within Coverage Period?</div>
-                <div class="field-value">{{within_coverage_period}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Warrantable Failure?</div>
-                <div class="field-value">{{warrantable_failure}}</div>
-            </div>
-        </div>
-    </div>
+        
 
-    <!-- Service Report Details -->
-    <div class="section">
-        <div class="section-header">
-            <h3>Service Report Details</h3>
-        </div>
-        <div class="field-grid">
-            <div class="field full-width">
-                <div class="field-label">Customer Complaint</div>
-                <div class="field-value text-area">{{customer_complaint}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Possible Cause</div>
-                <div class="field-value text-area">{{possible_cause}}</div>
-            </div>
-            <div class="field">
-                <div class="field-label">Observation</div>
-                <div class="field-value text-area">{{observation}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Findings</div>
-                <div class="field-value text-area">{{findings}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Action Taken</div>
-                <div class="field-value text-area">{{action_taken}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Recommendations</div>
-                <div class="field-value text-area">{{recommendations}}</div>
-            </div>
-            <div class="field full-width">
-                <div class="field-label">Summary Details</div>
-                <div class="field-value text-area">{{summary_details}}</div>
-            </div>
-        </div>
-    </div>
+                .signature-img {
 
-    <!-- Signatures -->
-    <div class="section">
-        <div class="section-header">
-            <h3>Signatures</h3>
-        </div>
-        <div class="signatures">
-            <div class="signature-box">
-                <div class="signature-line">{{service_technician}}</div>
-                <div class="field-label">Service Technician</div>
-                <div class="signature-label">Signed by Technician</div>
-            </div>
-            <div class="signature-box">
-                <div class="signature-line">{{approved_by}}</div>
-                <div class="field-label">Approved By</div>
-                <div class="signature-label">Authorized Signature</div>
-            </div>
-            <div class="signature-box">
-                <div class="signature-line">{{acknowledged_by}}</div>
-                <div class="field-label">Acknowledged By</div>
-                <div class="signature-label">Customer Signature</div>
-            </div>
-        </div>
-    </div>
+                    max-height: 60px;
 
+                    max-width: 100%;
 
-</body>
-</html>
+                    display: block;
+
+                    margin-bottom: 5px;
+
+                }
+
+        
+
+                .signature-label {
+
+                    font-size: 8px;
+
+                    font-style: italic;
+
+                    color: #6b7280;
+
+                }
+
+        
+
+                .attachments {
+
+                    margin-top: 10px;
+
+                }
+
+        
+
+                .attachments li {
+
+                    margin-left: 20px;
+
+                    padding: 3px 0;
+
+                    font-size: 9px;
+
+                }
+
+        
+
+                @media print {
+
+                    body {
+
+                        padding: 10px;
+
+                    }
+
+                    .section {
+
+                        page-break-inside: avoid;
+
+                    }
+
+                }
+
+            </style>
+
+        </head>
+
+        <body>
+
+            <!-- Header -->
+
+            <div class="header">
+
+                <h1>POWER SYSTEMS, INCORPORATED</h1>
+
+                <p>2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,</p>
+
+                <p>Bagumbayan, Libis, Quezon City</p>
+
+                <p>Tel: (+63-2) 687-9275 to 78 | Fax: (+63-2) 687-9279</p>
+
+                <p>Email: sales@psi-deutz.com</p>
+
+                <div class="branches">
+
+                    NAVOTAS " BACOLOD " CEBU " CAGAYAN " DAVAO " GEN SAN " ZAMBOANGA " ILO-ILO " SURIGAO
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Title -->
+
+            <div class="title-box">
+
+                <h2>DEUTZ SERVICE FORM</h2>
+
+            </div>
+
+        
+
+            <!-- Job Order -->
+
+            <div class="job-order">Job Order No: {{job_order}}</div>
+
+        
+
+            <!-- General Information -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>General Information</h3>
+
+                </div>
+
+                <div class="field-grid field-grid-4">
+
+                    <div class="field">
+
+                        <div class="field-label">Reporting Person</div>
+
+                        <div class="field-value">{{reporting_person_name}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Date</div>
+
+                        <div class="field-value">{{report_date}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Customer Name</div>
+
+                        <div class="field-value">{{customer_name}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Contact Person</div>
+
+                        <div class="field-value">{{contact_person}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Telephone / Fax</div>
+
+                        <div class="field-value">{{telephone_fax}}</div>
+
+                    </div>
+
+                    <div class="field span-3">
+
+                        <div class="field-label">Address</div>
+
+                        <div class="field-value">{{address}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Email Address</div>
+
+                        <div class="field-value">{{email_address}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Equipment Manufacturer</div>
+
+                        <div class="field-value">{{equipment_manufacturer}}</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Equipment & Engine Details -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>Equipment & Engine Details</h3>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="field">
+
+                        <div class="field-label">Equipment Model</div>
+
+                        <div class="field-value">{{equipment_model}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Equipment Serial No.</div>
+
+                        <div class="field-value">{{equipment_serial_no}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Engine Model</div>
+
+                        <div class="field-value">{{engine_model}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Engine Serial No.</div>
+
+                        <div class="field-value">{{engine_serial_no}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Alternator Brand/Model</div>
+
+                        <div class="field-value">{{alternator_brand_model}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Alternator Serial No.</div>
+
+                        <div class="field-value">{{alternator_serial_no}}</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Operational Data -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>Operational Data</h3>
+
+                </div>
+
+                <div class="field-grid field-grid-4">
+
+                    <div class="field">
+
+                        <div class="field-label">Location</div>
+
+                        <div class="field-value">{{location}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Date in Service</div>
+
+                        <div class="field-value">{{date_in_service}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Date Failed</div>
+
+                        <div class="field-value">{{date_failed}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Rating</div>
+
+                        <div class="field-value">{{rating}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Revolution (RPM)</div>
+
+                        <div class="field-value">{{revolution}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Starting Voltage</div>
+
+                        <div class="field-value">{{starting_voltage}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Running Hours</div>
+
+                        <div class="field-value">{{running_hours}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Lube Oil Type</div>
+
+                        <div class="field-value">{{lube_oil_type}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Fuel Type</div>
+
+                        <div class="field-value">{{fuel_type}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Fuel Pump Code</div>
+
+                        <div class="field-value">{{fuel_pump_code}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Fuel Pump Serial No.</div>
+
+                        <div class="field-value">{{fuel_pump_serial_no}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Cooling Water Additives</div>
+
+                        <div class="field-value">{{cooling_water_additives}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Turbo Model</div>
+
+                        <div class="field-value">{{turbo_model}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Turbo Serial No.</div>
+
+                        <div class="field-value">{{turbo_serial_no}}</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Warranty Coverage -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>Warranty Coverage</h3>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="field">
+
+                        <div class="field-label">Within Coverage Period?</div>
+
+                        <div class="field-value">{{within_coverage_period}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Warrantable Failure?</div>
+
+                        <div class="field-value">{{warrantable_failure}}</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Service Report Details -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>Service Report Details</h3>
+
+                </div>
+
+                <div class="field-grid">
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Customer Complaint</div>
+
+                        <div class="field-value text-area">{{customer_complaint}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Possible Cause</div>
+
+                        <div class="field-value text-area">{{possible_cause}}</div>
+
+                    </div>
+
+                    <div class="field">
+
+                        <div class="field-label">Observation</div>
+
+                        <div class="field-value text-area">{{observation}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Findings</div>
+
+                        <div class="field-value text-area">{{findings}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Action Taken</div>
+
+                        <div class="field-value text-area">{{action_taken}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Recommendations</div>
+
+                        <div class="field-value text-area">{{recommendations}}</div>
+
+                    </div>
+
+                    <div class="field full-width">
+
+                        <div class="field-label">Summary Details</div>
+
+                        <div class="field-value text-area">{{summary_details}}</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+            <!-- Signatures -->
+
+            <div class="section">
+
+                <div class="section-header">
+
+                    <h3>Signatures</h3>
+
+                </div>
+
+                <div class="signatures">
+
+                    <div class="signature-box">
+
+                        <div class="signature-line">
+
+                            {{service_technician_signature_img}}
+
+                            <div>{{service_technician}}</div>
+
+                        </div>
+
+                        <div class="field-label">Service Technician</div>
+
+                        <div class="signature-label">Signed by Technician</div>
+
+                    </div>
+
+                    <div class="signature-box">
+
+                        <div class="signature-line">
+
+                            {{approved_by_signature_img}}
+
+                            <div>{{approved_by}}</div>
+
+                        </div>
+
+                        <div class="field-label">Approved By</div>
+
+                        <div class="signature-label">Authorized Signature</div>
+
+                    </div>
+
+                    <div class="signature-box">
+
+                        <div class="signature-line">
+
+                            {{acknowledged_by_signature_img}}
+
+                            <div>{{acknowledged_by}}</div>
+
+                        </div>
+
+                        <div class="field-label">Acknowledged By</div>
+
+                        <div class="signature-label">Customer Signature</div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        
+
+        
+
+        </body>
+
+        </html>

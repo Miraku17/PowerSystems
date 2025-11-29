@@ -35,6 +35,11 @@ export async function GET(
     // Helper function to get value or empty string
     const getValue = (value: any) => value || "";
 
+    // Helper function to generate signature image HTML
+    const getSignatureImg = (url: string | null) => {
+      return url ? `<img src="${url}" class="signature-img" alt="Signature" />` : "";
+    };
+
     // Read HTML template
     const templatePath = join(process.cwd(), "src/app/pdf_templates/CommissionDeutz.html");
     let htmlTemplate = readFileSync(templatePath, "utf-8");
@@ -114,6 +119,9 @@ export async function GET(
       attending_technician: getValue(record.attending_technician),
       approved_by: getValue(record.approved_by),
       acknowledged_by: getValue(record.acknowledged_by),
+      attending_technician_signature_img: getSignatureImg(record.attending_technician_signature),
+      approved_by_signature_img: getSignatureImg(record.approved_by_signature),
+      acknowledged_by_signature_img: getSignatureImg(record.acknowledged_by_signature),
     };
 
     // Replace all placeholders in the template

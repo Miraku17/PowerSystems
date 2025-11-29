@@ -256,17 +256,38 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="text-center">
+                  <div className="text-center flex flex-col items-center">
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.attending_technician_signature ? (
+                             <img src={data.attending_technician_signature} alt="Technician Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
                     <Field label="Attending Technician" value={data.attending_technician} />
-                    <p className="text-xs text-gray-400 mt-2 italic">Technician</p>
+                    <p className="text-xs text-gray-400 mt-1 italic">Technician</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center flex flex-col items-center">
+                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.approved_by_signature ? (
+                             <img src={data.approved_by_signature} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
                     <Field label="Approved By" value={data.approved_by} />
-                    <p className="text-xs text-gray-400 mt-2 italic">Authorized Signature</p>
+                    <p className="text-xs text-gray-400 mt-1 italic">Authorized Signature</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center flex flex-col items-center">
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.acknowledged_by_signature ? (
+                             <img src={data.acknowledged_by_signature} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
                     <Field label="Acknowledged By" value={data.acknowledged_by} />
-                    <p className="text-xs text-gray-400 mt-2 italic">Customer Signature</p>
+                    <p className="text-xs text-gray-400 mt-1 italic">Customer Signature</p>
                   </div>
                 </div>
               </div>

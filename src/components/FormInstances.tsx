@@ -306,16 +306,10 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
         sectionedData[section][field.name] = value;
       });
 
-      // Create submission data with required structure
-      const submissionData = {
-        companyFormId: parseInt(formTemplate.id),
-        data: sectionedData,
-      };
-
-      console.log("Submitting form data:", submissionData);
+      console.log("Submitting form data:", sectionedData);
 
       // Submit to API
-      const response = await formRecordService.create(submissionData);
+      const response = await formRecordService.create(formTemplate.formType, sectionedData);
 
       console.log("Form submitted successfully:", response);
 

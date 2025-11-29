@@ -99,13 +99,19 @@ export default function FormRecordsPage() {
   const handleDeleteRecord = async () => {
     if (!recordToDelete) return;
 
-    const { id, companyForm } = recordToDelete;
-    const formType = companyForm.formType;
+    const { id } = recordToDelete;
 
     const loadingToast = toast.loading("Deleting record...");
 
     try {
-      await formRecordService.deleteRecord(formType, id);
+      const formConfig = formTypeEndpoints[normalizedFormType];
+
+      if (!formConfig) {
+        toast.error("Invalid form type", { id: loadingToast });
+        return;
+      }
+
+      await axios.delete(`${formConfig.endpoint}/${id}`);
 
       toast.success("Record deleted successfully!", { id: loadingToast });
       setRecordToDelete(null);

@@ -38,6 +38,32 @@ export const formRecordService = {
     return response.data;
   },
 
+  // Create a new form record
+  create: async (formType: string, data: Record<string, any>) => {
+    // Normalize form type to lowercase
+    const normalizedFormType = formType.toLowerCase();
+    const endpoint = formTypeEndpoints[normalizedFormType];
+
+    if (!endpoint) {
+      throw new Error(`Unsupported form type: ${formType}`);
+    }
+
+    // Flatten nested section data if present
+    const flattenedData: Record<string, any> = {};
+    Object.keys(data).forEach((key) => {
+      if (typeof data[key] === 'object' && !Array.isArray(data[key]) && data[key] !== null) {
+        // If it's an object (section), merge its properties into flattenedData
+        Object.assign(flattenedData, data[key]);
+      } else {
+        // Otherwise, add the key-value pair directly
+        flattenedData[key] = data[key];
+      }
+    });
+
+    const response = await localApiClient.post<ApiResponse<any>>(endpoint, flattenedData);
+    return response.data;
+  },
+
   // Note: Update method is not implemented yet as it requires
   // form-type-specific routes. They will be added when needed.
   update: async (id: string, data: Partial<FormRecordSubmission>) => {

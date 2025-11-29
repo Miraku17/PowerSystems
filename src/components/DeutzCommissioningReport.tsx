@@ -128,6 +128,7 @@ export default function DeutzCommissioningReport() {
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
                 <Input label="Commissioning No." name="commissioning_no" value={formData.commissioning_no} onChange={handleChange} />
+                <Input label="Equipment Name" name="equipment_name" value={formData.equipment_name} onChange={handleChange} />
                 
                 <div className="lg:col-span-2">
                    <Input label="Customer Name" name="customer_name" value={formData.customer_name} onChange={handleChange} />
@@ -152,7 +153,6 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Equipment & Engine Data</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <Input label="Equipment Name" name="equipment_name" value={formData.equipment_name} onChange={handleChange} />
                 <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
                 <Input label="Equipment Type" name="equipment_type" value={formData.equipment_type} onChange={handleChange} />
                 
@@ -214,10 +214,11 @@ export default function DeutzCommissioningReport() {
 
         {/* Section 5: Operational Readings */}
         <div>
-            <div className="flex items-center mb-4">
+            <div className="flex items-center mb-1">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Operational Readings (Test Run)</h3>
             </div>
+            <p className="text-sm text-gray-600 mb-4 ml-3">Description: Test run engine with load.</p>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
                 <Input label="RPM (Idle Speed)" name="rpm_idle_speed" value={formData.rpm_idle_speed} onChange={handleChange} />
                 <Input label="RPM (Full Speed)" name="rpm_full_speed" value={formData.rpm_full_speed} onChange={handleChange} />

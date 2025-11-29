@@ -92,7 +92,6 @@ export default function DeutzServiceForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Date" name="report_date" type="date" value={formData.report_date} onChange={handleChange} />
-                <Input label="Date Failed" name="date_failed" type="date" value={formData.date_failed} onChange={handleChange} />
                 
                 <div className="lg:col-span-2">
                    <Input label="Customer Name" name="customer_name" value={formData.customer_name} onChange={handleChange} />
@@ -104,6 +103,7 @@ export default function DeutzServiceForm() {
                     <Input label="Address" name="address" value={formData.address} onChange={handleChange} />
                 </div>
                 <Input label="Email Address" name="email_address" type="email" value={formData.email_address} onChange={handleChange} />
+                <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
             </div>
         </div>
 
@@ -114,20 +114,14 @@ export default function DeutzServiceForm() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Equipment & Engine Details</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
                 <Input label="Equipment Model" name="equipment_model" value={formData.equipment_model} onChange={handleChange} />
                 <Input label="Equipment Serial No." name="equipment_serial_no" value={formData.equipment_serial_no} onChange={handleChange} />
                 
                 <Input label="Engine Model" name="engine_model" value={formData.engine_model} onChange={handleChange} />
                 <Input label="Engine Serial No." name="engine_serial_no" value={formData.engine_serial_no} onChange={handleChange} />
-                <Input label="Turbo Model" name="turbo_model" value={formData.turbo_model} onChange={handleChange} />
                 
-                <Input label="Turbo Serial No." name="turbo_serial_no" value={formData.turbo_serial_no} onChange={handleChange} />
                 <Input label="Alternator Brand/Model" name="alternator_brand_model" value={formData.alternator_brand_model} onChange={handleChange} />
                 <Input label="Alternator Serial No." name="alternator_serial_no" value={formData.alternator_serial_no} onChange={handleChange} />
-                
-                <Input label="Fuel Pump Code" name="fuel_pump_code" value={formData.fuel_pump_code} onChange={handleChange} />
-                <Input label="Fuel Pump Serial No." name="fuel_pump_serial_no" value={formData.fuel_pump_serial_no} onChange={handleChange} />
             </div>
         </div>
 
@@ -140,6 +134,7 @@ export default function DeutzServiceForm() {
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
                 <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
                 <Input label="Date in Service" name="date_in_service" type="date" value={formData.date_in_service} onChange={handleChange} />
+                <Input label="Date Failed" name="date_failed" type="date" value={formData.date_failed} onChange={handleChange} />
                 <Input label="Rating" name="rating" value={formData.rating} onChange={handleChange} />
                 <Input label="Revolution (RPM)" name="revolution" value={formData.revolution} onChange={handleChange} />
                 
@@ -148,15 +143,30 @@ export default function DeutzServiceForm() {
                 <Input label="Lube Oil Type" name="lube_oil_type" value={formData.lube_oil_type} onChange={handleChange} />
                 <Input label="Fuel Type" name="fuel_type" value={formData.fuel_type} onChange={handleChange} />
                 
+                <Input label="Fuel Pump Code" name="fuel_pump_code" value={formData.fuel_pump_code} onChange={handleChange} />
+                <Input label="Fuel Pump Serial No." name="fuel_pump_serial_no" value={formData.fuel_pump_serial_no} onChange={handleChange} />
+
                 <div className="lg:col-span-2">
                     <Input label="Cooling Water Additives" name="cooling_water_additives" value={formData.cooling_water_additives} onChange={handleChange} />
                 </div>
-                <Select label="Within Coverage Period?" name="within_coverage_period" value={formData.within_coverage_period} onChange={handleChange} options={['Yes', 'No']} />
-                <Select label="Warrantable Failure?" name="warrantable_failure" value={formData.warrantable_failure} onChange={handleChange} options={['Yes', 'No']} />
+                <Input label="Turbo Model" name="turbo_model" value={formData.turbo_model} onChange={handleChange} />
+                <Input label="Turbo Serial No." name="turbo_serial_no" value={formData.turbo_serial_no} onChange={handleChange} />
             </div>
         </div>
 
-        {/* Section 4: Failure Analysis & Findings */}
+        {/* Section 4: Warranty Coverage */}
+        <div>
+            <div className="flex items-center mb-4">
+                <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                <h3 className="text-lg font-bold text-gray-800 uppercase">Warranty Coverage</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+                 <Select label="Within Coverage Period?" name="within_coverage_period" value={formData.within_coverage_period} onChange={handleChange} options={['Yes', 'No']} />
+                 <Select label="Warrantable Failure?" name="warrantable_failure" value={formData.warrantable_failure} onChange={handleChange} options={['Yes', 'No']} />
+            </div>
+        </div>
+
+        {/* Section 5 */}
         <div>
             <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -194,7 +204,7 @@ export default function DeutzServiceForm() {
             </div>
         </div>
 
-        {/* Section 5: Signatures */}
+        {/* Section 6: Signatures */}
         <div>
             <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>

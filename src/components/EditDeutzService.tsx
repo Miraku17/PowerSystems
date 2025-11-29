@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
+import SignaturePad from "./SignaturePad";
 
 interface EditDeutzServiceProps {
   data: Record<string, any>;
@@ -230,27 +231,98 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <Select
-                  label="Service Technician"
-                  name="service_technician"
-                  value={formData.service_technician}
-                  onChange={handleChange}
-                  options={users.map(user => user.fullName)}
-                />
-                <Select
-                  label="Approved By"
-                  name="approved_by"
-                  value={formData.approved_by}
-                  onChange={handleChange}
-                  options={users.map(user => user.fullName)}
-                />
-                <Select
-                  label="Acknowledged By"
-                  name="acknowledged_by"
-                  value={formData.acknowledged_by}
-                  onChange={handleChange}
-                  options={users.map(user => user.fullName)}
-                />
+                <div className="flex flex-col space-y-4">
+                  <Select
+                    label="Service Technician"
+                    name="service_technician"
+                    value={formData.service_technician}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  {formData.attending_technician_signature && formData.attending_technician_signature.startsWith('http') ? (
+                    <div className="flex flex-col items-center">
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
+                        <img src={formData.attending_technician_signature} alt="Signature" className="max-h-24 object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleChange("attending_technician_signature", "")}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Remove Signature
+                      </button>
+                    </div>
+                  ) : (
+                    <SignaturePad
+                      label="Technician Signature"
+                      value={formData.attending_technician_signature}
+                      onChange={(val) => handleChange("attending_technician_signature", val)}
+                      subtitle="Sign above"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col space-y-4">
+                  <Select
+                    label="Approved By"
+                    name="approved_by"
+                    value={formData.approved_by}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  {formData.approved_by_signature && formData.approved_by_signature.startsWith('http') ? (
+                    <div className="flex flex-col items-center">
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
+                        <img src={formData.approved_by_signature} alt="Signature" className="max-h-24 object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleChange("approved_by_signature", "")}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Remove Signature
+                      </button>
+                    </div>
+                  ) : (
+                    <SignaturePad
+                      label="Authorized Signature"
+                      value={formData.approved_by_signature}
+                      onChange={(val) => handleChange("approved_by_signature", val)}
+                      subtitle="Sign above"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col space-y-4">
+                  <Select
+                    label="Acknowledged By"
+                    name="acknowledged_by"
+                    value={formData.acknowledged_by}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  {formData.acknowledged_by_signature && formData.acknowledged_by_signature.startsWith('http') ? (
+                    <div className="flex flex-col items-center">
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
+                        <img src={formData.acknowledged_by_signature} alt="Signature" className="max-h-24 object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleChange("acknowledged_by_signature", "")}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Remove Signature
+                      </button>
+                    </div>
+                  ) : (
+                    <SignaturePad
+                      label="Customer Signature"
+                      value={formData.acknowledged_by_signature}
+                      onChange={(val) => handleChange("acknowledged_by_signature", val)}
+                      subtitle="Sign above"
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>

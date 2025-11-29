@@ -44,7 +44,9 @@ export async function GET(request: Request) {
 
 // Helper to upload signature server-side
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
-  if (!base64Data || !base64Data.startsWith('data:image')) return '';
+  if (!base64Data) return '';
+  if (base64Data.startsWith('http')) return base64Data;
+  if (!base64Data.startsWith('data:image')) return '';
   
   try {
     const base64Image = base64Data.split(';base64,').pop();

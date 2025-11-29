@@ -42,7 +42,9 @@ export async function GET(request: Request) {
 }
 
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
-  if (!base64Data || !base64Data.startsWith('data:image')) return '';
+  if (!base64Data) return '';
+  if (base64Data.startsWith('http')) return base64Data;
+  if (!base64Data.startsWith('data:image')) return '';
   
   try {
     // Extract the base64 string

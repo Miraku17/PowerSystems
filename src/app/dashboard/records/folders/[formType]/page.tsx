@@ -10,7 +10,8 @@ import {
   XMarkIcon,
   CalendarIcon,
   PrinterIcon,
-  PencilIcon
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import axios from "axios";
@@ -19,6 +20,7 @@ import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
   id: string;
@@ -44,6 +46,7 @@ export default function FormRecordsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<FormRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<FormRecord | null>(null);
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
@@ -90,6 +93,26 @@ export default function FormRecordsPage() {
       setRecords([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return;
+
+    const { id, companyForm } = recordToDelete;
+    const formType = companyForm.formType;
+
+    const loadingToast = toast.loading("Deleting record...");
+
+    try {
+      await formRecordService.deleteRecord(formType, id);
+
+      toast.success("Record deleted successfully!", { id: loadingToast });
+      setRecordToDelete(null);
+      loadRecords(); // Refresh the list
+    } catch (error) {
+      toast.error("Failed to delete record.", { id: loadingToast });
+      console.error("Error deleting record:", error);
     }
   };
 
@@ -305,6 +328,13 @@ export default function FormRecordsPage() {
                         >
                           <PrinterIcon className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() => setRecordToDelete(record)}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Record"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -339,6 +369,19 @@ export default function FormRecordsPage() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal for Deletion */}
+      {recordToDelete && (
+        <ConfirmationModal
+          isOpen={!!recordToDelete}
+          title="Delete Record"
+          message={`Are you sure you want to delete this record? This action cannot be undone.`}
+          onConfirm={handleDeleteRecord}
+          onClose={() => setRecordToDelete(null)}
+          confirmText="Delete"
+          type="danger"
+        />
+      )}
 
       {/* View Modal */}
       {selectedRecord && normalizedFormType === "deutz-commissioning" && (

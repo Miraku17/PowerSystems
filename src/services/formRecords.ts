@@ -38,13 +38,26 @@ export const formRecordService = {
     return response.data;
   },
 
-  // Note: Update, Delete methods are not implemented yet as they require
+  // Note: Update method is not implemented yet as it requires
   // form-type-specific routes. They will be added when needed.
   update: async (id: string, data: Partial<FormRecordSubmission>) => {
     throw new Error("Update functionality not yet implemented for form records");
   },
 
-  delete: async (id: string) => {
-    throw new Error("Delete functionality not yet implemented for form records");
+  // Delete a record by its ID for a specific form type
+  deleteRecord: async (formType: string, recordId: string) => {
+    // Normalize form type to lowercase
+    const normalizedFormType = formType.toLowerCase();
+    const endpoint = formTypeEndpoints[normalizedFormType];
+
+    if (!endpoint) {
+      throw new Error(`Unsupported form type for deletion: ${formType}`);
+    }
+
+    // Construct the correct URL (e.g., /api/forms/deutz-service/123)
+    const url = `${endpoint}/${recordId}`;
+
+    const response = await localApiClient.delete<ApiResponse<any>>(url);
+    return response.data;
   },
 };

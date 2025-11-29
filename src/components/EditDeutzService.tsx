@@ -107,7 +107,7 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
 };
 
 export default function EditDeutzService({ data, recordId, onClose, onSaved }: EditDeutzServiceProps) {
-  const [formData, setFormData] = useState(() => ({
+  const [formData, setFormData] = useState<Record<string, any>>(() => ({
     ...data,
     within_coverage_period: data.within_coverage_period === true || data.within_coverage_period === "true" || data.within_coverage_period === "Yes" ? "Yes" : "No",
     warrantable_failure: data.warrantable_failure === true || data.warrantable_failure === "true" || data.warrantable_failure === "Yes" ? "Yes" : "No",

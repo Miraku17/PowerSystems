@@ -394,6 +394,28 @@ export async function PATCH(request: Request) {
       acknowledged_by_signature: rawAcknowledgedSignature,
     } = body;
 
+    // Check for duplicate Job Order if it's being updated
+    if (job_order_no) {
+      const { data: existingRecord, error: searchError } = await supabase
+        .from('deutz_commissioning_report')
+        .select('id')
+        .eq('job_order_no', job_order_no)
+        .neq('id', id) // Exclude current record
+        .single();
+
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Error checking for duplicate job order:', searchError);
+        return NextResponse.json({ error: 'Failed to validate Job Order uniqueness.' }, { status: 500 });
+      }
+
+      if (existingRecord) {
+        return NextResponse.json(
+          { error: `Job Order '${job_order_no}' already exists.` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Process Signatures
     const timestamp = Date.now();
     const attending_technician_signature = await uploadSignature(

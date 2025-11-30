@@ -224,9 +224,6 @@ export default function EditDeutzCommissioning({
             <h3 className="text-xl font-bold text-gray-900">
               Edit Commissioning Report
             </h3>
-            <p className="text-sm text-gray-500">
-              Job Order: {formData.job_order_no || "N/A"}
-            </p>
           </div>
           <button
             onClick={onClose}
@@ -242,6 +239,26 @@ export default function EditDeutzCommissioning({
           className="flex-1 overflow-y-auto p-8 bg-gray-50/50"
         >
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto space-y-8">
+            
+            {/* Job Order and Date Emphasis */}
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Job Order No."
+                  name="job_order_no"
+                  value={formData.job_order_no}
+                  onChange={handleChange}
+                />
+                <Input
+                  label="Commissioning Date"
+                  name="commissioning_date"
+                  type="date"
+                  value={formData.commissioning_date}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
+
             {/* Section 1: General Information */}
             <div>
               <div className="flex items-center mb-4">
@@ -255,13 +272,6 @@ export default function EditDeutzCommissioning({
                   label="Reporting Person"
                   name="reporting_person_name"
                   value={formData.reporting_person_name}
-                  onChange={handleChange}
-                />
-                <Input
-                  label="Commissioning Date"
-                  name="commissioning_date"
-                  type="date"
-                  value={formData.commissioning_date}
                   onChange={handleChange}
                 />
                 <Input

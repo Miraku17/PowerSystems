@@ -2,11 +2,9 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(async (request, { user, params }) => {
   try {
     const { id } = await params;
 
@@ -26,10 +24,7 @@ export async function GET(
 
     if (error || !record) {
       console.error("Error fetching record:", error);
-      return NextResponse.json(
-        { error: "Record not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
     // Helper function to get value or empty string
@@ -43,11 +38,16 @@ export async function GET(
 
     // Helper function to generate signature image HTML
     const getSignatureImg = (url: string | null) => {
-      return url ? `<img src="${url}" class="signature-img" alt="Signature" />` : "";
+      return url
+        ? `<img src="${url}" class="signature-img" alt="Signature" />`
+        : "";
     };
 
     // Read HTML template
-    const templatePath = join(process.cwd(), "src/app/pdf_templates/ServiceDeutz.html");
+    const templatePath = join(
+      process.cwd(),
+      "src/app/pdf_templates/ServiceDeutz.html"
+    );
     let htmlTemplate = readFileSync(templatePath, "utf-8");
 
     // Replace all placeholders with actual values
@@ -93,9 +93,13 @@ export async function GET(
       observation: getValue(record.observation),
       findings: getValue(record.findings),
       recommendations: getValue(record.recommendations),
-      service_technician_signature_img: getSignatureImg(record.attending_technician_signature),
+      service_technician_signature_img: getSignatureImg(
+        record.attending_technician_signature
+      ),
       approved_by_signature_img: getSignatureImg(record.approved_by_signature),
-      acknowledged_by_signature_img: getSignatureImg(record.acknowledged_by_signature),
+      acknowledged_by_signature_img: getSignatureImg(
+        record.acknowledged_by_signature
+      ),
     };
 
     // Replace all placeholders in the template
@@ -105,19 +109,17 @@ export async function GET(
     });
 
     // Handle attachments if present
-    if (record.attachments && Array.isArray(record.attachments) && record.attachments.length > 0) {
+    if (
+      record.attachments &&
+      Array.isArray(record.attachments) &&
+      record.attachments.length > 0
+    ) {
       const attachmentsList = record.attachments
         .map((attachment: string) => `<li>${attachment}</li>`)
         .join("");
-      htmlTemplate = htmlTemplate.replace(
-        "{{#if attachments}}",
-        ""
-      );
+      htmlTemplate = htmlTemplate.replace("{{#if attachments}}", "");
       htmlTemplate = htmlTemplate.replace("{{/if}}", "");
-      htmlTemplate = htmlTemplate.replace(
-        "{{#each attachments}}",
-        ""
-      );
+      htmlTemplate = htmlTemplate.replace("{{#each attachments}}", "");
       htmlTemplate = htmlTemplate.replace("{{/each}}", "");
       htmlTemplate = htmlTemplate.replace("{{this}}", attachmentsList);
     } else {
@@ -171,7 +173,9 @@ export async function GET(
     return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Service-Report-${record.job_order || id}.pdf"`,
+        "Content-Disposition": `attachment; filename="Service-Report-${
+          record.job_order || id
+        }.pdf"`,
       },
     });
   } catch (error) {
@@ -181,4 +185,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});

@@ -5,6 +5,8 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import { supabase } from '@/lib/supabase';
+import ConfirmationModal from "./ConfirmationModal";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface User {
   id: string;
@@ -12,6 +14,7 @@ interface User {
 }
 
 export default function DeutzCommissioningReport() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     job_order_no: '',
     reporting_person_name: '',
@@ -182,8 +185,8 @@ export default function DeutzCommissioningReport() {
     setFormData(prev => ({ ...prev, [name]: signature }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmSubmit = async () => {
+    setIsModalOpen(false);
     setIsLoading(true);
     const loadingToastId = toast.loading('Submitting report...');
 
@@ -287,7 +290,7 @@ export default function DeutzCommissioningReport() {
           approved_by: '',
           approved_by_signature: '',
           acknowledged_by: '',
-          acknowledged_by_signature: '',
+acknowledged_by_signature: '',
         });
       } else {
         const errorData = await response.json();
@@ -300,6 +303,11 @@ export default function DeutzCommissioningReport() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsModalOpen(true);
   };
 
   return (
@@ -657,6 +665,13 @@ export default function DeutzCommissioningReport() {
             </button>
         </div>
       </form>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onConfirm={handleConfirmSubmit}
+        onClose={() => setIsModalOpen(false)}
+        title="Confirm Submission"
+        message="Are you sure you want to submit this Deutz Commissioning Report?"
+      />
     </div>
   );
 }
@@ -750,28 +765,48 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           value={value}
           onChange={handleInputChange}
           onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8 shadow-sm"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
           placeholder="Select or type a name"
         />
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700"
+          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
         >
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-          </svg>
+          <ChevronDownIcon
+            className={`h-5 w-5 transition-transform ${
+              showDropdown ? "rotate-180" : ""
+            }`}
+          />
         </button>
         {showDropdown && options.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
             {options.map((opt: string) => (
-              <div
+              <button
                 key={opt}
+                type="button"
                 onClick={() => handleSelectOption(opt)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
+                className={`w-full px-4 py-2 text-left transition-colors ${
+                  opt === value
+                    ? "text-white font-medium"
+                    : "text-gray-900 hover:text-white"
+                }`}
+                style={{
+                  backgroundColor: opt === value ? "#2B4C7E" : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (opt !== value) {
+                    e.currentTarget.style.backgroundColor = "#2B4C7E";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (opt !== value) {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                  }
+                }}
               >
                 {opt}
-              </div>
+              </button>
             ))}
           </div>
         )}

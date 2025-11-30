@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { cookies } from "next/headers";
 
 export async function POST(request: Request) {
   try {
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
         username: profile.username,
         address: profile.address,
         phone: profile.phone,
+        role: profile.role || "user",
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
       };
@@ -60,8 +62,17 @@ export async function POST(request: Request) {
       };
     }
 
-    // In a real-world scenario, you might want to set cookies here or return the token
-    // For now, we'll return the user and token as requested
+    // Set the auth token in an HTTP-only cookie for middleware protection
+    const cookieStore = await cookies();
+    cookieStore.set("authToken", data.session.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+
+    // Return the user and token to the frontend as well
     return NextResponse.json(
       {
         success: true,

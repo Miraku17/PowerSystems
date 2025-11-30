@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
@@ -65,20 +63,17 @@ export async function PUT(
     });
   } catch (error: any) {
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         message: error.message || "Internal Server Error",
-        details: error.toString()
+        details: error.toString(),
       },
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
@@ -102,4 +97,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

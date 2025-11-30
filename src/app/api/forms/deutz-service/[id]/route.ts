@@ -1,11 +1,8 @@
-
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const { id } = await params;
 
@@ -37,4 +34,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

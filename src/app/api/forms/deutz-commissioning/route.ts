@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase, getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
@@ -39,7 +40,7 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+});
 
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
   if (!base64Data) return '';
@@ -76,7 +77,7 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
   }
 };
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
@@ -295,9 +296,9 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withAuth(async (request, { user }) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -541,4 +542,4 @@ export async function PATCH(request: Request) {
       { status: 500 }
     );
   }
-}
+});

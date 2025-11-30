@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET() {
+export const GET = withAuth(async (request, { user }) => {
   try {
     // Fetch all customers from Supabase
     const { data, error } = await supabase
@@ -38,9 +39,9 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const body = await request.json();
     
@@ -100,4 +101,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

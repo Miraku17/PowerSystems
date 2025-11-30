@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET(request: Request) {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const { data, error } = await supabase
       .from('deutz_service_report')
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
+});
 
 // Helper to upload signature server-side
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
@@ -77,7 +78,7 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
   }
 };
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
     const formData = await request.formData();
@@ -237,9 +238,9 @@ export async function POST(request: Request) {
     console.error('Error processing request:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-}
+});
 
-export async function PATCH(request: Request) {
+export const PATCH = withAuth(async (request, { user }) => {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
@@ -431,4 +432,4 @@ export async function PATCH(request: Request) {
       { status: 500 }
     );
   }
-}
+});

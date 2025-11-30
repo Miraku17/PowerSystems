@@ -21,12 +21,16 @@ import {
 import { Company } from "@/types";
 import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Protect this route - redirect to login if not authenticated
+  useAuth();
+
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,6 +43,7 @@ export default function DashboardLayout({
   const [activeFormTab, setActiveFormTab] = useState<string | null>(null);
   const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("user");
   const [userLoading, setUserLoading] = useState(true);
 
   // Load companies and forms on mount
@@ -59,6 +64,10 @@ export default function DashboardLayout({
         setUserName(user.username);
       } else if (user && user.email) {
         setUserName(user.email);
+      }
+
+      if (user && user.role) {
+        setUserRole(user.role);
       }
     }
     setUserLoading(false);
@@ -133,14 +142,24 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
-    // Clear local storage or any auth tokens
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    // Redirect to login page
-    router.push("/login");
+    try {
+      // Call server-side logout to invalidate session
+      await apiClient.post("/auth/logout");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Continue with client-side logout even if server call fails
+    } finally {
+      // Clear local storage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      // Clear authToken cookie
+      document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      // Redirect to login page
+      router.push("/login");
+    }
   };
 
-  const navigation = [
+  const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
@@ -170,6 +189,21 @@ export default function DashboardLayout({
       href: "/dashboard/records",
     },
   ];
+
+  const navigation =
+    userRole === "user"
+      ? allNavigation.filter((item) => item.href === "/dashboard/fill-up-form")
+      : allNavigation;
+
+  // Redirect restricted users
+  useEffect(() => {
+    if (!userLoading && userRole === "user") {
+      const isAllowed = pathname.startsWith("/dashboard/fill-up-form");
+      if (!isAllowed) {
+        router.push("/dashboard/fill-up-form");
+      }
+    }
+  }, [pathname, userRole, userLoading, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -435,7 +469,7 @@ export default function DashboardLayout({
                 <p className="text-sm font-semibold text-white truncate">
                   {userName}
                 </p>
-                <p className="text-xs text-blue-200 truncate">Administrator</p>
+                <p className="text-xs text-blue-200 truncate capitalize">{userRole}</p>
               </div>
             )}
             {!sidebarCollapsed && (

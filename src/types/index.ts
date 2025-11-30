@@ -39,6 +39,7 @@ export interface User {
   username: string;
   address: string;
   phone: string;
+  role?: "admin" | "user";
   createdAt: Date;
   updatedAt: Date;
 }

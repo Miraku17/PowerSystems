@@ -1,5 +1,5 @@
 import apiClient from "@/lib/axios";
-import { LoginForm, RegisterForm, User } from "@/types";
+import { LoginForm, User } from "@/types";
 
 interface AuthResponse {
   success: boolean;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { LoginForm, RegisterForm } from "@/types";
+import { LoginForm } from "@/types";
 import Image from "next/image";
 import { EyeIcon, EyeSlashIcon, XMarkIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";

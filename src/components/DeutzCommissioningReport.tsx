@@ -185,8 +185,7 @@ export default function DeutzCommissioningReport() {
     setFormData(prev => ({ ...prev, [name]: signature }));
   };
 
-  const handleConfirmSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsLoading(true);
     const loadingToastId = toast.loading('Submitting report...');
@@ -291,7 +290,7 @@ export default function DeutzCommissioningReport() {
           approved_by: '',
           approved_by_signature: '',
           acknowledged_by: '',
-          acknowledged_by_signature: '',
+acknowledged_by_signature: '',
         });
       } else {
         const errorData = await response.json();

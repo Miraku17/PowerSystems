@@ -158,8 +158,7 @@ export default function DeutzServiceForm() {
     setFormData((prev) => ({ ...prev, [name]: signature }));
   };
 
-  const handleConfirmSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsLoading(true);
     const loadingToastId = toast.loading("Submitting Service Report...");

@@ -14,7 +14,7 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
-import axios from "axios";
+import apiClient from "@/lib/axios";
 import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
@@ -58,11 +58,11 @@ export default function FormRecordsPage() {
 
   // Form type to endpoint mapping (case-insensitive)
   const formTypeEndpoints: Record<string, { endpoint: string; name: string }> = {
-    "deutz-commissioning": { endpoint: "/api/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
-    "deutz-service": { endpoint: "/api/forms/deutz-service", name: "Deutz Service Report" },
-    "commission": { endpoint: "/api/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
-    "commissioning": { endpoint: "/api/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
-    "service": { endpoint: "/api/forms/deutz-service", name: "Deutz Service Report" },
+    "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
+    "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
+    "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
+    "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
+    "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
   };
 
   // Normalize form type to lowercase
@@ -84,7 +84,7 @@ export default function FormRecordsPage() {
         return;
       }
 
-      const response = await axios.get(formConfig.endpoint);
+      const response = await apiClient.get(formConfig.endpoint);
       const recordsData = response.data?.data || response.data;
       setRecords(Array.isArray(recordsData) ? recordsData : []);
     } catch (error) {
@@ -111,7 +111,7 @@ export default function FormRecordsPage() {
         return;
       }
 
-      await axios.delete(`${formConfig.endpoint}/${id}`);
+      await apiClient.delete(`${formConfig.endpoint}/${id}`);
 
       toast.success("Record deleted successfully!", { id: loadingToast });
       setRecordToDelete(null);
@@ -153,9 +153,9 @@ export default function FormRecordsPage() {
       }
 
       // Determine PDF endpoint based on form type
-      const pdfEndpoint = `/api/pdf/${pdfFormType}/${recordId}`;
+      const pdfEndpoint = `/pdf/${pdfFormType}/${recordId}`;
 
-      const response = await axios.get(pdfEndpoint, {
+      const response = await apiClient.get(pdfEndpoint, {
         responseType: "blob",
       });
       const file = new Blob([response.data], { type: "application/pdf" });

@@ -2,13 +2,11 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { readFileSync } from "fs";
 import { join } from "path";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(async (request, { user, params }) => {
   try {
-    const { id } = await params;
+    const { id } = await params.params;
 
     if (!id) {
       return NextResponse.json(
@@ -183,4 +181,4 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET() {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
 
@@ -87,4 +88,4 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});

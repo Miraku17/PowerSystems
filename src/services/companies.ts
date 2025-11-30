@@ -1,20 +1,17 @@
-import axios from "axios";
+import apiClient from "@/lib/axios";
 import { Company, ApiResponse, CreateCompanyData } from "@/types";
-
-// Create a local client for internal API routes
-const localApiClient = axios.create();
 
 export const companyService = {
   // Get all companies
   getAll: async () => {
-    const response = await localApiClient.get<ApiResponse<Company[]>>("/api/companies");
+    const response = await apiClient.get<ApiResponse<Company[]>>("/companies");
     return response.data;
   },
 
   // Get company by ID
   getById: async (id: string) => {
-    const response = await localApiClient.get<ApiResponse<Company>>(
-      `/api/companies/${id}`
+    const response = await apiClient.get<ApiResponse<Company>>(
+      `/companies/${id}`
     );
     return response.data;
   },
@@ -38,8 +35,8 @@ export const companyService = {
       formData.append("image", data.image);
     }
 
-    const response = await localApiClient.post<ApiResponse<Company>>(
-      "/api/companies",
+    const response = await apiClient.post<ApiResponse<Company>>(
+      "/companies",
       formData,
       {
         headers: {
@@ -69,8 +66,8 @@ export const companyService = {
       formData.append("image", data.image);
     }
 
-    const response = await localApiClient.put<ApiResponse<Company>>(
-      `/api/companies/${id}`,
+    const response = await apiClient.put<ApiResponse<Company>>(
+      `/companies/${id}`,
       formData,
       {
         headers: {
@@ -83,8 +80,8 @@ export const companyService = {
 
   // Delete company
   delete: async (id: string) => {
-    const response = await localApiClient.delete<ApiResponse<void>>(
-      `/api/companies/${id}`
+    const response = await apiClient.delete<ApiResponse<void>>(
+      `/companies/${id}`
     );
     return response.data;
   },

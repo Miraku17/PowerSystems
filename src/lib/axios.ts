@@ -1,7 +1,5 @@
 import axios from "axios";
 
-console.log("Base URL:", process.env.NEXT_PUBLIC_BASE_URL);
-
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
   headers: {
@@ -12,8 +10,14 @@ const apiClient = axios.create({
 // Request interceptor for adding auth token if needed
 apiClient.interceptors.request.use(
   (config) => {
-    console.log("Making request to:", (config.baseURL || "") + config.url);
-    console.log("Request config:", config);
+    // Get auth token from localStorage and add to headers
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
     return config;
   },
   (error) => {

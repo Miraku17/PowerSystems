@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function GET() {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase
@@ -31,9 +32,9 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
     const formData = await request.formData();
@@ -107,12 +108,12 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("API error creating company:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         message: error.message || "Internal Server Error",
-        details: error.toString() 
+        details: error.toString()
       },
       { status: 500 }
     );
   }
-}
+});

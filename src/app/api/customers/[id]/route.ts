@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
-    const { id } = await params;
+    const { id } = await params.params;
     const body = await request.json();
     
     // Map frontend camelCase to database column names
@@ -47,14 +48,14 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
-    const { id } = await params;
+    const { id } = await params.params;
 
     const { error } = await supabase
       .from("customers")
@@ -75,4 +76,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

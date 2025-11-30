@@ -1,8 +1,5 @@
-import axios from "axios";
+import apiClient from "@/lib/axios";
 import { ApiResponse } from "@/types";
-
-// Create a local client for internal API routes
-const localApiClient = axios.create();
 
 export interface FormRecordSubmission {
   jobOrder?: string;
@@ -21,8 +18,8 @@ export interface FormRecord {
 
 // Map form types to their respective endpoints
 const formTypeEndpoints: Record<string, string> = {
-  "deutz-commissioning": "/api/forms/deutz-commissioning",
-  "deutz-service": "/api/forms/deutz-service",
+  "deutz-commissioning": "/forms/deutz-commissioning",
+  "deutz-service": "/forms/deutz-service",
 };
 
 export const formRecordService = {
@@ -34,7 +31,7 @@ export const formRecordService = {
     if (!endpoint) {
       throw new Error(`Unsupported form type: ${formType}`);
     }
-    const response = await localApiClient.get<ApiResponse<FormRecord[]>>(endpoint);
+    const response = await apiClient.get<ApiResponse<FormRecord[]>>(endpoint);
     return response.data;
   },
 
@@ -60,7 +57,7 @@ export const formRecordService = {
       }
     });
 
-    const response = await localApiClient.post<ApiResponse<any>>(endpoint, flattenedData);
+    const response = await apiClient.post<ApiResponse<any>>(endpoint, flattenedData);
     return response.data;
   },
 
@@ -80,10 +77,10 @@ export const formRecordService = {
       throw new Error(`Unsupported form type for deletion: ${formType}`);
     }
 
-    // Construct the correct URL (e.g., /api/forms/deutz-service/123)
+    // Construct the correct URL (e.g., /forms/deutz-service/123)
     const url = `${endpoint}/${recordId}`;
 
-    const response = await localApiClient.delete<ApiResponse<any>>(url);
+    const response = await apiClient.delete<ApiResponse<any>>(url);
     return response.data;
   },
 };

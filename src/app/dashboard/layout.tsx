@@ -21,12 +21,16 @@ import {
 import { Company } from "@/types";
 import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Protect this route - redirect to login if not authenticated
+  useAuth();
+
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -133,11 +137,21 @@ export default function DashboardLayout({
   };
 
   const handleLogout = async () => {
-    // Clear local storage or any auth tokens
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("user");
-    // Redirect to login page
-    router.push("/login");
+    try {
+      // Call server-side logout to invalidate session
+      await apiClient.post("/auth/logout");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Continue with client-side logout even if server call fails
+    } finally {
+      // Clear local storage
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("user");
+      // Clear authToken cookie
+      document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      // Redirect to login page
+      router.push("/login");
+    }
   };
 
   const navigation = [

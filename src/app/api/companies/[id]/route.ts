@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params;
+    const { id } = await params.params;
     const formData = await request.formData();
     const name = formData.get("name") as string | null;
     const imageFile = formData.get("image") as File | null;
@@ -73,15 +74,15 @@ export async function PUT(
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params;
+    const { id } = await params.params;
 
     const { error } = await supabase.from("companies").delete().eq("id", id);
 
@@ -102,4 +103,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

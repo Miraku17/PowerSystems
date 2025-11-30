@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
+import { withAuth } from "@/lib/auth-middleware";
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params;
+    const { id } = await params.params;
     const formData = await request.formData();
     
     const imageFile = formData.get("image") as File | null;
@@ -114,23 +115,23 @@ export async function PUT(
   } catch (error: any) {
     console.error("API error updating engine:", error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         message: error.message || "Internal Server Error",
         details: error.toString()
       },
       { status: 500 }
     );
   }
-}
+});
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(async (
+  request,
+  { user, params }
+) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params;
+    const { id } = await params.params;
 
     const { error } = await supabase
       .from("engines")
@@ -151,4 +152,4 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});

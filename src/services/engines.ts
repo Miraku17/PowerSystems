@@ -1,18 +1,16 @@
-import axios from "axios";
+import apiClient from "@/lib/axios";
 import { ApiResponse, CreateEngineData, Engine } from "@/types";
-
-const localApiClient = axios.create();
 
 export const engineService = {
   // Get all engines
   getAll: async () => {
-    const response = await localApiClient.get<ApiResponse<Engine[]>>("/api/engines");
+    const response = await apiClient.get<ApiResponse<Engine[]>>("/engines");
     return response.data;
   },
 
   // Get engine by ID
   getById: async (id: string) => {
-    const response = await localApiClient.get<ApiResponse<Engine>>(`/api/engines/${id}`);
+    const response = await apiClient.get<ApiResponse<Engine>>(`/engines/${id}`);
     return response.data;
   },
 
@@ -33,8 +31,8 @@ export const engineService = {
       formData.append("image", data.image);
     }
 
-    const response = await localApiClient.post<ApiResponse<Engine>>(
-      "/api/engines",
+    const response = await apiClient.post<ApiResponse<Engine>>(
+      "/engines",
       formData,
       {
         headers: {
@@ -62,8 +60,8 @@ export const engineService = {
       formData.append("image", data.image);
     }
 
-    const response = await localApiClient.put<ApiResponse<Engine>>(
-      `/api/engines/${id}`,
+    const response = await apiClient.put<ApiResponse<Engine>>(
+      `/engines/${id}`,
       formData,
       {
         headers: {
@@ -76,7 +74,7 @@ export const engineService = {
 
   // Delete engine
   delete: async (id: string) => {
-    const response = await localApiClient.delete<ApiResponse<void>>(`/api/engines/${id}`);
+    const response = await apiClient.delete<ApiResponse<void>>(`/engines/${id}`);
     return response.data;
   },
 };

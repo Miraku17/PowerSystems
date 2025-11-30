@@ -61,6 +61,8 @@ export default function DeutzServiceForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [users, setUsers] = useState<User[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [engines, setEngines] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -75,7 +77,31 @@ export default function DeutzServiceForm() {
       }
     };
 
+    const fetchCustomers = async () => {
+      try {
+        const response = await apiClient.get('/customers');
+        if (response.data.success) {
+          setCustomers(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch customers", error);
+      }
+    };
+
+    const fetchEngines = async () => {
+      try {
+        const response = await apiClient.get('/engines');
+        if (response.data.success) {
+          setEngines(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch engines", error);
+      }
+    };
+
     fetchUsers();
+    fetchCustomers();
+    fetchEngines();
   }, []);
 
   const handleChange = (
@@ -85,6 +111,43 @@ export default function DeutzServiceForm() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCustomerSelect = (customer: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      reporting_person_name: customer.name || "",
+      customer_name: customer.customer || "",
+      contact_person: customer.contactPerson || "",
+      address: customer.address || "",
+      email_address: customer.email || "",
+      equipment_manufacturer: customer.equipment || "",
+    }));
+  };
+
+  const handleEngineSelect = (engine: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      engine_model: engine.model || "",
+      engine_serial_no: engine.serialNo || "",
+      alternator_brand_model: engine.altBrandModel || "",
+      alternator_serial_no: engine.altSerialNo || "",
+      equipment_model: engine.equipModel || "",
+      equipment_serial_no: engine.equipSerialNo || "",
+      fuel_pump_serial_no: engine.fuelPumpSN || "",
+      fuel_pump_code: engine.fuelPumpCode || "",
+      turbo_model: engine.turboModel || "",
+      turbo_serial_no: engine.turboSN || "",
+      // Add more fields if they map directly
+      rating: engine.rating || prev.rating,
+      revolution: engine.rpm || prev.revolution,
+      starting_voltage: engine.startVoltage || prev.starting_voltage,
+      running_hours: engine.runHours || prev.running_hours,
+      lube_oil_type: engine.lubeOil || prev.lube_oil_type,
+      fuel_type: engine.fuelType || prev.fuel_type,
+      cooling_water_additives: engine.coolantAdditive || prev.cooling_water_additives,
+      location: engine.location || prev.location,
+    }));
   };
 
   const handleSignatureChange = (name: string, signature: string) => {
@@ -248,48 +311,65 @@ export default function DeutzServiceForm() {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input
+            <CustomerAutocomplete
               label="Reporting Person"
               name="reporting_person_name"
               value={formData.reporting_person_name}
               onChange={handleChange}
+              onSelect={handleCustomerSelect}
+              customers={customers}
+              searchKey="name"
             />
 
             <div className="lg:col-span-2">
-              <Input
+              <CustomerAutocomplete
                 label="Customer Name"
                 name="customer_name"
                 value={formData.customer_name}
                 onChange={handleChange}
+                onSelect={handleCustomerSelect}
+                customers={customers}
+                searchKey="customer"
               />
             </div>
-            <Input
+            <CustomerAutocomplete
               label="Contact Person"
               name="contact_person"
               value={formData.contact_person}
               onChange={handleChange}
+              onSelect={handleCustomerSelect}
+              customers={customers}
+              searchKey="contactPerson"
             />
 
             <div className="lg:col-span-3">
-              <Input
+              <CustomerAutocomplete
                 label="Address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
+                onSelect={handleCustomerSelect}
+                customers={customers}
+                searchKey="address"
               />
             </div>
-            <Input
+            <CustomerAutocomplete
               label="Email Address"
               name="email_address"
-              type="email"
               value={formData.email_address}
               onChange={handleChange}
+              onSelect={handleCustomerSelect}
+              customers={customers}
+              searchKey="email"
             />
-            <Input
+            <CustomerAutocomplete
               label="Equipment Manufacturer"
               name="equipment_manufacturer"
               value={formData.equipment_manufacturer}
               onChange={handleChange}
+              onSelect={handleCustomerSelect}
+              customers={customers}
+              searchKey="equipment"
             />
           </div>
         </div>
@@ -303,43 +383,61 @@ export default function DeutzServiceForm() {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input
+            <EngineAutocomplete
               label="Equipment Model"
               name="equipment_model"
               value={formData.equipment_model}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="equipModel"
             />
-            <Input
+            <EngineAutocomplete
               label="Equipment Serial No."
               name="equipment_serial_no"
               value={formData.equipment_serial_no}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="equipSerialNo"
             />
 
-            <Input
+            <EngineAutocomplete
               label="Engine Model"
               name="engine_model"
               value={formData.engine_model}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="model"
             />
-            <Input
+            <EngineAutocomplete
               label="Engine Serial No."
               name="engine_serial_no"
               value={formData.engine_serial_no}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="serialNo"
             />
 
-            <Input
+            <EngineAutocomplete
               label="Alternator Brand/Model"
               name="alternator_brand_model"
               value={formData.alternator_brand_model}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="altBrandModel"
             />
-            <Input
+            <EngineAutocomplete
               label="Alternator Serial No."
               name="alternator_serial_no"
               value={formData.alternator_serial_no}
               onChange={handleChange}
+              onSelect={handleEngineSelect}
+              engines={engines}
+              searchKey="altSerialNo"
             />
           </div>
         </div>
@@ -828,3 +926,182 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
     </div>
   );
 };
+
+interface CustomerAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => void;
+  onSelect: (customer: any) => void;
+  customers: any[];
+  searchKey?: string;
+}
+
+const CustomerAutocomplete = ({
+  label,
+  name,
+  value,
+  onChange,
+  onSelect,
+  customers,
+  searchKey = "customer",
+}: CustomerAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (customer: any) => {
+    onSelect(customer);
+    setShowDropdown(false);
+  };
+
+  const filteredCustomers = customers.filter((c) =>
+    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={(e) => {
+            onChange(e);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredCustomers.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleSelectCustomer(customer)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{customer.name}</div>
+                                <div className="text-xs text-gray-500">
+                                  {customer.customer}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                };
+                
+                interface EngineAutocompleteProps {
+                  label: string;
+                  name: string;
+                  value: string;
+                  onChange: (
+                    e: React.ChangeEvent<
+                      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+                    >
+                  ) => void;
+                  onSelect: (engine: any) => void;
+                  engines: any[];
+                  searchKey?: string;
+                }
+                
+                const EngineAutocomplete = ({
+                  label,
+                  name,
+                  value,
+                  onChange,
+                  onSelect,
+                  engines,
+                  searchKey = "model",
+                }: EngineAutocompleteProps) => {
+                  const [showDropdown, setShowDropdown] = React.useState(false);
+                  const dropdownRef = React.useRef<HTMLDivElement>(null);
+                
+                  React.useEffect(() => {
+                    const handleClickOutside = (event: MouseEvent) => {
+                      if (
+                        dropdownRef.current &&
+                        !dropdownRef.current.contains(event.target as Node)
+                      ) {
+                        setShowDropdown(false);
+                      }
+                    };
+                
+                    document.addEventListener("mousedown", handleClickOutside);
+                    return () => document.removeEventListener("mousedown", handleClickOutside);
+                  }, []);
+                
+                  const handleSelectEngine = (engine: any) => {
+                    onSelect(engine);
+                    setShowDropdown(false);
+                  };
+                
+                  const filteredEngines = engines.filter((e) =>
+                    (e[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+                  );
+                
+                  return (
+                    <div className="flex flex-col w-full" ref={dropdownRef}>
+                      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                        {label}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name={name}
+                          value={value}
+                          onChange={(e) => {
+                            onChange(e);
+                            setShowDropdown(true);
+                          }}
+                          onFocus={() => setShowDropdown(true)}
+                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+                          placeholder={`Enter ${label.toLowerCase()}`}
+                          autoComplete="off"
+                        />
+                        {showDropdown && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            {filteredEngines.map((engine) => (
+                              <div
+                                key={engine.id}
+                                onClick={() => handleSelectEngine(engine)}
+                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+                              >
+                                <div className="font-medium">{engine.model}</div>
+                                <div className="text-xs text-gray-500">
+                                  S/N: {engine.serialNo} • {engine.company?.name}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                };
+                

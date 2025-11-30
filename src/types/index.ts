@@ -7,17 +7,6 @@ export interface LoginForm {
   password: string;
 }
 
-export interface RegisterForm {
-  email: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  address: string;
-  phone: string;
-  password: string;
-  verifyPassword: string;
-}
-
 /**
  * API Response Types
  */
@@ -34,14 +23,12 @@ export interface ApiResponse<T = any> {
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  firstname: string;
+  lastname: string;
   username: string;
   address: string;
   phone: string;
-  role?: "admin" | "user";
-  createdAt: Date;
-  updatedAt: Date;
+  role: "user" | "admin";
 }
 
 /**

@@ -202,10 +202,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Customer Name" name="customer_name" value={formData.customer_name} className="lg:col-span-2" onChange={handleChange} />
                 <Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
-                <Input label="Telephone / Fax" name="telephone_fax" value={formData.telephone_fax} onChange={handleChange} />
                 <Input label="Address" name="address" value={formData.address} className="lg:col-span-3" onChange={handleChange} />
-                <Input label="Email Address" name="email_address" type="email" value={formData.email_address} onChange={handleChange} />
-                <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
               </div>
             </div>
 

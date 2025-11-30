@@ -15,7 +15,6 @@ export default function DeutzCommissioningReport() {
   const [formData, setFormData] = useState({
     job_order_no: '',
     reporting_person_name: '',
-    telephone_fax: '',
     equipment_name: '',
     running_hours: '',
     customer_name: '',
@@ -152,7 +151,6 @@ export default function DeutzCommissioningReport() {
         setFormData({
           job_order_no: '',
           reporting_person_name: '',
-          telephone_fax: '',
           equipment_name: '',
           running_hours: '',
           customer_name: '',
@@ -296,7 +294,6 @@ export default function DeutzCommissioningReport() {
                    <Input label="Customer Name" name="customer_name" value={formData.customer_name} onChange={handleChange} />
                 </div>
                 <Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
-                <Input label="Telephone / Fax" name="telephone_fax" value={formData.telephone_fax} onChange={handleChange} />
                 
                 <div className="lg:col-span-2">
                     <Input label="Address" name="address" value={formData.address} onChange={handleChange} />

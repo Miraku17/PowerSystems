@@ -300,12 +300,6 @@ export default function EditDeutzCommissioning({
                   value={formData.contact_person}
                   onChange={handleChange}
                 />
-                <Input
-                  label="Telephone / Fax"
-                  name="telephone_fax"
-                  value={formData.telephone_fax}
-                  onChange={handleChange}
-                />
                 <div className="lg:col-span-2">
                   <Input
                     label="Address"

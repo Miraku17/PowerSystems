@@ -87,7 +87,6 @@ export async function POST(request: Request) {
 
     // Extract fields
     const reporting_person_name = getString('reporting_person_name');
-    const telephone_fax = getString('telephone_fax');
     const equipment_manufacturer = getString('equipment_manufacturer');
     const job_order = getString('job_order');
     const report_date = getString('report_date');
@@ -181,7 +180,6 @@ export async function POST(request: Request) {
       .insert([
         {
           reporting_person_name,
-          telephone_fax,
           equipment_manufacturer,
           job_order,
           report_date: report_date || null,
@@ -260,7 +258,6 @@ export async function PATCH(request: Request) {
     // Note: In POST, service_technician_signature is mapped to attending_technician_signature in DB
     const {
       reporting_person_name,
-      telephone_fax,
       equipment_manufacturer,
       job_order,
       report_date,
@@ -352,7 +349,6 @@ export async function PATCH(request: Request) {
     // Construct update object
     const updateData: any = {
       reporting_person_name,
-      telephone_fax,
       equipment_manufacturer,
       job_order,
       report_date: report_date || null,

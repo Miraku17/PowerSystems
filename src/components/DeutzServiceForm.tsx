@@ -15,7 +15,6 @@ export default function DeutzServiceForm() {
   const [formData, setFormData] = useState({
     job_order: "",
     reporting_person_name: "",
-    telephone_fax: "",
     report_date: "",
     customer_name: "",
     contact_person: "",
@@ -120,7 +119,6 @@ export default function DeutzServiceForm() {
         setFormData({
           job_order: "",
           reporting_person_name: "",
-          telephone_fax: "",
           report_date: "",
           customer_name: "",
           contact_person: "",
@@ -269,12 +267,6 @@ export default function DeutzServiceForm() {
               label="Contact Person"
               name="contact_person"
               value={formData.contact_person}
-              onChange={handleChange}
-            />
-            <Input
-              label="Telephone / Fax"
-              name="telephone_fax"
-              value={formData.telephone_fax}
               onChange={handleChange}
             />
 

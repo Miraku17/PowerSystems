@@ -83,7 +83,6 @@ export async function POST(request: Request) {
 
     const {
       reporting_person_name,
-      telephone_fax,
       equipment_name,
       running_hours,
       customer_name,
@@ -202,7 +201,6 @@ export async function POST(request: Request) {
       .insert([
         {
           reporting_person_name,
-          telephone_fax,
           equipment_name,
           running_hours,
           customer_name,
@@ -317,7 +315,6 @@ export async function PATCH(request: Request) {
     // Extract fields matching the database schema (same as POST)
     const {
       reporting_person_name,
-      telephone_fax,
       equipment_name,
       running_hours,
       customer_name,
@@ -437,7 +434,6 @@ export async function PATCH(request: Request) {
     // Construct update object
     const updateData: any = {
       reporting_person_name,
-      telephone_fax,
       equipment_name,
       running_hours,
       customer_name,

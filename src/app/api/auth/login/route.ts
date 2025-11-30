@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         username: profile.username,
         address: profile.address,
         phone: profile.phone,
+        role: profile.role || "user",
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
       };

@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface User {
@@ -13,6 +14,8 @@ interface User {
 }
 
 export default function DeutzServiceForm() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   const [formData, setFormData] = useState({
     job_order: "",
     reporting_person_name: "",
@@ -155,8 +158,9 @@ export default function DeutzServiceForm() {
     setFormData((prev) => ({ ...prev, [name]: signature }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleConfirmSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsModalOpen(false);
     setIsLoading(true);
     const loadingToastId = toast.loading("Submitting Service Report...");
 
@@ -242,6 +246,11 @@ export default function DeutzServiceForm() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsModalOpen(true);
   };
 
   return (
@@ -787,6 +796,13 @@ export default function DeutzServiceForm() {
           </button>
         </div>
       </form>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onConfirm={handleConfirmSubmit}
+        onClose={() => setIsModalOpen(false)}
+        title="Confirm Submission"
+        message="Are you sure you want to submit this Deutz Service Report?"
+      />
     </div>
   );
 }

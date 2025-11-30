@@ -6,7 +6,7 @@ import { withAuth } from "@/lib/auth-middleware";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
-    const { id } = await params.params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -24,10 +24,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     if (error || !record) {
       console.error("Error fetching record:", error);
-      return NextResponse.json(
-        { error: "Record not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
     // Helper function to get value or empty string
@@ -35,11 +32,16 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Helper function to generate signature image HTML
     const getSignatureImg = (url: string | null) => {
-      return url ? `<img src="${url}" class="signature-img" alt="Signature" />` : "";
+      return url
+        ? `<img src="${url}" class="signature-img" alt="Signature" />`
+        : "";
     };
 
     // Read HTML template
-    const templatePath = join(process.cwd(), "src/app/pdf_templates/CommissionDeutz.html");
+    const templatePath = join(
+      process.cwd(),
+      "src/app/pdf_templates/CommissionDeutz.html"
+    );
     let htmlTemplate = readFileSync(templatePath, "utf-8");
 
     // Replace all placeholders with actual values
@@ -117,9 +119,13 @@ export const GET = withAuth(async (request, { user, params }) => {
       attending_technician: getValue(record.attending_technician),
       approved_by: getValue(record.approved_by),
       acknowledged_by: getValue(record.acknowledged_by),
-      attending_technician_signature_img: getSignatureImg(record.attending_technician_signature),
+      attending_technician_signature_img: getSignatureImg(
+        record.attending_technician_signature
+      ),
       approved_by_signature_img: getSignatureImg(record.approved_by_signature),
-      acknowledged_by_signature_img: getSignatureImg(record.acknowledged_by_signature),
+      acknowledged_by_signature_img: getSignatureImg(
+        record.acknowledged_by_signature
+      ),
     };
 
     // Replace all placeholders in the template
@@ -171,7 +177,9 @@ export const GET = withAuth(async (request, { user, params }) => {
     return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="Commissioning-Report-${record.job_order_no || id}.pdf"`,
+        "Content-Disposition": `attachment; filename="Commissioning-Report-${
+          record.job_order_no || id
+        }.pdf"`,
       },
     });
   } catch (error) {

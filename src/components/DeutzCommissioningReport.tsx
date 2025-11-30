@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import { supabase } from '@/lib/supabase';
+import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 
 interface User {
@@ -13,6 +14,7 @@ interface User {
 }
 
 export default function DeutzCommissioningReport() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     job_order_no: '',
     reporting_person_name: '',
@@ -183,8 +185,9 @@ export default function DeutzCommissioningReport() {
     setFormData(prev => ({ ...prev, [name]: signature }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleConfirmSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsModalOpen(false);
     setIsLoading(true);
     const loadingToastId = toast.loading('Submitting report...');
 
@@ -301,6 +304,11 @@ export default function DeutzCommissioningReport() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsModalOpen(true);
   };
 
   return (
@@ -658,6 +666,13 @@ export default function DeutzCommissioningReport() {
             </button>
         </div>
       </form>
+      <ConfirmationModal
+        isOpen={isModalOpen}
+        onConfirm={handleConfirmSubmit}
+        onClose={() => setIsModalOpen(false)}
+        title="Confirm Submission"
+        message="Are you sure you want to submit this Deutz Commissioning Report?"
+      />
     </div>
   );
 }

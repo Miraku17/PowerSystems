@@ -1,11 +1,10 @@
-
 import { supabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
 
 export const DELETE = withAuth(async (request, { user, params }) => {
   try {
-    const { id } = await params.params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(

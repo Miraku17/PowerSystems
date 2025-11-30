@@ -2,15 +2,12 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
-export const PUT = withAuth(async (
-  request,
-  { user, params }
-) => {
+export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params.params;
+    const { id } = await params;
     const formData = await request.formData();
-    
+
     const imageFile = formData.get("image") as File | null;
 
     // Prepare update object
@@ -68,13 +65,15 @@ export const PUT = withAuth(async (
       .from("engines")
       .update(updateData)
       .eq("id", id)
-      .select(`
+      .select(
+        `
         *,
         companies (
           id,
           name
         )
-      `)
+      `
+      )
       .single();
 
     if (error) {
@@ -118,25 +117,19 @@ export const PUT = withAuth(async (
       {
         success: false,
         message: error.message || "Internal Server Error",
-        details: error.toString()
+        details: error.toString(),
       },
       { status: 500 }
     );
   }
 });
 
-export const DELETE = withAuth(async (
-  request,
-  { user, params }
-) => {
+export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
-    const { id } = await params.params;
+    const { id } = await params;
 
-    const { error } = await supabase
-      .from("engines")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("engines").delete().eq("id", id);
 
     if (error) {
       return NextResponse.json(
@@ -145,7 +138,10 @@ export const DELETE = withAuth(async (
       );
     }
 
-    return NextResponse.json({ success: true, message: "Engine deleted successfully" });
+    return NextResponse.json({
+      success: true,
+      message: "Engine deleted successfully",
+    });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: "Internal Server Error" },

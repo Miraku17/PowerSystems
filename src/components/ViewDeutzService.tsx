@@ -29,7 +29,6 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10">
           <div>
             <h3 className="text-xl font-bold text-gray-900">Deutz Service Report</h3>
-            <p className="text-sm text-gray-500">Job Order: {data.job_order || 'N/A'}</p>
           </div>
           <button
             onClick={onClose}
@@ -66,6 +65,20 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
             </div>
 
             <div className="space-y-8">
+              {/* Job Order and Date Emphasis */}
+              <div className="bg-blue-50 border-l-4 border-blue-600 p-4 mb-6 rounded-md">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-blue-800 uppercase mb-1">Job Order No.</label>
+                    <div className="text-2xl font-extrabold text-blue-900">{data.job_order || 'N/A'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-blue-800 uppercase mb-1">Date</label>
+                    <div className="text-2xl font-extrabold text-blue-900">{data.report_date || 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+
               {/* Section 1: General Information */}
               <div>
                 <div className="flex items-center mb-4">
@@ -74,7 +87,6 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Field label="Reporting Person" value={data.reporting_person_name} />
-                  <Field label="Date" value={data.report_date} />
                   <Field label="Customer Name" value={data.customer_name} className="lg:col-span-2" />
                   <Field label="Contact Person" value={data.contact_person} />
                   <Field label="Telephone / Fax" value={data.telephone_fax} />

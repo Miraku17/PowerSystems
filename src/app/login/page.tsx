@@ -29,6 +29,10 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       document.body.style.overflow = "unset";
       return () => clearTimeout(timer);
     }
+    
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, [isOpen]);
 
   if (!show && !isOpen) return null;

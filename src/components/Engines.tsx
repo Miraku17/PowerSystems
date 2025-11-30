@@ -486,12 +486,12 @@ export default function Engines({
                   
                   {/* Reusable Input Field Component Logic */}
                   {[
-                    { label: "Model", key: "model", required: true },
-                    { label: "Serial No", key: "serialNo", required: true },
-                    { label: "Alt Brand Model", key: "altBrandModel" },
-                    { label: "Equip Model", key: "equipModel" },
-                    { label: "Equip Serial No", key: "equipSerialNo" },
-                    { label: "Alt Serial No", key: "altSerialNo" },
+                    { label: "Engine Model", key: "model", required: true },
+                    { label: "Engine Serial No", key: "serialNo", required: true },
+                    { label: "Main Alternator/Transmission brand/model", key: "altBrandModel" },
+                    { label: "Equipment Model", key: "equipModel" },
+                    { label: "Equipment Serial No", key: "equipSerialNo" },
+                    { label: "Main Alternator/Transmission Serial No.", key: "altSerialNo" },
                   ].map((field) => (
                     <div key={field.key} className="space-y-1.5">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">
@@ -520,8 +520,8 @@ export default function Engines({
                     { label: "Location", key: "location" },
                     { label: "Rating", key: "rating" },
                     { label: "RPM", key: "rpm" },
-                    { label: "Start Voltage", key: "startVoltage" },
-                    { label: "Run Hours", key: "runHours" },
+                    { label: "Starting Voltage", key: "startVoltage" },
+                    { label: "Running Hours", key: "runHours" },
                   ].map((field) => (
                     <div key={field.key} className="space-y-1.5">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">{field.label}</label>
@@ -544,13 +544,13 @@ export default function Engines({
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[
-                    { label: "Fuel Pump SN", key: "fuelPumpSN" },
+                    { label: "Fuel Pump S/N", key: "fuelPumpSN" },
                     { label: "Fuel Pump Code", key: "fuelPumpCode" },
-                    { label: "Lube Oil", key: "lubeOil" },
+                    { label: "Lube Oil Type", key: "lubeOil" },
                     { label: "Fuel Type", key: "fuelType" },
-                    { label: "Coolant Additive", key: "coolantAdditive" },
+                    { label: "Cooling Water Additives", key: "coolantAdditive" },
                     { label: "Turbo Model", key: "turboModel" },
-                    { label: "Turbo SN", key: "turboSN" },
+                    { label: "Turbo S/N", key: "turboSN" },
                   ].map((field) => (
                     <div key={field.key} className="space-y-1.5">
                       <label className="block text-xs font-semibold text-gray-500 uppercase">{field.label}</label>

@@ -97,6 +97,7 @@ export default function DeutzCommissioningReport() {
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [engines, setEngines] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -122,8 +123,20 @@ export default function DeutzCommissioningReport() {
       }
     };
 
+    const fetchEngines = async () => {
+      try {
+        const response = await apiClient.get('/engines');
+        if (response.data.success) {
+          setEngines(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch engines", error);
+      }
+    };
+
     fetchUsers();
     fetchCustomers();
+    fetchEngines();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -140,6 +153,28 @@ export default function DeutzCommissioningReport() {
       address: customer.address || "",
       email_address: customer.email || "",
       equipment_name: customer.equipment || "",
+    }));
+  };
+
+  const handleEngineSelect = (engine: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      equipment_manufacturer: engine.company?.name || prev.equipment_manufacturer, // Or potentially another field if mapped
+      equipment_type: engine.equipModel || "", // Assuming equipModel maps to Type or adjust as needed
+      equipment_no: engine.equipSerialNo || "",
+      engine_model: engine.model || "",
+      engine_serial_no: engine.serialNo || "",
+      output: engine.rating || "",
+      revolutions: engine.rpm || "",
+      // main_effective_pressure: engine.mep || "", // If available
+      running_hours: engine.runHours || "",
+      lube_oil_type: engine.lubeOil || "",
+      fuel_type: engine.fuelType || "",
+      cooling_water_additives: engine.coolantAdditive || "",
+      fuel_pump_serial_no: engine.fuelPumpSN || "",
+      fuel_pump_code: engine.fuelPumpCode || "",
+      turbo_model: engine.turboModel || "",
+      turbo_serial_no: engine.turboSN || "",
     }));
   };
 
@@ -385,12 +420,36 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Equipment & Engine Data</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+                <EngineAutocomplete
+                  label="Engine Model"
+                  name="engine_model"
+                  value={formData.engine_model}
+                  onChange={handleChange}
+                  onSelect={handleEngineSelect}
+                  engines={engines}
+                  searchKey="model"
+                />
                 <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
                 <Input label="Equipment Type" name="equipment_type" value={formData.equipment_type} onChange={handleChange} />
                 
-                <Input label="Equipment No." name="equipment_no" value={formData.equipment_no} onChange={handleChange} />
-                <Input label="Engine Model" name="engine_model" value={formData.engine_model} onChange={handleChange} />
-                <Input label="Engine Serial No." name="engine_serial_no" value={formData.engine_serial_no} onChange={handleChange} />
+                <EngineAutocomplete
+                  label="Equipment No."
+                  name="equipment_no"
+                  value={formData.equipment_no}
+                  onChange={handleChange}
+                  onSelect={handleEngineSelect}
+                  engines={engines}
+                  searchKey="equipSerialNo"
+                />
+                <EngineAutocomplete
+                  label="Engine Serial No."
+                  name="engine_serial_no"
+                  value={formData.engine_serial_no}
+                  onChange={handleChange}
+                  onSelect={handleEngineSelect}
+                  engines={engines}
+                  searchKey="serialNo"
+                />
                 
                 <Input label="Output (kW/HP)" name="output" value={formData.output} onChange={handleChange} />
                 <Input label="Revolutions (RPM)" name="revolutions" value={formData.revolutions} onChange={handleChange} />
@@ -800,6 +859,95 @@ const CustomerAutocomplete = ({
                 <div className="font-medium">{customer.name}</div>
                 <div className="text-xs text-gray-500">
                   {customer.customer}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface EngineAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => void;
+  onSelect: (engine: any) => void;
+  engines: any[];
+  searchKey?: string;
+}
+
+const EngineAutocomplete = ({
+  label,
+  name,
+  value,
+  onChange,
+  onSelect,
+  engines,
+  searchKey = "model",
+}: EngineAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectEngine = (engine: any) => {
+    onSelect(engine);
+    setShowDropdown(false);
+  };
+
+  const filteredEngines = engines.filter((e) =>
+    (e[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={(e) => {
+            onChange(e);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredEngines.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredEngines.map((engine) => (
+              <div
+                key={engine.id}
+                onClick={() => handleSelectEngine(engine)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{engine.model}</div>
+                <div className="text-xs text-gray-500">
+                  S/N: {engine.serialNo} • {engine.company?.name}
                 </div>
               </div>
             ))}

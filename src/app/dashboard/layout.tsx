@@ -43,6 +43,7 @@ export default function DashboardLayout({
   const [activeFormTab, setActiveFormTab] = useState<string | null>(null);
   const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("user");
   const [userLoading, setUserLoading] = useState(true);
 
   // Load companies and forms on mount
@@ -63,6 +64,10 @@ export default function DashboardLayout({
         setUserName(user.username);
       } else if (user && user.email) {
         setUserName(user.email);
+      }
+
+      if (user && user.role) {
+        setUserRole(user.role);
       }
     }
     setUserLoading(false);
@@ -154,7 +159,7 @@ export default function DashboardLayout({
     }
   };
 
-  const navigation = [
+  const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
@@ -184,6 +189,21 @@ export default function DashboardLayout({
       href: "/dashboard/records",
     },
   ];
+
+  const navigation =
+    userRole === "user"
+      ? allNavigation.filter((item) => item.href === "/dashboard/fill-up-form")
+      : allNavigation;
+
+  // Redirect restricted users
+  useEffect(() => {
+    if (!userLoading && userRole === "user") {
+      const isAllowed = pathname.startsWith("/dashboard/fill-up-form");
+      if (!isAllowed) {
+        router.push("/dashboard/fill-up-form");
+      }
+    }
+  }, [pathname, userRole, userLoading, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
@@ -449,7 +469,7 @@ export default function DashboardLayout({
                 <p className="text-sm font-semibold text-white truncate">
                   {userName}
                 </p>
-                <p className="text-xs text-blue-200 truncate">Administrator</p>
+                <p className="text-xs text-blue-200 truncate capitalize">{userRole}</p>
               </div>
             )}
             {!sidebarCollapsed && (

@@ -89,6 +89,7 @@ export async function POST(request: Request) {
     const reporting_person_name = getString('reporting_person_name');
     const telephone_fax = getString('telephone_fax');
     const equipment_manufacturer = getString('equipment_manufacturer');
+    const job_order = getString('job_order');
     const report_date = getString('report_date');
     const customer_name = getString('customer_name');
     const contact_person = getString('contact_person');
@@ -174,20 +175,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Generate Job Order No.
-    const { count, error: countError } = await supabase
-      .from('deutz_service_report')
-      .select('*', { count: 'exact', head: true });
-
-    if (countError) {
-      console.error('Error fetching record count:', countError);
-      return NextResponse.json({ error: 'Failed to generate Job Order No.' }, { status: 500 });
-    }
-
-    const currentYear = new Date().getFullYear();
-    const nextSequence = (count || 0) + 1;
-    const generatedJobOrder = `DEUTZ-SVC-${currentYear}-${nextSequence.toString().padStart(4, '0')}`;
-
     // Insert into Database
     const { data, error } = await supabase
       .from('deutz_service_report')
@@ -196,7 +183,7 @@ export async function POST(request: Request) {
           reporting_person_name,
           telephone_fax,
           equipment_manufacturer,
-          job_order: generatedJobOrder,
+          job_order,
           report_date: report_date || null,
           customer_name,
           contact_person,
@@ -275,6 +262,7 @@ export async function PATCH(request: Request) {
       reporting_person_name,
       telephone_fax,
       equipment_manufacturer,
+      job_order,
       report_date,
       customer_name,
       contact_person,
@@ -344,6 +332,7 @@ export async function PATCH(request: Request) {
       reporting_person_name,
       telephone_fax,
       equipment_manufacturer,
+      job_order,
       report_date: report_date || null,
       customer_name,
       contact_person,

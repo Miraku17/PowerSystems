@@ -81,7 +81,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
-    // Extract fields matching the database schema
     const {
       reporting_person_name,
       telephone_fax,
@@ -92,6 +91,7 @@ export async function POST(request: Request) {
       address,
       email_address,
       commissioning_location,
+      job_order_no,
       commissioning_date,
       engine_model,
       engine_serial_no,
@@ -178,24 +178,24 @@ export async function POST(request: Request) {
       `commissioning-acknowledged-by-${timestamp}.png`
     );
 
-    // Generate Job Order No.
-    const { count, error: countError } = await supabase
-      .from("deutz_commissioning_report")
-      .select("*", { count: "exact", head: true });
+    // Generate Job Order No. - MANUALLY INPUT NOW
+    // const { count, error: countError } = await supabase
+    //   .from("deutz_commissioning_report")
+    //   .select("*", { count: "exact", head: true });
 
-    if (countError) {
-      console.error("Error fetching record count:", countError);
-      return NextResponse.json(
-        { error: "Failed to generate Job Order No." },
-        { status: 500 }
-      );
-    }
+    // if (countError) {
+    //   console.error("Error fetching record count:", countError);
+    //   return NextResponse.json(
+    //     { error: "Failed to generate Job Order No." },
+    //     { status: 500 }
+    //   );
+    // }
 
-    const currentYear = new Date().getFullYear();
-    const nextSequence = (count || 0) + 1;
-    const generatedJobOrderNo = `DEUTZ-COM-${currentYear}-${nextSequence
-      .toString()
-      .padStart(4, "0")}`;
+    // const currentYear = new Date().getFullYear();
+    // const nextSequence = (count || 0) + 1;
+    // const generatedJobOrderNo = `DEUTZ-COM-${currentYear}-${nextSequence
+    //   .toString()
+    //   .padStart(4, "0")}`;
 
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
@@ -210,7 +210,7 @@ export async function POST(request: Request) {
           address,
           email_address,
           commissioning_location,
-          job_order_no: generatedJobOrderNo,
+          job_order_no,
           commissioning_date: commissioning_date || null,
           engine_model,
           engine_serial_no,
@@ -325,6 +325,7 @@ export async function PATCH(request: Request) {
       address,
       email_address,
       commissioning_location,
+      job_order_no,
       commissioning_date,
       engine_model,
       engine_serial_no,
@@ -422,6 +423,7 @@ export async function PATCH(request: Request) {
       address,
       email_address,
       commissioning_location,
+      job_order_no,
       commissioning_date: commissioning_date || null,
       engine_model,
       engine_serial_no,

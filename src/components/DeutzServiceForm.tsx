@@ -13,6 +13,7 @@ interface User {
 
 export default function DeutzServiceForm() {
   const [formData, setFormData] = useState({
+    job_order: "",
     reporting_person_name: "",
     telephone_fax: "",
     report_date: "",
@@ -117,6 +118,7 @@ export default function DeutzServiceForm() {
           id: loadingToastId,
         });
         setFormData({
+          job_order: "",
           reporting_person_name: "",
           telephone_fax: "",
           report_date: "",
@@ -214,6 +216,31 @@ export default function DeutzServiceForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
+        {/* Section: Job Reference */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">
+              Job Reference
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <Input
+              label="Job Order No."
+              name="job_order"
+              value={formData.job_order}
+              onChange={handleChange}
+            />
+            <Input
+              label="Date"
+              name="report_date"
+              type="date"
+              value={formData.report_date}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
         {/* Section 1: General Information */}
         <div>
           <div className="flex items-center mb-4">
@@ -227,13 +254,6 @@ export default function DeutzServiceForm() {
               label="Reporting Person"
               name="reporting_person_name"
               value={formData.reporting_person_name}
-              onChange={handleChange}
-            />
-            <Input
-              label="Date"
-              name="report_date"
-              type="date"
-              value={formData.report_date}
               onChange={handleChange}
             />
 

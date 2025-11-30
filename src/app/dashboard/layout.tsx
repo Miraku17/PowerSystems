@@ -6,6 +6,7 @@ import Image from "next/image";
 import {
   HomeIcon,
   UsersIcon,
+  UserPlusIcon,
   BuildingOfficeIcon,
   CogIcon,
   ArrowLeftOnRectangleIcon,
@@ -142,6 +143,7 @@ export default function DashboardLayout({
   const navigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers" },
+    { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
     {
       name: "Products",
       icon: CogIcon,

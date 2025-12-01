@@ -72,6 +72,15 @@ export async function POST(request: Request) {
       path: "/",
     });
 
+    // Also store the refresh token for automatic token renewal
+    cookieStore.set("refreshToken", data.session.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: "/",
+    });
+
     // Return the user and token to the frontend as well
     return NextResponse.json(
       {
@@ -80,6 +89,7 @@ export async function POST(request: Request) {
         data: {
           user: userObj,
           access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
         },
       },
       { status: 200 }

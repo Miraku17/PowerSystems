@@ -123,8 +123,11 @@ export default function AuthPage() {
         const result = response.data;
   
         if (result.success && result.data?.access_token && result.data?.user) {
-          const { access_token, user } = result.data;
+          const { access_token, refresh_token, user } = result.data;
           authService.saveToken(access_token);
+          if (refresh_token) {
+            authService.saveRefreshToken(refresh_token);
+          }
           authService.saveUser(user);
   
           toast.success("Login successful! Redirecting...", {

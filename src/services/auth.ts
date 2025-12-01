@@ -24,6 +24,7 @@ export const authService = {
   logout: async (): Promise<void> => {
     // Clear local storage or any auth tokens
     localStorage.removeItem("authToken");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
   },
 
@@ -35,6 +36,16 @@ export const authService = {
   // Get auth token
   getToken: (): string | null => {
     return localStorage.getItem("authToken");
+  },
+
+  // Save refresh token
+  saveRefreshToken: (token: string): void => {
+    localStorage.setItem("refreshToken", token);
+  },
+
+  // Get refresh token
+  getRefreshToken: (): string | null => {
+    return localStorage.getItem("refreshToken");
   },
 
   // Save user data

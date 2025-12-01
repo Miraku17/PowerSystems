@@ -18,9 +18,10 @@ export async function POST(request: Request) {
       }
     }
 
-    // Clear the authToken cookie
+    // Clear the auth cookies
     const cookieStore = await cookies();
     cookieStore.delete("authToken");
+    cookieStore.delete("refreshToken");
 
     return NextResponse.json(
       {

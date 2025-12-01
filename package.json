@@ -10,8 +10,11 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
     "@sparticuz/chromium": "^141.0.0",
     "@supabase/supabase-js": "^2.86.0",
+    "@types/three": "^0.181.0",
     "axios": "^1.13.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
@@ -23,7 +26,8 @@
     "react-dom": "19.2.0",
     "react-hot-toast": "^2.6.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
-    "recharts": "^3.4.1"
+    "recharts": "^3.4.1",
+    "three": "^0.181.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

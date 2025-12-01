@@ -99,15 +99,17 @@ export default function Customers() {
   };
 
   const handleOpenCreateModal = () => {
+    if (modalMode === "edit") {
+      setFormData({
+        name: "",
+        equipment: "",
+        customer: "",
+        contactPerson: "",
+        address: "",
+        email: "",
+      });
+    }
     setModalMode("create");
-    setFormData({
-      name: "",
-      equipment: "",
-      customer: "",
-      contactPerson: "",
-      address: "",
-      email: "",
-    });
     setShowModal(true);
   };
 
@@ -146,6 +148,14 @@ export default function Customers() {
       await customerService.create(formData);
       await loadCustomers();
       toast.success("Customer created successfully!", { id: loadingToast });
+      setFormData({
+        name: "",
+        equipment: "",
+        customer: "",
+        contactPerson: "",
+        address: "",
+        email: "",
+      });
       handleCloseModal();
     } catch (error) {
       toast.error("Failed to create customer");
@@ -391,9 +401,6 @@ export default function Customers() {
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             backdropFilter: "blur(4px)",
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto transform transition-all animate-slideUp">

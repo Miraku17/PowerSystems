@@ -108,30 +108,32 @@ export default function Engines({
   };
 
   const handleOpenCreateModal = () => {
+    if (modalMode === "edit") {
+      setFormData({
+        model: "",
+        serialNo: "",
+        altBrandModel: "",
+        equipModel: "",
+        equipSerialNo: "",
+        altSerialNo: "",
+        location: "",
+        rating: "",
+        rpm: "",
+        startVoltage: "",
+        runHours: "",
+        fuelPumpSN: "",
+        fuelPumpCode: "",
+        lubeOil: "",
+        fuelType: "",
+        coolantAdditive: "",
+        turboModel: "",
+        turboSN: "",
+        companyId: "",
+      });
+      setSelectedImage(null);
+      setImagePreview(null);
+    }
     setModalMode("create");
-    setFormData({
-      model: "",
-      serialNo: "",
-      altBrandModel: "",
-      equipModel: "",
-      equipSerialNo: "",
-      altSerialNo: "",
-      location: "",
-      rating: "",
-      rpm: "",
-      startVoltage: "",
-      runHours: "",
-      fuelPumpSN: "",
-      fuelPumpCode: "",
-      lubeOil: "",
-      fuelType: "",
-      coolantAdditive: "",
-      turboModel: "",
-      turboSN: "",
-      companyId: "",
-    });
-    setSelectedImage(null);
-    setImagePreview(null);
     setShowModal(true);
   };
 
@@ -203,6 +205,29 @@ export default function Engines({
       await engineService.create(dataToSubmit);
       await loadEngines();
       toast.success("Engine created successfully!", { id: loadingToast });
+      setFormData({
+        model: "",
+        serialNo: "",
+        altBrandModel: "",
+        equipModel: "",
+        equipSerialNo: "",
+        altSerialNo: "",
+        location: "",
+        rating: "",
+        rpm: "",
+        startVoltage: "",
+        runHours: "",
+        fuelPumpSN: "",
+        fuelPumpCode: "",
+        lubeOil: "",
+        fuelType: "",
+        coolantAdditive: "",
+        turboModel: "",
+        turboSN: "",
+        companyId: "",
+      });
+      setSelectedImage(null);
+      setImagePreview(null);
       handleCloseModal();
     } catch (error) {
       toast.error("Failed to create engine");
@@ -446,9 +471,6 @@ export default function Engines({
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             backdropFilter: "blur(4px)",
           }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
-          }}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto animate-slideUp">
             <div className="sticky top-0 z-10 bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between">
@@ -471,8 +493,8 @@ export default function Engines({
                   Core Specifications
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                   <div className="space-y-1.5">
-                    <label className="block text-xs font-semibold text-gray-500 uppercase">Company <span className="text-red-500">*</span></label>
+                   <div className="flex flex-col">
+                    <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">Company <span className="text-red-500">*</span></label>
                     <select
                       required
                       value={formData.companyId}
@@ -488,13 +510,13 @@ export default function Engines({
                   {[
                     { label: "Engine Model", key: "model", required: true },
                     { label: "Engine Serial No", key: "serialNo", required: true },
-                    { label: "Main Alternator/Transmission brand/model", key: "altBrandModel" },
+                    { label: "Main Alternator/Transmission Model", key: "altBrandModel" },
                     { label: "Equipment Model", key: "equipModel" },
                     { label: "Equipment Serial No", key: "equipSerialNo" },
                     { label: "Main Alternator/Transmission Serial No.", key: "altSerialNo" },
                   ].map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-gray-500 uppercase">
+                    <div key={field.key} className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">
                         {field.label} {field.required && <span className="text-red-500">*</span>}
                       </label>
                       <input
@@ -523,8 +545,8 @@ export default function Engines({
                     { label: "Starting Voltage", key: "startVoltage" },
                     { label: "Running Hours", key: "runHours" },
                   ].map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-gray-500 uppercase">{field.label}</label>
+                    <div key={field.key} className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">{field.label}</label>
                       <input
                         type="text"
                         value={(formData as any)[field.key]}
@@ -552,8 +574,8 @@ export default function Engines({
                     { label: "Turbo Model", key: "turboModel" },
                     { label: "Turbo S/N", key: "turboSN" },
                   ].map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <label className="block text-xs font-semibold text-gray-500 uppercase">{field.label}</label>
+                    <div key={field.key} className="flex flex-col">
+                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1.5">{field.label}</label>
                       <input
                         type="text"
                         value={(formData as any)[field.key]}

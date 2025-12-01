@@ -101,18 +101,20 @@ export default function Users() {
   };
 
   const handleOpenCreateModal = () => {
+    if (modalMode === "edit") {
+      setFormData({
+        firstname: "",
+        lastname: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        username: "",
+        address: "",
+        phone: "",
+        role: "user",
+      });
+    }
     setModalMode("create");
-    setFormData({
-      firstname: "",
-      lastname: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      username: "",
-      address: "",
-      phone: "",
-      role: "user",
-    });
     setShowModal(true);
   };
 
@@ -158,6 +160,17 @@ export default function Users() {
       await userService.create(formData);
       await loadUsers();
       toast.success("User created successfully!", { id: loadingToast });
+      setFormData({
+        firstname: "",
+        lastname: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        username: "",
+        address: "",
+        phone: "",
+        role: "user",
+      });
       handleCloseModal();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create user", {
@@ -405,9 +418,6 @@ export default function Users() {
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             backdropFilter: "blur(4px)",
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] flex flex-col transform transition-all animate-slideUp">

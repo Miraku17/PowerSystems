@@ -67,10 +67,12 @@ export default function Companies({
   };
 
   const handleOpenCreateModal = () => {
+    if (modalMode === "edit") {
+      setFormData({ name: "" });
+      setSelectedImage(null);
+      setImagePreview(null);
+    }
     setModalMode("create");
-    setFormData({ name: "" });
-    setSelectedImage(null);
-    setImagePreview(null);
     setShowModal(true);
   };
 
@@ -124,6 +126,9 @@ export default function Companies({
       await companyService.create(dataToSubmit);
       await loadCompanies();
       toast.success("Company created successfully!", { id: loadingToast });
+      setFormData({ name: "" });
+      setSelectedImage(null);
+      setImagePreview(null);
       handleCloseModal();
     } catch (error) {
       toast.error("Failed to create company");
@@ -213,7 +218,7 @@ export default function Companies({
             {searchTerm ? "No companies found matching your search." : "No companies yet."}
           </p>
           <p className="text-gray-400 text-sm mt-1">
-            Click 'Add Company' to get started.
+            Click &apos;Add Company&apos; to get started.
           </p>
         </div>
       ) : (
@@ -297,9 +302,6 @@ export default function Companies({
           style={{
             backgroundColor: "rgba(0, 0, 0, 0.5)",
             backdropFilter: "blur(4px)",
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) handleCloseModal();
           }}
         >
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full mx-4 animate-slideUp overflow-hidden">

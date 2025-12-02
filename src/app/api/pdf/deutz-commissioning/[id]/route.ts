@@ -90,6 +90,11 @@ export const GET = withAuth(async (request, { user, params }) => {
     yPos += 20;
 
     const addSection = (title: string) => {
+      // Add spacing before section if not at top of page
+      if (yPos > 20) {
+        yPos += 5;
+      }
+
       if (yPos > pageHeight - 40) {
         doc.addPage();
         yPos = 15;
@@ -109,42 +114,40 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += 10;
     };
 
-    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>) => {
+    // Helper function to render a specific grid box
+    const renderGridBox = (gridFields: any[], startY: number) => {
       let rows = 0;
-      let currentRow = 0;
-      fields.forEach(field => {
+      let currentColumn = 0;
+      gridFields.forEach(field => {
         if (field.span === 2) {
-          if (currentRow > 0) rows++;
-          rows++;
-          currentRow = 0;
-        } else {
-          currentRow++;
-          if (currentRow === 2) {
+          if (currentColumn > 0) {
             rows++;
-            currentRow = 0;
+            currentColumn = 0;
+          }
+          rows++;
+        } else {
+          currentColumn++;
+          if (currentColumn === 2) {
+            rows++;
+            currentColumn = 0;
           }
         }
       });
-      if (currentRow > 0) rows++;
+      if (currentColumn > 0) rows++;
 
       const boxHeight = rows * 14 + 4;
-
-      if (yPos + boxHeight > pageHeight - 15) {
-        doc.addPage();
-        yPos = 15;
-      }
 
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
       doc.setLineWidth(0.1);
-      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
+      doc.rect(leftMargin, startY, contentWidth, boxHeight, "FD");
 
       let xOffset = leftMargin + 3;
-      let yOffset = yPos + 3;
+      let yOffset = startY + 3;
       const columnWidth = (contentWidth - 6) / 2;
       let column = 0;
 
-      fields.forEach((field) => {
+      gridFields.forEach((field) => {
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
@@ -174,11 +177,95 @@ export const GET = withAuth(async (request, { user, params }) => {
         }
       });
 
-      yPos += boxHeight + 3;
+      return boxHeight;
+    };
+
+    // Helper function to add fields in a grid with pagination support
+    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>) => {
+      // Calculate layout row indices for all fields
+      const fieldRows: number[] = [];
+      let currentRowCount = 0;
+      let currentColumn = 0;
+
+      fields.forEach((field) => {
+        if (field.span === 2) {
+          if (currentColumn > 0) {
+            currentRowCount++;
+            currentColumn = 0;
+          }
+          fieldRows.push(currentRowCount);
+          currentRowCount++;
+        } else {
+          fieldRows.push(currentRowCount);
+          currentColumn++;
+          if (currentColumn === 2) {
+            currentRowCount++;
+            currentColumn = 0;
+          }
+        }
+      });
+      
+      const totalRows = currentColumn > 0 ? currentRowCount + 1 : currentRowCount;
+      const rowHeight = 14;
+      const boxPadding = 4;
+      const totalHeight = totalRows * rowHeight + boxPadding;
+
+      // Case 1: Fits entirely on current page
+      if (yPos + totalHeight <= pageHeight - 20) {
+        const actualHeight = renderGridBox(fields, yPos);
+        yPos += actualHeight + 5;
+        return;
+      }
+
+      // Case 2: Needs splitting
+      const availableHeight = (pageHeight - 20) - yPos;
+      const maxFitRows = Math.floor((availableHeight - boxPadding) / rowHeight);
+
+      if (maxFitRows < 1) {
+        // Not enough space for even 1 row, push everything to next page
+        doc.addPage();
+        yPos = 15;
+        const actualHeight = renderGridBox(fields, yPos);
+        yPos += actualHeight + 5;
+        return;
+      }
+
+      // Find split index
+      let splitIndex = 0;
+      for (let i = 0; i < fields.length; i++) {
+        if (fieldRows[i] >= maxFitRows) {
+          splitIndex = i;
+          break;
+        }
+      }
+
+      if (splitIndex === 0) {
+         doc.addPage();
+         yPos = 15;
+         addFieldsGrid(fields);
+         return;
+      }
+
+      const firstPageFields = fields.slice(0, splitIndex);
+      const secondPageFields = fields.slice(splitIndex);
+
+      // Render first part
+      renderGridBox(firstPageFields, yPos);
+      
+      // New page for remainder
+      doc.addPage();
+      yPos = 15;
+      
+      // Render remainder
+      addFieldsGrid(secondPageFields);
     };
 
     const addTextAreaField = (label: string, value: any) => {
-      if (yPos > pageHeight - 30) {
+      const valueText = getValue(value);
+      const lines = doc.splitTextToSize(valueText, contentWidth - 6);
+      const boxHeight = Math.max(lines.length * 4 + 8, 16);
+
+      if (yPos + boxHeight > pageHeight - 20) {
         doc.addPage();
         yPos = 15;
       }
@@ -186,10 +273,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
       doc.setLineWidth(0.1);
-
-      const valueText = getValue(value);
-      const lines = doc.splitTextToSize(valueText, contentWidth - 6);
-      const boxHeight = Math.max(lines.length * 4 + 8, 16);
 
       doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
 
@@ -203,7 +286,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.setTextColor(0, 0, 0);
       doc.text(lines, leftMargin + 3, yPos + 8);
 
-      yPos += boxHeight + 3;
+      yPos += boxHeight + 5;
     };
 
     // General Information

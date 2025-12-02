@@ -148,9 +148,8 @@ export const GET = withAuth(async (request, { user, params }) => {
 
       browser = await puppeteerCore.launch({
         args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
-        defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
-        headless: chromium.headless,
+        headless: true,
       });
     }
 

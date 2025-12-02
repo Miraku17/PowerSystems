@@ -128,8 +128,8 @@ export default function FormRecordsPage() {
   };
 
   const handleExportPDF = async (recordId: string) => {
+    const loadingToast = toast.loading("Generating PDF...");
     try {
-      const loadingToast = toast.loading("Generating PDF...");
 
       const formConfig = formTypeEndpoints[normalizedFormType];
       if (!formConfig) {

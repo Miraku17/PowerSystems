@@ -555,7 +555,43 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 4: Warranty Coverage */}
+        {/* Section 4: Customer Complaint */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">
+              Customer Complaint
+            </h3>
+          </div>
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <TextArea
+              label="Customer Complaint"
+              name="customer_complaint"
+              value={formData.customer_complaint}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        {/* Section 5: Possible Cause */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">
+              Possible Cause
+            </h3>
+          </div>
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <TextArea
+              label="Possible Cause"
+              name="possible_cause"
+              value={formData.possible_cause}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        {/* Section 6: Warranty Coverage */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -581,7 +617,7 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 5 */}
+        {/* Section 7: Service Report Details */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -591,29 +627,9 @@ export default function DeutzServiceForm() {
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 space-y-6">
             <TextArea
-              label="Customer Complaint"
-              name="customer_complaint"
-              value={formData.customer_complaint}
-              onChange={handleChange}
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <TextArea
-                label="Possible Cause"
-                name="possible_cause"
-                value={formData.possible_cause}
-                onChange={handleChange}
-              />
-              <TextArea
-                label="Observation"
-                name="observation"
-                value={formData.observation}
-                onChange={handleChange}
-              />
-            </div>
-            <TextArea
-              label="Findings"
-              name="findings"
-              value={formData.findings}
+              label="Summary Details"
+              name="summary_details"
+              value={formData.summary_details}
               onChange={handleChange}
             />
             <TextArea
@@ -623,15 +639,21 @@ export default function DeutzServiceForm() {
               onChange={handleChange}
             />
             <TextArea
-              label="Recommendations"
-              name="recommendations"
-              value={formData.recommendations}
+              label="Observation"
+              name="observation"
+              value={formData.observation}
               onChange={handleChange}
             />
             <TextArea
-              label="Summary Details"
-              name="summary_details"
-              value={formData.summary_details}
+              label="Findings"
+              name="findings"
+              value={formData.findings}
+              onChange={handleChange}
+            />
+            <TextArea
+              label="Recommendations"
+              name="recommendations"
+              value={formData.recommendations}
               onChange={handleChange}
             />
 
@@ -686,7 +708,7 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 6: Signatures */}
+        {/* Section 8: Signatures */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>

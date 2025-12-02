@@ -246,7 +246,29 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
               </div>
             </div>
 
-            {/* Section 4: Warranty Coverage */}
+            {/* Section 4: Customer Complaint */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Customer Complaint</h4>
+              </div>
+              <div>
+                <TextArea label="Customer Complaint" name="customer_complaint" value={formData.customer_complaint} onChange={handleChange} />
+              </div>
+            </div>
+
+            {/* Section 5: Possible Cause */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Possible Cause</h4>
+              </div>
+              <div>
+                <TextArea label="Possible Cause" name="possible_cause" value={formData.possible_cause} onChange={handleChange} />
+              </div>
+            </div>
+
+            {/* Section 6: Warranty Coverage */}
             <div>
               <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -258,26 +280,22 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
               </div>
             </div>
 
-            {/* Section 5: Service Report Details */}
+            {/* Section 7: Service Report Details */}
             <div>
               <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Service Report Details</h4>
               </div>
               <div className="space-y-6">
-                <TextArea label="Customer Complaint" name="customer_complaint" value={formData.customer_complaint} onChange={handleChange} />
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <TextArea label="Possible Cause" name="possible_cause" value={formData.possible_cause} onChange={handleChange} />
-                  <TextArea label="Observation" name="observation" value={formData.observation} onChange={handleChange} />
-                </div>
-                <TextArea label="Findings" name="findings" value={formData.findings} onChange={handleChange} />
-                <TextArea label="Action Taken" name="action_taken" value={formData.action_taken} onChange={handleChange} />
-                <TextArea label="Recommendations" name="recommendations" value={formData.recommendations} onChange={handleChange} />
                 <TextArea label="Summary Details" name="summary_details" value={formData.summary_details} onChange={handleChange} />
+                <TextArea label="Action Taken" name="action_taken" value={formData.action_taken} onChange={handleChange} />
+                <TextArea label="Observation" name="observation" value={formData.observation} onChange={handleChange} />
+                <TextArea label="Findings" name="findings" value={formData.findings} onChange={handleChange} />
+                <TextArea label="Recommendations" name="recommendations" value={formData.recommendations} onChange={handleChange} />
               </div>
             </div>
 
-            {/* Section 6: Signatures */}
+            {/* Section 8: Signatures */}
             <div>
               <div className="flex items-center mb-4">
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>

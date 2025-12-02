@@ -93,7 +93,6 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                     <Field label="Customer Name" value={data.customer_name} />
                   </div>
                   <Field label="Contact Person" value={data.contact_person} />
-                  <Field label="Telephone / Fax" value={data.telephone_fax} />
                   <div className="lg:col-span-2">
                     <Field label="Address" value={data.address} />
                   </div>

@@ -86,6 +86,12 @@ export const POST = withAuth(async (request, { user }) => {
     // Helper to safely get string values
     const getString = (key: string) => formData.get(key) as string || '';
 
+    // Helper to convert empty strings to null for numeric fields
+    const getNumeric = (key: string) => {
+      const value = formData.get(key) as string || '';
+      return value.trim() === '' ? null : value;
+    };
+
     // Extract fields
     const reporting_person_name = getString('reporting_person_name');
     const equipment_manufacturer = getString('equipment_manufacturer');
@@ -103,10 +109,10 @@ export const POST = withAuth(async (request, { user }) => {
     const alternator_serial_no = getString('alternator_serial_no');
     const location = getString('location');
     const date_in_service = getString('date_in_service');
-    const rating = getString('rating');
-    const revolution = getString('revolution');
-    const starting_voltage = getString('starting_voltage');
-    const running_hours = getString('running_hours');
+    const rating = getNumeric('rating');
+    const revolution = getNumeric('revolution');
+    const starting_voltage = getNumeric('starting_voltage');
+    const running_hours = getNumeric('running_hours');
     const fuel_pump_serial_no = getString('fuel_pump_serial_no');
     const fuel_pump_code = getString('fuel_pump_code');
     const lube_oil_type = getString('lube_oil_type');

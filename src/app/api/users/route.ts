@@ -21,11 +21,14 @@ export const GET = withAuth(async (request, { user }) => {
     // Merge the data
     const users = authUsersData.users.map(authUser => {
       const publicUser = publicUsersMap.get(authUser.id);
+      const firstname = publicUser?.firstname || '';
+      const lastname = publicUser?.lastname || '';
       return {
         id: authUser.id,
         email: authUser.email,
-        firstname: publicUser?.firstname || '',
-        lastname: publicUser?.lastname || '',
+        firstname,
+        lastname,
+        fullName: `${firstname} ${lastname}`.trim(),
         username: publicUser?.username || '',
         address: publicUser?.address || '',
         phone: publicUser?.phone || '',

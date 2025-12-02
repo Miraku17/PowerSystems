@@ -199,19 +199,11 @@ export default function DeutzCommissioningReport() {
         comments_action: formData.inspection_comments,
       };
 
-      const response = await fetch('/api/forms/deutz-commissioning', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await apiClient.post('/forms/deutz-commissioning', payload);
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Success:', result);
-        toast.success('Commissioning Report submitted successfully!', { id: loadingToastId });
-        setFormData({
+      console.log('Success:', response.data);
+      toast.success('Commissioning Report submitted successfully!', { id: loadingToastId });
+      setFormData({
           job_order_no: '',
           reporting_person_name: '',
           equipment_name: '',
@@ -290,16 +282,12 @@ export default function DeutzCommissioningReport() {
           approved_by: '',
           approved_by_signature: '',
           acknowledged_by: '',
-acknowledged_by_signature: '',
+          acknowledged_by_signature: '',
         });
-      } else {
-        const errorData = await response.json();
-        console.error('Error:', errorData);
-        toast.error(`Failed to submit report: ${errorData.error || 'Unknown error'}`, { id: loadingToastId });
-      }
     } catch (error: any) {
       console.error('Submission error:', error);
-      toast.error(error.message || 'A network error occurred. Please try again.', { id: loadingToastId });
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
+      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
     } finally {
       setIsLoading(false);
     }
@@ -307,6 +295,13 @@ acknowledged_by_signature: '',
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate job order number
+    if (!formData.job_order_no || formData.job_order_no.trim() === '') {
+      toast.error('Job Order Number is required');
+      return;
+    }
+
     setIsModalOpen(true);
   };
 

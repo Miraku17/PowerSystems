@@ -149,10 +149,12 @@ export const GET = withAuth(async (request, { user, params }) => {
       // Production/Serverless - use chromium
       const puppeteerCore = (await import("puppeteer-core")).default;
       const chromium = (await import("@sparticuz/chromium")).default;
+
       browser = await puppeteerCore.launch({
-        args: chromium.args,
+        args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
+        defaultViewport: chromium.defaultViewport,
         executablePath: await chromium.executablePath(),
-        headless: true,
+        headless: chromium.headless,
       });
     }
 
@@ -182,10 +184,16 @@ export const GET = withAuth(async (request, { user, params }) => {
         }.pdf"`,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating PDF:", error);
+    const errorMessage = error?.message || "Failed to generate PDF";
+    console.error("Detailed error:", {
+      message: errorMessage,
+      stack: error?.stack,
+      name: error?.name,
+    });
     return NextResponse.json(
-      { error: "Failed to generate PDF" },
+      { error: errorMessage },
       { status: 500 }
     );
   }

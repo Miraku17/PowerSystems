@@ -158,13 +158,40 @@ export default function FormRecordsPage() {
       const response = await apiClient.get(pdfEndpoint, {
         responseType: "blob",
       });
+
+      // Check if response is actually a PDF or an error
+      if (response.data.type === "application/json") {
+        // It's an error response, read it as JSON
+        const text = await response.data.text();
+        const errorData = JSON.parse(text);
+        toast.error(errorData.error || "Failed to generate PDF", { id: loadingToast });
+        return;
+      }
+
       const file = new Blob([response.data], { type: "application/pdf" });
       const fileURL = URL.createObjectURL(file);
       window.open(fileURL);
       toast.success("PDF generated successfully!", { id: loadingToast });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error exporting PDF:", error);
-      toast.error("Failed to generate PDF");
+
+      // Try to extract error message from response
+      let errorMessage = "Failed to generate PDF";
+      if (error.response?.data) {
+        try {
+          if (error.response.data instanceof Blob) {
+            const text = await error.response.data.text();
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.error || errorMessage;
+          } else {
+            errorMessage = error.response.data.error || errorMessage;
+          }
+        } catch (e) {
+          console.error("Error parsing error response:", e);
+        }
+      }
+
+      toast.error(errorMessage, { id: loadingToast });
     }
   };
 

@@ -22,6 +22,14 @@ export const authService = {
 
   // Logout user
   logout: async (): Promise<void> => {
+    try {
+      // Call logout API to clear cookies
+      await apiClient.post("/auth/logout");
+    } catch (error) {
+      console.error("Logout API error:", error);
+      // Continue with local cleanup even if API call fails
+    }
+
     // Clear local storage or any auth tokens
     localStorage.removeItem("authToken");
     localStorage.removeItem("user");

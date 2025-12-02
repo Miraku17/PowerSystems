@@ -1,23 +1,52 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   // Get the pathname of the request
   const path = request.nextUrl.pathname;
 
   // Define protected routes
   const isProtectedRoute = path.startsWith("/dashboard");
 
-  // Define public routes
-  const isPublicRoute = path === "/login" || path === "/register" || path === "/";
-
-  // Get the auth token from cookies or check for it in the request
+  // Get the auth token from cookies
   const authToken = request.cookies.get("authToken")?.value;
 
   // If accessing a protected route without a token, redirect to login
   if (isProtectedRoute && !authToken) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // If accessing a protected route with a token, verify it's valid
+  if (isProtectedRoute && authToken) {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        },
+      });
+
+      // Verify the token by getting the user
+      const { data, error } = await supabase.auth.getUser();
+
+      // If token is invalid or expired, clear cookie and redirect to login
+      if (error || !data.user) {
+        const response = NextResponse.redirect(new URL("/login", request.url));
+        response.cookies.delete("authToken");
+        return response;
+      }
+    } catch (error) {
+      // If verification fails, clear cookie and redirect to login
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("authToken");
+      return response;
+    }
   }
 
   // If accessing login/register while already authenticated, redirect to dashboard

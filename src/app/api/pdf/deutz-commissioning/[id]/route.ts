@@ -313,17 +313,95 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Signatures
     addSection("Signatures");
-    addFieldsGrid([
-      { label: "Attending Technician", value: record.attending_technician },
-      { label: "Approved By", value: record.approved_by },
-      { label: "Acknowledged By", value: record.acknowledged_by },
-    ]);
 
-    // Footer
-    const currentDate = new Date().toLocaleDateString();
-    doc.setFontSize(7);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Generated on ${currentDate}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+    // Helper function to add signature with image
+    const addSignatures = async () => {
+      const signatures = [
+        {
+          label: "Attending Technician",
+          name: record.attending_technician,
+          imageUrl: record.attending_technician_signature,
+        },
+        {
+          label: "Approved By",
+          name: record.approved_by,
+          imageUrl: record.approved_by_signature,
+        },
+        {
+          label: "Acknowledged By",
+          name: record.acknowledged_by,
+          imageUrl: record.acknowledged_by_signature,
+        },
+      ];
+
+      const sigBoxHeight = 42;
+      const sigBoxWidth = (contentWidth - 6) / 3;
+
+      if (yPos + sigBoxHeight > pageHeight - 15) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, yPos, contentWidth, sigBoxHeight + 8, "FD");
+
+      for (let i = 0; i < signatures.length; i++) {
+        const sig = signatures[i];
+        const xOffset = leftMargin + 3 + i * (sigBoxWidth + 3);
+
+        // Signature box with border
+        doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+        doc.setLineWidth(0.3);
+        doc.rect(xOffset, yPos + 2, sigBoxWidth - 3, 25);
+
+        // Add signature image if available
+        if (sig.imageUrl) {
+          try {
+            // Fetch the image
+            const imgResponse = await fetch(sig.imageUrl);
+            const arrayBuffer = await imgResponse.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const imgBase64 = buffer.toString('base64');
+            
+            // Add image to PDF
+            doc.addImage(
+              imgBase64,
+              "PNG",
+              xOffset + 2,
+              yPos + 4,
+              sigBoxWidth - 7,
+              20,
+              undefined,
+              "FAST"
+            );
+          } catch (error) {
+            console.error("Error loading signature image:", error);
+          }
+        }
+
+        // Name below signature
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(0, 0, 0);
+        const nameText = getValue(sig.name);
+        const nameLines = doc.splitTextToSize(nameText, sigBoxWidth - 6);
+        doc.text(nameLines, xOffset + sigBoxWidth / 2, yPos + 32, { align: "center" });
+
+        // Label below Name
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+        doc.text(sig.label, xOffset + sigBoxWidth / 2, yPos + 38, { align: "center" });
+      }
+
+      yPos += sigBoxHeight + 11;
+    };
+
+    await addSignatures();
+
+
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
 

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { readFileSync } from "fs";
-import { join } from "path";
 import { withAuth } from "@/lib/auth-middleware";
+import jsPDF from "jspdf";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
@@ -27,155 +26,309 @@ export const GET = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
-    // Helper function to get value or empty string
-    const getValue = (value: any) => value || "";
+    // Helper function to get value or dash
+    const getValue = (value: any) => value || "-";
 
-    // Helper function to generate signature image HTML
-    const getSignatureImg = (url: string | null) => {
-      return url
-        ? `<img src="${url}" class="signature-img" alt="Signature" />`
-        : "";
-    };
-
-    // Read HTML template
-    const templatePath = join(
-      process.cwd(),
-      "src/app/pdf_templates/CommissionDeutz.html"
-    );
-    let htmlTemplate = readFileSync(templatePath, "utf-8");
-
-    // Replace all placeholders with actual values
-    const replacements: Record<string, any> = {
-      job_order_no: getValue(record.job_order_no),
-      reporting_person_name: getValue(record.reporting_person_name),
-      telephone_fax: getValue(record.telephone_fax),
-      equipment_name: getValue(record.equipment_name),
-      running_hours: getValue(record.running_hours),
-      customer_name: getValue(record.customer_name),
-      contact_person: getValue(record.contact_person),
-      address: getValue(record.address),
-      email_address: getValue(record.email_address),
-      commissioning_location: getValue(record.commissioning_location),
-      commissioning_date: getValue(record.commissioning_date),
-      engine_model: getValue(record.engine_model),
-      engine_serial_no: getValue(record.engine_serial_no),
-      commissioning_no: getValue(record.commissioning_no),
-      equipment_manufacturer: getValue(record.equipment_manufacturer),
-      equipment_no: getValue(record.equipment_no),
-      equipment_type: getValue(record.equipment_type),
-      output: getValue(record.output),
-      revolutions: getValue(record.revolutions),
-      main_effective_pressure: getValue(record.main_effective_pressure),
-      lube_oil_type: getValue(record.lube_oil_type),
-      fuel_type: getValue(record.fuel_type),
-      cooling_water_additives: getValue(record.cooling_water_additives),
-      fuel_pump_serial_no: getValue(record.fuel_pump_serial_no),
-      fuel_pump_code: getValue(record.fuel_pump_code),
-      turbo_model: getValue(record.turbo_model),
-      turbo_serial_no: getValue(record.turbo_serial_no),
-      summary: getValue(record.summary),
-      check_oil_level: getValue(record.check_oil_level),
-      check_air_filter: getValue(record.check_air_filter),
-      check_hoses_clamps: getValue(record.check_hoses_clamps),
-      check_engine_support: getValue(record.check_engine_support),
-      check_v_belt: getValue(record.check_v_belt),
-      check_water_level: getValue(record.check_water_level),
-      crankshaft_end_play: getValue(record.crankshaft_end_play),
-      inspector: getValue(record.inspector),
-      comments_action: getValue(record.comments_action),
-      rpm_idle_speed: getValue(record.rpm_idle_speed),
-      rpm_full_speed: getValue(record.rpm_full_speed),
-      oil_pressure_idle: getValue(record.oil_pressure_idle),
-      oil_pressure_full: getValue(record.oil_pressure_full),
-      oil_temperature: getValue(record.oil_temperature),
-      engine_smoke: getValue(record.engine_smoke),
-      engine_vibration: getValue(record.engine_vibration),
-      check_engine_leakage: getValue(record.check_engine_leakage),
-      cylinder_head_temp: getValue(record.cylinder_head_temp),
-      cylinder_no: getValue(record.cylinder_no),
-      cylinder_a1: getValue(record.cylinder_a1),
-      cylinder_a2: getValue(record.cylinder_a2),
-      cylinder_a3: getValue(record.cylinder_a3),
-      cylinder_a4: getValue(record.cylinder_a4),
-      cylinder_a5: getValue(record.cylinder_a5),
-      cylinder_a6: getValue(record.cylinder_a6),
-      cylinder_b1: getValue(record.cylinder_b1),
-      cylinder_b2: getValue(record.cylinder_b2),
-      cylinder_b3: getValue(record.cylinder_b3),
-      cylinder_b4: getValue(record.cylinder_b4),
-      cylinder_b5: getValue(record.cylinder_b5),
-      cylinder_b6: getValue(record.cylinder_b6),
-      starter_part_no: getValue(record.starter_part_no),
-      alternator_part_no: getValue(record.alternator_part_no),
-      v_belt_part_no: getValue(record.v_belt_part_no),
-      air_filter_part_no: getValue(record.air_filter_part_no),
-      oil_filter_part_no: getValue(record.oil_filter_part_no),
-      fuel_filter_part_no: getValue(record.fuel_filter_part_no),
-      pre_fuel_filter_part_no: getValue(record.pre_fuel_filter_part_no),
-      controller_brand: getValue(record.controller_brand),
-      controller_model: getValue(record.controller_model),
-      remarks: getValue(record.remarks),
-      recommendation: getValue(record.recommendation),
-      attending_technician: getValue(record.attending_technician),
-      approved_by: getValue(record.approved_by),
-      acknowledged_by: getValue(record.acknowledged_by),
-      attending_technician_signature_img: getSignatureImg(
-        record.attending_technician_signature
-      ),
-      approved_by_signature_img: getSignatureImg(record.approved_by_signature),
-      acknowledged_by_signature_img: getSignatureImg(
-        record.acknowledged_by_signature
-      ),
-    };
-
-    // Replace all placeholders in the template
-    Object.keys(replacements).forEach((key) => {
-      const regex = new RegExp(`{{${key}}}`, "g");
-      htmlTemplate = htmlTemplate.replace(regex, replacements[key]);
+    // Create PDF using jsPDF
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
     });
 
-    // Launch Puppeteer (use different approach for dev vs production)
-    const isDev = process.env.NODE_ENV === "development";
-    let browser;
+    let yPos = 0;
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const contentWidth = pageWidth - leftMargin - rightMargin;
 
-    if (isDev) {
-      // Local development - use regular puppeteer
-      const puppeteer = (await import("puppeteer")).default;
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      });
-    } else {
-      // Production/Serverless - use chromium
-      const puppeteerCore = (await import("puppeteer-core")).default;
-      const chromium = (await import("@sparticuz/chromium")).default;
+    // Colors matching the template
+    const primaryBlue = [26, 47, 79]; // #1A2F4F
+    const sectionBorderBlue = [37, 99, 235]; // #2563eb
+    const lightGray = [249, 250, 251];
+    const borderGray = [229, 231, 235];
+    const textGray = [100, 100, 100];
 
-      browser = await puppeteerCore.launch({
-        args: [...chromium.args, "--no-sandbox", "--disable-setuid-sandbox"],
-        executablePath: await chromium.executablePath(),
-        headless: true,
+    // Header with dark blue background
+    doc.setFillColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
+    doc.rect(0, yPos, pageWidth, 55, "F");
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("POWER SYSTEMS, INCORPORATED", pageWidth / 2, yPos + 15, { align: "center" });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text("2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,", pageWidth / 2, yPos + 22, { align: "center" });
+    doc.text("Bagumbayan, Libis, Quezon City", pageWidth / 2, yPos + 27, { align: "center" });
+    doc.text("Tel: (+63-2) 687-9275 to 78  |  Fax: (+63-2) 687-9279", pageWidth / 2, yPos + 32, { align: "center" });
+    doc.text("Email: sales@psi-deutz.com", pageWidth / 2, yPos + 37, { align: "center" });
+
+    // Separator line
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.3);
+    doc.line(leftMargin + 10, yPos + 41, pageWidth - rightMargin - 10, yPos + 41);
+
+    doc.setFontSize(7);
+    doc.text("NAVOTAS • BACOLOD • CEBU • CAGAYAN • DAVAO • GEN SAN • ZAMBOANGA • ILO-ILO • SURIGAO", pageWidth / 2, yPos + 47, { align: "center" });
+
+    yPos = 60;
+
+    // Title box
+    doc.setTextColor(0, 0, 0);
+    doc.setDrawColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
+    doc.setLineWidth(1);
+    doc.rect(pageWidth / 2 - 60, yPos, 120, 12);
+
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
+    doc.text("DEUTZ COMMISSIONING REPORT", pageWidth / 2, yPos + 8, { align: "center" });
+
+    yPos += 20;
+
+    const addSection = (title: string) => {
+      if (yPos > pageHeight - 40) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.rect(leftMargin, yPos, contentWidth, 8, "F");
+
+      doc.setFillColor(sectionBorderBlue[0], sectionBorderBlue[1], sectionBorderBlue[2]);
+      doc.rect(leftMargin, yPos, 2, 8, "F");
+
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.text(title.toUpperCase(), leftMargin + 5, yPos + 5.5);
+
+      yPos += 10;
+    };
+
+    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>) => {
+      let rows = 0;
+      let currentRow = 0;
+      fields.forEach(field => {
+        if (field.span === 2) {
+          if (currentRow > 0) rows++;
+          rows++;
+          currentRow = 0;
+        } else {
+          currentRow++;
+          if (currentRow === 2) {
+            rows++;
+            currentRow = 0;
+          }
+        }
       });
+      if (currentRow > 0) rows++;
+
+      const boxHeight = rows * 14 + 4;
+
+      if (yPos + boxHeight > pageHeight - 15) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.1);
+      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
+
+      let xOffset = leftMargin + 3;
+      let yOffset = yPos + 3;
+      const columnWidth = (contentWidth - 6) / 2;
+      let column = 0;
+
+      fields.forEach((field) => {
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+        doc.text(field.label, xOffset, yOffset + 3);
+
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        const valueText = getValue(field.value);
+        const maxWidth = field.span === 2 ? contentWidth - 6 : columnWidth - 3;
+        const lines = doc.splitTextToSize(valueText, maxWidth);
+        doc.text(lines, xOffset, yOffset + 7);
+
+        if (field.span === 2) {
+          yOffset += 14;
+          xOffset = leftMargin + 3;
+          column = 0;
+        } else {
+          column++;
+          if (column === 2) {
+            yOffset += 14;
+            xOffset = leftMargin + 3;
+            column = 0;
+          } else {
+            xOffset = leftMargin + 3 + columnWidth;
+          }
+        }
+      });
+
+      yPos += boxHeight + 3;
+    };
+
+    const addTextAreaField = (label: string, value: any) => {
+      if (yPos > pageHeight - 30) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.1);
+
+      const valueText = getValue(value);
+      const lines = doc.splitTextToSize(valueText, contentWidth - 6);
+      const boxHeight = Math.max(lines.length * 4 + 8, 16);
+
+      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+      doc.text(label, leftMargin + 3, yPos + 4);
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(0, 0, 0);
+      doc.text(lines, leftMargin + 3, yPos + 8);
+
+      yPos += boxHeight + 3;
+    };
+
+    // General Information
+    addSection("General Information");
+    addFieldsGrid([
+      { label: "Job Order No.", value: record.job_order_no },
+      { label: "Reporting Person", value: record.reporting_person_name },
+      { label: "Commissioning No.", value: record.commissioning_no },
+      { label: "Equipment Name", value: record.equipment_name },
+      { label: "Customer Name", value: record.customer_name, span: 2 },
+      { label: "Contact Person", value: record.contact_person },
+      { label: "Telephone / Fax", value: record.telephone_fax },
+      { label: "Address", value: record.address, span: 2 },
+      { label: "Commissioning Location", value: record.commissioning_location, span: 2 },
+      { label: "Email Address", value: record.email_address },
+      { label: "Commissioning Date", value: record.commissioning_date },
+    ]);
+
+    // Equipment & Engine Details
+    addSection("Equipment & Engine Details");
+    addFieldsGrid([
+      { label: "Engine Model", value: record.engine_model },
+      { label: "Engine Serial No.", value: record.engine_serial_no },
+      { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
+      { label: "Equipment No.", value: record.equipment_no },
+      { label: "Equipment Type", value: record.equipment_type },
+      { label: "Output", value: record.output },
+      { label: "Revolutions", value: record.revolutions },
+      { label: "Main Effective Pressure", value: record.main_effective_pressure },
+      { label: "Lube Oil Type", value: record.lube_oil_type },
+      { label: "Fuel Type", value: record.fuel_type },
+      { label: "Cooling Water Additives", value: record.cooling_water_additives, span: 2 },
+      { label: "Fuel Pump Serial No.", value: record.fuel_pump_serial_no },
+      { label: "Fuel Pump Code", value: record.fuel_pump_code },
+      { label: "Turbo Model", value: record.turbo_model },
+      { label: "Turbo Serial No.", value: record.turbo_serial_no },
+      { label: "Running Hours", value: record.running_hours },
+    ]);
+
+    // Inspection Prior Test
+    addSection("Inspection Prior Test");
+    addTextAreaField("Summary", record.summary);
+    addFieldsGrid([
+      { label: "Check Oil Level", value: record.check_oil_level },
+      { label: "Check Air Filter", value: record.check_air_filter },
+      { label: "Check Hoses Clamps", value: record.check_hoses_clamps },
+      { label: "Check Engine Support", value: record.check_engine_support },
+      { label: "Check V-Belt", value: record.check_v_belt },
+      { label: "Check Water Level", value: record.check_water_level },
+      { label: "Crankshaft End Play", value: record.crankshaft_end_play },
+      { label: "Inspector", value: record.inspector },
+    ]);
+    addTextAreaField("Comments/Action", record.comments_action);
+
+    // Operational Readings
+    addSection("Operational Readings");
+    addFieldsGrid([
+      { label: "RPM Idle Speed", value: record.rpm_idle_speed },
+      { label: "RPM Full Speed", value: record.rpm_full_speed },
+      { label: "Oil Pressure Idle", value: record.oil_pressure_idle },
+      { label: "Oil Pressure Full", value: record.oil_pressure_full },
+      { label: "Oil Temperature", value: record.oil_temperature },
+      { label: "Engine Smoke", value: record.engine_smoke },
+      { label: "Engine Vibration", value: record.engine_vibration },
+      { label: "Check Engine Leakage", value: record.check_engine_leakage },
+    ]);
+
+    // Cylinder Data
+    if (record.cylinder_no) {
+      addSection("Cylinder Data");
+      addFieldsGrid([
+        { label: "Cylinder Head Temp", value: record.cylinder_head_temp },
+        { label: "Cylinder No.", value: record.cylinder_no },
+        { label: "Cylinder A1", value: record.cylinder_a1 },
+        { label: "Cylinder A2", value: record.cylinder_a2 },
+        { label: "Cylinder A3", value: record.cylinder_a3 },
+        { label: "Cylinder A4", value: record.cylinder_a4 },
+        { label: "Cylinder A5", value: record.cylinder_a5 },
+        { label: "Cylinder A6", value: record.cylinder_a6 },
+        { label: "Cylinder B1", value: record.cylinder_b1 },
+        { label: "Cylinder B2", value: record.cylinder_b2 },
+        { label: "Cylinder B3", value: record.cylinder_b3 },
+        { label: "Cylinder B4", value: record.cylinder_b4 },
+        { label: "Cylinder B5", value: record.cylinder_b5 },
+        { label: "Cylinder B6", value: record.cylinder_b6 },
+      ]);
     }
 
-    const page = await browser.newPage();
-    await page.setContent(htmlTemplate, { waitUntil: "networkidle0" });
+    // Parts Reference
+    addSection("Parts Reference");
+    addFieldsGrid([
+      { label: "Starter Part No.", value: record.starter_part_no },
+      { label: "Alternator Part No.", value: record.alternator_part_no },
+      { label: "V-Belt Part No.", value: record.v_belt_part_no },
+      { label: "Air Filter Part No.", value: record.air_filter_part_no },
+      { label: "Oil Filter Part No.", value: record.oil_filter_part_no },
+      { label: "Fuel Filter Part No.", value: record.fuel_filter_part_no },
+      { label: "Pre-Fuel Filter Part No.", value: record.pre_fuel_filter_part_no },
+      { label: "Controller Brand", value: record.controller_brand },
+      { label: "Controller Model", value: record.controller_model },
+    ]);
 
-    // Generate PDF
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: {
-        top: "20px",
-        right: "20px",
-        bottom: "20px",
-        left: "20px",
-      },
-    });
+    // Remarks & Recommendations
+    addSection("Remarks & Recommendations");
+    addTextAreaField("Remarks", record.remarks);
+    addTextAreaField("Recommendation", record.recommendation);
 
-    await browser.close();
+    // Signatures
+    addSection("Signatures");
+    addFieldsGrid([
+      { label: "Attending Technician", value: record.attending_technician },
+      { label: "Approved By", value: record.approved_by },
+      { label: "Acknowledged By", value: record.acknowledged_by },
+    ]);
+
+    // Footer
+    const currentDate = new Date().toLocaleDateString();
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Generated on ${currentDate}`, pageWidth / 2, pageHeight - 10, { align: "center" });
+
+    const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
 
     // Return PDF as response
-    return new NextResponse(Buffer.from(pdfBuffer), {
+    return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="Commissioning-Report-${

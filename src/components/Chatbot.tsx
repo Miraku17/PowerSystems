@@ -50,19 +50,17 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY || "";
-      const authToken = localStorage.getItem("authToken");
-
-      const response = await fetch(`${baseUrl}/chatbot`, {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          ...(authToken && { Authorization: `Bearer ${authToken}` }),
         },
         body: JSON.stringify({
           question: question,
+          messages: messages.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
         }),
       });
 

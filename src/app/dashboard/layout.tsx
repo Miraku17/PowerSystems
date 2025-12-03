@@ -523,7 +523,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Chatbot */}
-      <Chatbot />
+      {/* <Chatbot /> */}
     </div>
   );
 }

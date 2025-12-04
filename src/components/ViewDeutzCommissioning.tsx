@@ -21,6 +21,17 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
     </div>
   );
 
+  const TextField = ({ label, value }: { label: string; value: any }) => (
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+        {label}
+      </label>
+      <div className="text-sm text-gray-900 font-medium whitespace-pre-wrap break-words">
+        {value || "-"}
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
@@ -146,7 +157,7 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Inspection Prior Test</h4>
                 </div>
                 <div className="space-y-6">
-                  <Field label="Summary" value={data.summary} />
+                  <TextField label="Summary" value={data.summary} />
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Field label="1. Check Oil Level" value={data.check_oil_level} />
                     <Field label="2. Check Air Filter Element" value={data.check_air_filter} />
@@ -253,8 +264,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Remarks & Recommendations</h4>
                 </div>
                 <div className="space-y-6">
-                  <Field label="Remarks" value={data.remarks} />
-                  <Field label="Recommendation" value={data.recommendation} />
+                  <TextField label="Remarks" value={data.remarks} />
+                  <TextField label="Recommendation" value={data.recommendation} />
                 </div>
               </div>
 

@@ -21,6 +21,17 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
     </div>
   );
 
+  const TextField = ({ label, value, className = "" }: { label: string; value: any; className?: string }) => (
+    <div className={className}>
+      <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+        {label}
+      </label>
+      <div className="text-sm text-gray-900 font-medium whitespace-pre-wrap break-words">
+        {value || "-"}
+      </div>
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
@@ -180,11 +191,11 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Service Report Details</h4>
                 </div>
                 <div className="space-y-6">
-                  <Field label="Summary Details" value={data.summary_details} />
-                  <Field label="Action Taken" value={data.action_taken} />
-                  <Field label="Observation" value={data.observation} />
-                  <Field label="Findings" value={data.findings} />
-                  <Field label="Recommendations" value={data.recommendations} />
+                  <TextField label="Summary Details" value={data.summary_details} />
+                  <TextField label="Action Taken" value={data.action_taken} />
+                  <TextField label="Observation" value={data.observation} />
+                  <TextField label="Findings" value={data.findings} />
+                  <TextField label="Recommendations" value={data.recommendations} />
 
                   {data.attachments && data.attachments.length > 0 && (
                     <div>

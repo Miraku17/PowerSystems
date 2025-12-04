@@ -424,17 +424,17 @@ export const PATCH = withAuth(async (request, { user }) => {
     const timestamp = Date.now();
     const attending_technician_signature = await uploadSignature(
       serviceSupabase,
-      rawAttendingSignature,
+      rawAttendingSignature || "",
       `commissioning-attending-technician-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
-      rawApprovedSignature,
+      rawApprovedSignature || "",
       `commissioning-approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       serviceSupabase,
-      rawAcknowledgedSignature,
+      rawAcknowledgedSignature || "",
       `commissioning-acknowledged-by-${timestamp}.png`
     );
 
@@ -516,13 +516,13 @@ export const PATCH = withAuth(async (request, { user }) => {
 
     // Only update signatures if they were processed (non-empty)
     if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
-    else if (rawAttendingSignature === "") updateData.attending_technician_signature = ""; // Handle clearing
-    
+    else if (rawAttendingSignature === "") updateData.attending_technician_signature = null; // Handle clearing
+
     if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
-    else if (rawApprovedSignature === "") updateData.approved_by_signature = "";
+    else if (rawApprovedSignature === "") updateData.approved_by_signature = null;
 
     if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
-    else if (rawAcknowledgedSignature === "") updateData.acknowledged_by_signature = "";
+    else if (rawAcknowledgedSignature === "") updateData.acknowledged_by_signature = null;
 
 
     const { data, error } = await supabase

@@ -261,6 +261,13 @@ export const PATCH = withAuth(async (request, { user }) => {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
+    console.log('[API] PATCH deutz-service - Received signatures:', {
+      attending_technician_signature: body.attending_technician_signature,
+      service_technician_signature: body.service_technician_signature,
+      approved_by_signature: body.approved_by_signature,
+      acknowledged_by_signature: body.acknowledged_by_signature,
+    });
+
     // Extract fields matching the database schema
     // Note: In POST, service_technician_signature is mapped to attending_technician_signature in DB
     const {
@@ -332,24 +339,24 @@ export const PATCH = withAuth(async (request, { user }) => {
       }
     }
 
-    // Handle signature field name discrepancy
-    const signatureToProcess = rawServiceTechSignature || rawServiceTechSignatureAlt;
+    // Handle signature field name discrepancy (use nullish coalescing to preserve empty strings)
+    const signatureToProcess = rawServiceTechSignature !== undefined ? rawServiceTechSignature : rawServiceTechSignatureAlt;
 
     // Process Signatures
     const timestamp = Date.now();
     const attending_technician_signature = await uploadSignature(
       serviceSupabase,
-      signatureToProcess,
+      signatureToProcess || "",
       `service-technician-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
-      rawApprovedBySignature,
+      rawApprovedBySignature || "",
       `approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       serviceSupabase,
-      rawAcknowledgedBySignature,
+      rawAcknowledgedBySignature || "",
       `acknowledged-by-${timestamp}.png`
     );
 
@@ -399,13 +406,19 @@ export const PATCH = withAuth(async (request, { user }) => {
 
      // Only update signatures if they were processed (non-empty) or explicitly cleared
      if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
-     else if (signatureToProcess === "") updateData.attending_technician_signature = "";
- 
+     else if (signatureToProcess === "") updateData.attending_technician_signature = null;
+
      if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
-     else if (rawApprovedBySignature === "") updateData.approved_by_signature = "";
- 
+     else if (rawApprovedBySignature === "") updateData.approved_by_signature = null;
+
      if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
-     else if (rawAcknowledgedBySignature === "") updateData.acknowledged_by_signature = "";
+     else if (rawAcknowledgedBySignature === "") updateData.acknowledged_by_signature = null;
+
+     console.log('[API] PATCH deutz-service - Final signature values being saved:', {
+       attending_technician_signature: updateData.attending_technician_signature,
+       approved_by_signature: updateData.approved_by_signature,
+       acknowledged_by_signature: updateData.acknowledged_by_signature,
+     });
 
     // Update the record in Supabase
     const { data, error } = await supabase

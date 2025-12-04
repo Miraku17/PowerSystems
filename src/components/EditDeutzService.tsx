@@ -148,6 +148,12 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
         warrantable_failure: formData.warrantable_failure === "Yes",
       };
 
+      console.log('[EDIT SERVICE] Payload being sent:', {
+        attending_technician_signature: (payload as any).attending_technician_signature,
+        approved_by_signature: (payload as any).approved_by_signature,
+        acknowledged_by_signature: (payload as any).acknowledged_by_signature,
+      });
+
       const response = await apiClient.patch(`/forms/deutz-service?id=${recordId}`, payload);
 
       if (response.status === 200) {

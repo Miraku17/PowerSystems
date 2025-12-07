@@ -26,54 +26,44 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
     const imageFile = formData.get("image") as File | null;
 
-    // Fetch current engine data to get old image URL
-    const { data: currentEngine } = await supabase
-      .from("engines")
-      .select("imageurl")
+    // Fetch current pump data to get old image URL
+    const { data: currentPump } = await supabase
+      .from("pumps")
+      .select("image_url")
       .eq("id", id)
       .single();
 
     // Prepare update object
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    };
+    const updateData: any = {};
 
     // Helper to conditionally add fields
     const addIfPresent = (key: string, col: string) => {
       if (formData.has(key)) updateData[col] = formData.get(key);
     };
 
-    addIfPresent("companyId", "companyid");
-    addIfPresent("model", "model");
-    addIfPresent("serialNo", "serialno");
-    addIfPresent("altBrandModel", "altbrandmodel");
-    addIfPresent("equipModel", "equipmodel");
-    addIfPresent("equipSerialNo", "equipserialno");
-    addIfPresent("altSerialNo", "altserialno");
-    addIfPresent("location", "location");
-    addIfPresent("rating", "rating");
+    addIfPresent("companyId", "company_id");
+    addIfPresent("engineModel", "engine_model");
+    addIfPresent("engineSerialNumber", "engine_serial_number");
+    addIfPresent("kw", "kw");
+    addIfPresent("pumpModel", "pump_model");
+    addIfPresent("pumpSerialNumber", "pump_serial_number");
     addIfPresent("rpm", "rpm");
-    addIfPresent("startVoltage", "startvoltage");
-    addIfPresent("runHours", "runhours");
-    addIfPresent("fuelPumpSN", "fuelpumpsn");
-    addIfPresent("fuelPumpCode", "fuelpumpcode");
-    addIfPresent("lubeOil", "lubeoil");
-    addIfPresent("fuelType", "fueltype");
-    addIfPresent("coolantAdditive", "coolantadditive");
-    addIfPresent("turboModel", "turbomodel");
-    addIfPresent("turboSN", "turbosn");
+    addIfPresent("productNumber", "product_number");
+    addIfPresent("hmax", "hmax");
+    addIfPresent("qmax", "qmax");
+    addIfPresent("runningHours", "running_hours");
 
     // Handle Image Upload
     if (imageFile && imageFile.size > 0) {
       // Delete old image if exists
-      if (currentEngine?.imageurl) {
-        const oldImagePath = getFilePathFromUrl(currentEngine.imageurl);
+      if (currentPump?.image_url) {
+        const oldImagePath = getFilePathFromUrl(currentPump.image_url);
         if (oldImagePath) {
           try {
             await supabase.storage
-              .from("engine-images")
+              .from("pump")
               .remove([oldImagePath]);
-            console.log(`Deleted old engine image: ${oldImagePath}`);
+            console.log(`Deleted old pump image: ${oldImagePath}`);
           } catch (error) {
             console.error(`Error deleting old image ${oldImagePath}:`, error);
           }
@@ -82,7 +72,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
       const filename = `${Date.now()}-${imageFile.name.replace(/\s/g, "_")}`;
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from("engine-images")
+        .from("pump")
         .upload(filename, imageFile, {
           cacheControl: "3600",
           upsert: false,
@@ -92,15 +82,14 @@ export const PUT = withAuth(async (request, { user, params }) => {
         console.error("Upload error:", uploadError);
       } else if (uploadData) {
         const { data: publicUrlData } = supabase.storage
-          .from("engine-images")
+          .from("pump")
           .getPublicUrl(uploadData.path);
-        updateData.imageurl = publicUrlData.publicUrl;
-        updateData.imagepublicid = uploadData.path;
+        updateData.image_url = publicUrlData.publicUrl;
       }
     }
 
     const { data, error } = await supabase
-      .from("engines")
+      .from("pumps")
       .update(updateData)
       .eq("id", id)
       .select(
@@ -122,35 +111,26 @@ export const PUT = withAuth(async (request, { user, params }) => {
     }
 
     // Map response
-    const updatedEngine = {
+    const updatedPump = {
       id: data.id,
-      model: data.model,
-      serialNo: data.serialno,
-      altBrandModel: data.altbrandmodel,
-      equipModel: data.equipmodel,
-      equipSerialNo: data.equipserialno,
-      altSerialNo: data.altserialno,
-      location: data.location,
-      rating: data.rating,
+      engineModel: data.engine_model,
+      engineSerialNumber: data.engine_serial_number,
+      kw: data.kw,
+      pumpModel: data.pump_model,
+      pumpSerialNumber: data.pump_serial_number,
       rpm: data.rpm,
-      startVoltage: data.startvoltage,
-      runHours: data.runhours,
-      fuelPumpSN: data.fuelpumpsn,
-      fuelPumpCode: data.fuelpumpcode,
-      lubeOil: data.lubeoil,
-      fuelType: data.fueltype,
-      coolantAdditive: data.coolantadditive,
-      turboModel: data.turbomodel,
-      turboSN: data.turbosn,
-      imageUrl: data.imageurl,
+      productNumber: data.product_number,
+      hmax: data.hmax,
+      qmax: data.qmax,
+      runningHours: data.running_hours,
+      imageUrl: data.image_url,
       company: data.companies,
       createdAt: data.created_at,
-      updatedAt: data.updated_at,
     };
 
-    return NextResponse.json({ success: true, data: updatedEngine });
+    return NextResponse.json({ success: true, data: updatedPump });
   } catch (error: any) {
-    console.error("API error updating engine:", error);
+    console.error("API error updating pump:", error);
     return NextResponse.json(
       {
         success: false,
@@ -167,15 +147,15 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     const supabase = getServiceSupabase();
     const { id } = await params;
 
-    // Fetch engine data to get image URL before deleting
-    const { data: engineData } = await supabase
-      .from("engines")
-      .select("imageurl")
+    // Fetch pump data to get image URL before deleting
+    const { data: pumpData } = await supabase
+      .from("pumps")
+      .select("image_url")
       .eq("id", id)
       .single();
 
-    // Delete the engine record
-    const { error } = await supabase.from("engines").delete().eq("id", id);
+    // Delete the pump record
+    const { error } = await supabase.from("pumps").delete().eq("id", id);
 
     if (error) {
       return NextResponse.json(
@@ -185,14 +165,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Delete image from storage if exists
-    if (engineData?.imageurl) {
-      const imagePath = getFilePathFromUrl(engineData.imageurl);
+    if (pumpData?.image_url) {
+      const imagePath = getFilePathFromUrl(pumpData.image_url);
       if (imagePath) {
         try {
           await supabase.storage
-            .from("engine-images")
+            .from("pump")
             .remove([imagePath]);
-          console.log(`Deleted engine image from storage: ${imagePath}`);
+          console.log(`Deleted pump image from storage: ${imagePath}`);
         } catch (error) {
           console.error(`Error deleting image ${imagePath}:`, error);
         }
@@ -201,7 +181,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
 
     return NextResponse.json({
       success: true,
-      message: "Engine deleted successfully",
+      message: "Pump deleted successfully",
     });
   } catch (error: any) {
     return NextResponse.json(

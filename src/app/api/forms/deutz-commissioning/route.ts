@@ -42,11 +42,49 @@ export const GET = withAuth(async (request, { user }) => {
   }
 });
 
+// Helper to extract file path from Supabase storage URL
+const getFilePathFromUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    // URL format: /storage/v1/object/public/signatures/filename.png
+    const bucketIndex = pathParts.indexOf('public');
+    if (bucketIndex !== -1 && pathParts.length > bucketIndex + 2) {
+      return pathParts.slice(bucketIndex + 2).join('/');
+    }
+  } catch (e) {
+    console.error('Error parsing URL:', e);
+  }
+  return null;
+};
+
+// Helper to delete signature from storage
+const deleteSignature = async (serviceSupabase: any, url: string | null) => {
+  if (!url) return;
+  const filePath = getFilePathFromUrl(url);
+  if (!filePath) return;
+
+  try {
+    const { error } = await serviceSupabase.storage
+      .from('signatures')
+      .remove([filePath]);
+
+    if (error) {
+      console.error(`Error deleting signature ${filePath}:`, error);
+    } else {
+      console.log(`Successfully deleted signature: ${filePath}`);
+    }
+  } catch (e) {
+    console.error(`Exception deleting signature ${filePath}:`, e);
+  }
+};
+
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
   if (!base64Data) return '';
   if (base64Data.startsWith('http')) return base64Data;
   if (!base64Data.startsWith('data:image')) return '';
-  
+
   try {
     // Extract the base64 string
     const base64Image = base64Data.split(';base64,').pop();
@@ -330,6 +368,18 @@ export const PATCH = withAuth(async (request, { user }) => {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
+    // Fetch the current record to get old signature URLs for deletion
+    const { data: currentRecord, error: fetchError } = await supabase
+      .from("deutz_commissioning_report")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching current record:", fetchError);
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
     // Extract fields matching the database schema (same as POST)
     const {
       reporting_person_name,
@@ -456,6 +506,42 @@ export const PATCH = withAuth(async (request, { user }) => {
       rawAcknowledgedSignature || "",
       `commissioning-acknowledged-by-${timestamp}.png`
     );
+
+    // Delete old signatures only if they were replaced with new ones OR explicitly cleared
+    if (currentRecord.attending_technician_signature) {
+      // Delete if signature was cleared
+      if (rawAttendingSignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
+      }
+      // Or if a NEW signature was uploaded (different from the old one)
+      else if (attending_technician_signature && attending_technician_signature !== currentRecord.attending_technician_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
+      }
+    }
+    if (currentRecord.noted_by_signature) {
+      if (rawNotedBySignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.noted_by_signature);
+      }
+      else if (noted_by_signature && noted_by_signature !== currentRecord.noted_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.noted_by_signature);
+      }
+    }
+    if (currentRecord.approved_by_signature) {
+      if (rawApprovedSignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
+      }
+      else if (approved_by_signature && approved_by_signature !== currentRecord.approved_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
+      }
+    }
+    if (currentRecord.acknowledged_by_signature) {
+      if (rawAcknowledgedSignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
+      }
+      else if (acknowledged_by_signature && acknowledged_by_signature !== currentRecord.acknowledged_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
+      }
+    }
 
     // Construct update object
     const updateData: any = {

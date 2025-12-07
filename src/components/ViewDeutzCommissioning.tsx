@@ -109,6 +109,7 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                     <Field label="Commissioning Location" value={data.commissioning_location} />
                   </div>
                   <Field label="Email Address" value={data.email_address} />
+                  <Field label="Phone Number" value={data.phone_number} />
                 </div>
               </div>
 

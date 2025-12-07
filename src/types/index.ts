@@ -42,6 +42,7 @@ export interface Customer {
   contactPerson: string;
   address: string;
   email: string;
+  phone: string;
   createdAt: Date;
   updatedAt: Date;
 }

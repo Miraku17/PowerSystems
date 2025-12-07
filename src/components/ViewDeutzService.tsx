@@ -100,6 +100,7 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   <Field label="Contact Person" value={data.contact_person} />
                   <Field label="Address" value={data.address} className="lg:col-span-3" />
                   <Field label="Email Address" value={data.email_address} />
+                  <Field label="Phone Number" value={data.phone_number} />
                   <Field label="Equipment Manufacturer" value={data.equipment_manufacturer} />
                 </div>
               </div>

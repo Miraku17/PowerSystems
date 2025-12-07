@@ -24,6 +24,7 @@ export default function DeutzServiceForm() {
     contact_person: "",
     address: "",
     email_address: "",
+    phone_number: "",
     equipment_manufacturer: "",
     equipment_model: "",
     equipment_serial_no: "",
@@ -125,6 +126,7 @@ export default function DeutzServiceForm() {
       contact_person: customer.contactPerson || "",
       address: customer.address || "",
       email_address: customer.email || "",
+      phone_number: customer.phone || "",
       equipment_manufacturer: customer.equipment || "",
     }));
   };
@@ -186,6 +188,7 @@ export default function DeutzServiceForm() {
         contact_person: "",
         address: "",
         email_address: "",
+        phone_number: "",
         equipment_manufacturer: "",
         equipment_model: "",
         equipment_serial_no: "",
@@ -365,6 +368,15 @@ export default function DeutzServiceForm() {
               onSelect={handleCustomerSelect}
               customers={customers}
               searchKey="email"
+            />
+            <CustomerAutocomplete
+              label="Phone Number"
+              name="phone_number"
+              value={formData.phone_number}
+              onChange={handleChange}
+              onSelect={handleCustomerSelect}
+              customers={customers}
+              searchKey="phone"
             />
             <CustomerAutocomplete
               label="Equipment Manufacturer"

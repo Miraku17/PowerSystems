@@ -24,6 +24,7 @@ export default function DeutzCommissioningReport() {
     contact_person: '',
     address: '',
     email_address: '',
+    phone_number: '',
     commissioning_location: '',
     commissioning_date: '',
     engine_model: '',
@@ -155,6 +156,7 @@ export default function DeutzCommissioningReport() {
       contact_person: customer.contactPerson || "",
       address: customer.address || "",
       email_address: customer.email || "",
+      phone_number: customer.phone || "",
       equipment_name: customer.equipment || "",
     }));
   };
@@ -212,6 +214,7 @@ export default function DeutzCommissioningReport() {
           contact_person: '',
           address: '',
           email_address: '',
+          phone_number: '',
           commissioning_location: '',
           commissioning_date: '',
           engine_model: '',
@@ -412,6 +415,15 @@ export default function DeutzCommissioningReport() {
                   onSelect={handleCustomerSelect}
                   customers={customers}
                   searchKey="email"
+                />
+                <CustomerAutocomplete
+                  label="Phone Number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                  onSelect={handleCustomerSelect}
+                  customers={customers}
+                  searchKey="phone"
                 />
             </div>
         </div>

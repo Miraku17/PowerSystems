@@ -311,9 +311,9 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
       { label: "Customer Name", value: record.customer_name, span: 2 },
       { label: "Contact Person", value: record.contact_person },
-      { label: "Telephone / Fax", value: record.telephone_fax },
       { label: "Address", value: record.address, span: 2 },
       { label: "Email Address", value: record.email_address },
+      { label: "Phone Number", value: record.phone_number },
     ]);
 
     // Equipment Information

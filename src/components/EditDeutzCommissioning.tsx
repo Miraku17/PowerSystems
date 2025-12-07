@@ -323,6 +323,12 @@ export default function EditDeutzCommissioning({
                   value={formData.email_address}
                   onChange={handleChange}
                 />
+                <Input
+                  label="Phone Number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleChange}
+                />
               </div>
             </div>
 

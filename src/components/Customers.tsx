@@ -77,6 +77,7 @@ export default function Customers() {
     contactPerson: "",
     address: "",
     email: "",
+    phone: "",
   });
 
   // Load customers on mount
@@ -107,6 +108,7 @@ export default function Customers() {
         contactPerson: "",
         address: "",
         email: "",
+        phone: "",
       });
     }
     setModalMode("create");
@@ -123,6 +125,7 @@ export default function Customers() {
       contactPerson: customer.contactPerson,
       address: customer.address,
       email: customer.email,
+      phone: customer.phone,
     });
     setShowModal(true);
   };
@@ -155,6 +158,7 @@ export default function Customers() {
         contactPerson: "",
         address: "",
         email: "",
+        phone: "",
       });
       handleCloseModal();
     } catch (error) {
@@ -297,10 +301,18 @@ export default function Customers() {
                               <UserIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                               {customer.contactPerson}
                             </div>
-                            <div className="text-sm text-gray-500 flex items-center">
-                              <EnvelopeIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
-                              {customer.email}
-                            </div>
+                            {customer.email && (
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <EnvelopeIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                                {customer.email}
+                              </div>
+                            )}
+                            {customer.phone && (
+                              <div className="text-sm text-gray-500 flex items-center">
+                                <PhoneIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
+                                {customer.phone}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -382,10 +394,18 @@ export default function Customers() {
                       <UserIcon className="h-4 w-4 mr-2 text-gray-400" />
                       {customer.contactPerson}
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
-                      {customer.email}
-                    </div>
+                    {customer.email && (
+                      <div className="flex items-center text-gray-600">
+                        <EnvelopeIcon className="h-4 w-4 mr-2 text-gray-400" />
+                        {customer.email}
+                      </div>
+                    )}
+                    {customer.phone && (
+                      <div className="flex items-center text-gray-600">
+                        <PhoneIcon className="h-4 w-4 mr-2 text-gray-400" />
+                        {customer.phone}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
@@ -495,18 +515,34 @@ export default function Customers() {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                <label className="block text-sm font-medium text-gray-700">Email Address (Optional)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <EnvelopeIcon className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
                     type="email"
-                    required
+                    // required
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. jane@example.com"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Phone Number (Optional)</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <PhoneIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                    placeholder="e.g. +63 917 123 4567"
                   />
                 </div>
               </div>

@@ -16,6 +16,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
       updateData.contactperson = body.contactPerson;
     if (body.address !== undefined) updateData.address = body.address;
     if (body.email !== undefined) updateData.email = body.email;
+    if (body.phone !== undefined) updateData.phone_number = body.phone;
 
     updateData.updated_at = new Date().toISOString();
 
@@ -38,6 +39,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
       data: {
         ...data,
         contactPerson: data.contactperson, // Remap for frontend
+        phone: data.phone_number,
       },
     });
   } catch (error: any) {

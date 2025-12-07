@@ -101,6 +101,7 @@ export const POST = withAuth(async (request, { user }) => {
     const contact_person = getString('contact_person');
     const address = getString('address');
     const email_address = getString('email_address');
+    const phone_number = getString('phone_number');
     const engine_model = getString('engine_model');
     const engine_serial_no = getString('engine_serial_no');
     const alternator_brand_model = getString('alternator_brand_model');
@@ -194,6 +195,7 @@ export const POST = withAuth(async (request, { user }) => {
           contact_person,
           address,
           email_address,
+          phone_number,
           engine_model,
           engine_serial_no,
           alternator_brand_model,
@@ -279,6 +281,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       contact_person,
       address,
       email_address,
+      phone_number,
       engine_model,
       engine_serial_no,
       alternator_brand_model,
@@ -370,6 +373,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       contact_person,
       address,
       email_address,
+      phone_number,
       engine_model,
       engine_serial_no,
       alternator_brand_model,

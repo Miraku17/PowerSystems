@@ -29,6 +29,7 @@ export const GET = withAuth(async (request, { user }) => {
       email: item.email,
       createdAt: item.created_at,
       updatedAt: item.updated_at,
+      phone: item.phone_number
     }));
 
     return NextResponse.json({ success: true, data: customers });
@@ -46,7 +47,7 @@ export const POST = withAuth(async (request, { user }) => {
     const body = await request.json();
     
     // Extract data from request body
-    const { name, equipment, customer, contactPerson, address, email } = body;
+    const { name, equipment, customer, contactPerson, address, email, phone } = body;
 
     // Validate required fields (add more validation as needed)
     if (!name || !customer) {
@@ -67,6 +68,7 @@ export const POST = withAuth(async (request, { user }) => {
           contactperson: contactPerson, // Mapping to DB column name
           address,
           email,
+          phone_number: phone // Added phone column
         },
       ])
       .select()
@@ -89,6 +91,7 @@ export const POST = withAuth(async (request, { user }) => {
       contactPerson: data.contactperson,
       address: data.address,
       email: data.email,
+      phone: data.phone_number,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
     };

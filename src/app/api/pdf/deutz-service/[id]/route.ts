@@ -356,6 +356,114 @@ export const GET = withAuth(async (request, { user, params }) => {
     addTextAreaField("Recommendations", record.recommendations);
     addTextAreaField("Summary Details", record.summary_details);
 
+    // Fetch and display attachments
+    const { data: attachments } = await supabase
+      .from('deutz_service_attachments')
+      .select('*')
+      .eq('report_id', id)
+      .order('created_at', { ascending: true });
+
+    if (attachments && attachments.length > 0) {
+      addSection("Image Attachments");
+
+      const maxImgWidth = (contentWidth - 10) / 2; // 2 columns with gap
+      const maxImgHeight = 80; // Maximum height for images
+      const gap = 5;
+
+      for (let i = 0; i < attachments.length; i += 2) {
+        const attachment1 = attachments[i];
+        const attachment2 = attachments[i + 1];
+
+        // Helper function to render an attachment
+        const renderAttachment = async (attachment: any, xStart: number) => {
+          try {
+            const imgResponse = await fetch(attachment.file_url);
+            const arrayBuffer = await imgResponse.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const imgBase64 = buffer.toString('base64');
+
+            // Get image properties to calculate aspect ratio
+            const props = doc.getImageProperties(imgBase64);
+            const aspectRatio = props.width / props.height;
+
+            // Calculate dimensions maintaining aspect ratio
+            let imgWidth = maxImgWidth - 4;
+            let imgHeight = imgWidth / aspectRatio;
+
+            // If height exceeds max, scale down based on height
+            if (imgHeight > maxImgHeight) {
+              imgHeight = maxImgHeight;
+              imgWidth = imgHeight * aspectRatio;
+            }
+
+            const boxHeight = imgHeight + 12;
+
+            // Draw border around image box
+            doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+            doc.setLineWidth(0.3);
+            doc.rect(xStart, yPos, maxImgWidth, boxHeight);
+
+            // Center the image horizontally in the box
+            const imgXOffset = xStart + (maxImgWidth - imgWidth) / 2;
+
+            // Add image maintaining aspect ratio
+            doc.addImage(
+              imgBase64,
+              "JPEG",
+              imgXOffset,
+              yPos + 2,
+              imgWidth,
+              imgHeight,
+              undefined,
+              "FAST"
+            );
+
+            // Add title background
+            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+            doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
+
+            // Add title text
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(0, 0, 0);
+            const titleLines = doc.splitTextToSize(attachment.file_title || "Untitled", maxImgWidth - 4);
+            doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+
+            return boxHeight;
+          } catch (error) {
+            console.error(`Error loading attachment image:`, error);
+            return 0;
+          }
+        };
+
+        // Calculate max box height for this row
+        let maxBoxHeight = 0;
+
+        // Check if we need a new page (estimate)
+        if (yPos + maxImgHeight + 20 > pageHeight - 20) {
+          doc.addPage();
+          yPos = 15;
+        }
+
+        // Render first image (left column)
+        if (attachment1) {
+          const height1 = await renderAttachment(attachment1, leftMargin);
+          maxBoxHeight = Math.max(maxBoxHeight, height1);
+        }
+
+        // Render second image (right column)
+        if (attachment2) {
+          const xOffset = leftMargin + maxImgWidth + gap;
+          const height2 = await renderAttachment(attachment2, xOffset);
+          maxBoxHeight = Math.max(maxBoxHeight, height2);
+        }
+
+        yPos += maxBoxHeight + 5;
+      }
+
+      yPos += 5;
+    }
+
     // Warranty Information
     addSection("Warranty Information");
     addFieldsGrid([

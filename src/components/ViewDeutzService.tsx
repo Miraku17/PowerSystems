@@ -1,7 +1,15 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
+import { supabase } from "@/lib/supabase";
+
+interface Attachment {
+  id: string;
+  file_url: string;
+  file_title: string;
+  created_at: string;
+}
 
 interface ViewDeutzServiceProps {
   data: Record<string, any>;
@@ -10,6 +18,34 @@ interface ViewDeutzServiceProps {
 }
 
 export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeutzServiceProps) {
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(true);
+
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      if (!data.id) return;
+
+      try {
+        const { data: attachmentsData, error } = await supabase
+          .from('deutz_service_attachments')
+          .select('*')
+          .eq('report_id', data.id)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching attachments:', error);
+        } else {
+          setAttachments(attachmentsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching attachments:', error);
+      } finally {
+        setLoadingAttachments(false);
+      }
+    };
+
+    fetchAttachments();
+  }, [data.id]);
   const Field = ({ label, value, className = "" }: { label: string; value: any; className?: string }) => (
     <div className={className}>
       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
@@ -197,29 +233,36 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   <TextField label="Observation" value={data.observation} />
                   <TextField label="Findings" value={data.findings} />
                   <TextField label="Recommendations" value={data.recommendations} />
-
-                  {data.attachments && data.attachments.length > 0 && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">
-                        Attachments
-                      </label>
-                      <div className="space-y-2">
-                        {data.attachments.map((url: string, index: number) => (
-                          <a
-                            key={index}
-                            href={url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block text-sm text-blue-600 hover:text-blue-800 underline"
-                          >
-                            Attachment {index + 1}
-                          </a>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
+
+              {/* Section: Attachments */}
+              {!loadingAttachments && attachments.length > 0 && (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                    <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Image Attachments</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {attachments.map((attachment) => (
+                      <div key={attachment.id} className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                        <div className="relative aspect-video bg-gray-100">
+                          <img
+                            src={attachment.file_url}
+                            alt={attachment.file_title || 'Attachment'}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        {attachment.file_title && (
+                          <div className="p-4 bg-gray-50 border-t border-gray-200">
+                            <p className="text-sm font-semibold text-gray-900">{attachment.file_title}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Section 8: Signatures */}
               <div>

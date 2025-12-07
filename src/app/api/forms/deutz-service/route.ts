@@ -201,31 +201,9 @@ export const POST = withAuth(async (request, { user }) => {
       `acknowledged-by-${timestamp}.png`
     );
 
-    // Handle Attachment Upload
-    let attachmentUrl: string | null = null;
-    const attachmentFile = formData.get('attachments') as File | null;
-
-    if (attachmentFile && attachmentFile.size > 0) {
-      const filename = `deutz/${Date.now()}-${attachmentFile.name.replace(/\s/g, '_')}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('service-reports')
-        .upload(filename, attachmentFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        // Continue, but maybe log specific RLS errors if they persist (though service role should fix RLS)
-      } else {
-        const { data: publicUrlData } = supabase.storage
-          .from('service-reports')
-          .getPublicUrl(filename);
-        
-        attachmentUrl = publicUrlData.publicUrl;
-      }
-    }
+    // Handle Multiple Attachment Uploads - Process later after report is created
+    const attachmentFiles = formData.getAll('attachment_files') as File[];
+    const attachmentTitles = formData.getAll('attachment_titles') as string[];
 
     // Insert into Database
     const { data, error } = await supabase
@@ -278,7 +256,6 @@ export const POST = withAuth(async (request, { user }) => {
           observation,
           findings,
           recommendations,
-          attachments: attachmentUrl ? [attachmentUrl] : [],
         },
       ])
       .select();
@@ -286,6 +263,54 @@ export const POST = withAuth(async (request, { user }) => {
     if (error) {
       console.error('Error inserting data:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Upload attachments and save to deutz_service_attachments table
+    if (attachmentFiles.length > 0 && data && data[0]) {
+      const reportId = data[0].id;
+
+      for (let i = 0; i < attachmentFiles.length; i++) {
+        const file = attachmentFiles[i];
+        const title = attachmentTitles[i] || '';
+
+        if (file && file.size > 0) {
+          // Upload to service-reports/deutz bucket
+          const filename = `deutz/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('service-reports')
+            .upload(filename, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error(`Error uploading file ${file.name}:`, uploadError);
+            continue; // Skip this file and continue with others
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from('service-reports')
+            .getPublicUrl(filename);
+
+          const fileUrl = publicUrlData.publicUrl;
+
+          // Insert into deutz_service_attachments table
+          const { error: attachmentError } = await supabase
+            .from('deutz_service_attachments')
+            .insert([
+              {
+                report_id: reportId,
+                file_url: fileUrl,
+                file_title: title,
+              },
+            ]);
+
+          if (attachmentError) {
+            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+          }
+        }
+      }
     }
 
     return NextResponse.json({ message: 'Service Report submitted successfully', data }, { status: 201 });

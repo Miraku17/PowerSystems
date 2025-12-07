@@ -66,7 +66,7 @@ export default function DeutzServiceForm() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [engines, setEngines] = useState<any[]>([]);
@@ -172,9 +172,12 @@ export default function DeutzServiceForm() {
       Object.entries(formData).forEach(([key, value]) => {
         data.append(key, value);
       });
-      if (selectedFile) {
-        data.append("attachments", selectedFile);
-      }
+
+      // Append multiple attachments with titles
+      attachments.forEach((attachment, index) => {
+        data.append(`attachment_files`, attachment.file);
+        data.append(`attachment_titles`, attachment.title);
+      });
 
       const response = await apiClient.post("/forms/deutz-service", data);
 
@@ -230,7 +233,7 @@ export default function DeutzServiceForm() {
         acknowledged_by: "",
         acknowledged_by_signature: "",
       });
-      setSelectedFile(null);
+      setAttachments([]);
     } catch (error: any) {
       console.error("Submission error:", error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "A network error occurred. Please try again.";
@@ -670,99 +673,137 @@ export default function DeutzServiceForm() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                Attachments
+                Image Attachments
               </label>
-              {selectedFile ? (
-                <div className="mt-1 px-6 py-4 border-2 border-gray-300 rounded-md bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <svg
-                        className="h-8 w-8 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {selectedFile.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {(selectedFile.size / 1024).toFixed(2)} KB
-                        </p>
+
+              {/* Display existing attachments with preview */}
+              {attachments.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {attachments.map((attachment, index) => {
+                    const previewUrl = URL.createObjectURL(attachment.file);
+                    return (
+                      <div key={index} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
+                        <div className="space-y-3">
+                          <div className="flex items-start gap-4">
+                            {/* Image Preview */}
+                            <div className="flex-shrink-0">
+                              <img
+                                src={previewUrl}
+                                alt={attachment.file.name}
+                                className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                                onLoad={() => URL.revokeObjectURL(previewUrl)}
+                              />
+                            </div>
+
+                            {/* File Info and Remove Button */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {attachment.file.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {(attachment.file.size / 1024).toFixed(2)} KB
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newAttachments = attachments.filter((_, i) => i !== index);
+                                    setAttachments(newAttachments);
+                                  }}
+                                  className="ml-4 text-red-600 hover:text-red-800 transition-colors flex-shrink-0"
+                                  title="Remove image"
+                                >
+                                  <svg
+                                    className="h-5 w-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M6 18L18 6M6 6l12 12"
+                                    />
+                                  </svg>
+                                </button>
+                              </div>
+
+                              {/* Title Input */}
+                              <div className="mt-3">
+                                <input
+                                  type="text"
+                                  placeholder="Enter image title"
+                                  value={attachment.title}
+                                  onChange={(e) => {
+                                    const newAttachments = [...attachments];
+                                    newAttachments[index].title = e.target.value;
+                                    setAttachments(newAttachments);
+                                  }}
+                                  className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedFile(null)}
-                      className="ml-4 text-red-600 hover:text-red-800 transition-colors"
-                      title="Remove file"
-                    >
-                      <svg
-                        className="h-6 w-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="space-y-1 text-center">
-                    <svg
-                      className="mx-auto h-12 w-12 text-gray-400"
-                      stroke="currentColor"
-                      fill="none"
-                      viewBox="0 0 48 48"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label
-                        htmlFor="file-upload"
-                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setSelectedFile(e.target.files[0]);
-                            }
-                          }}
-                        />
-                      </label>
-                      <p className="pl-1">or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG, PDF up to 10MB
-                    </p>
-                  </div>
+                    );
+                  })}
                 </div>
               )}
+
+              {/* Upload new image */}
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+                <div className="space-y-1 text-center">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    stroke="currentColor"
+                    fill="none"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  <div className="flex text-sm text-gray-600">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                    >
+                      <span>Upload an image</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            const file = e.target.files[0];
+                            // Validate that it's an image
+                            if (!file.type.startsWith('image/')) {
+                              toast.error('Please select only image files (PNG, JPG, etc.)');
+                              return;
+                            }
+                            setAttachments([...attachments, { file, title: '' }]);
+                            e.target.value = '';
+                          }
+                        }}
+                      />
+                    </label>
+                    <p className="pl-1">or drag and drop</p>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG, GIF up to 10MB
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

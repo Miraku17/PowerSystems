@@ -129,6 +129,8 @@ export const POST = withAuth(async (request, { user }) => {
     const summary_details = getString('summary_details');
     const service_technician = getString('service_technician');
     const rawServiceTechSignature = getString('service_technician_signature');
+    const noted_by = getString('noted_by');
+    const rawNotedBySignature = getString('noted_by_signature');
     const approved_by = getString('approved_by');
     const rawApprovedBySignature = getString('approved_by_signature');
     const acknowledged_by = getString('acknowledged_by');
@@ -144,6 +146,11 @@ export const POST = withAuth(async (request, { user }) => {
       supabase,
       rawServiceTechSignature,
       `service-technician-${timestamp}.png`
+    );
+    const noted_by_signature = await uploadSignature(
+      supabase,
+      rawNotedBySignature,
+      `noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       supabase,
@@ -223,6 +230,8 @@ export const POST = withAuth(async (request, { user }) => {
           summary_details,
           service_technician,
           attending_technician_signature,
+          noted_by,
+          noted_by_signature,
           approved_by,
           approved_by_signature,
           acknowledged_by,
@@ -310,6 +319,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       service_technician,
       attending_technician_signature: rawServiceTechSignature, // Frontend Edit component uses this name
       service_technician_signature: rawServiceTechSignatureAlt, // Frontend Create component uses this name
+      noted_by,
+      noted_by_signature: rawNotedBySignature,
       approved_by,
       approved_by_signature: rawApprovedBySignature,
       acknowledged_by,
@@ -351,6 +362,11 @@ export const PATCH = withAuth(async (request, { user }) => {
       serviceSupabase,
       signatureToProcess || "",
       `service-technician-${timestamp}.png`
+    );
+    const noted_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawNotedBySignature || "",
+      `noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
@@ -400,6 +416,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       warrantable_failure,
       summary_details,
       service_technician,
+      noted_by,
       approved_by,
       acknowledged_by,
       action_taken,
@@ -411,6 +428,9 @@ export const PATCH = withAuth(async (request, { user }) => {
      // Only update signatures if they were processed (non-empty) or explicitly cleared
      if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
      else if (signatureToProcess === "") updateData.attending_technician_signature = null;
+
+     if (noted_by_signature) updateData.noted_by_signature = noted_by_signature;
+     else if (rawNotedBySignature === "") updateData.noted_by_signature = null;
 
      if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
      else if (rawApprovedBySignature === "") updateData.approved_by_signature = null;

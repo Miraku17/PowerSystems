@@ -310,7 +310,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
                   <Select
                     label="Service Technician"
@@ -337,6 +337,37 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                       label="Technician Signature"
                       value={formData.attending_technician_signature}
                       onChange={(val) => handleChange("attending_technician_signature", val)}
+                      subtitle="Sign above"
+                    />
+                  )}
+                </div>
+
+                <div className="flex flex-col space-y-4">
+                  <Select
+                    label="Noted By"
+                    name="noted_by"
+                    value={formData.noted_by}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  {formData.noted_by_signature && formData.noted_by_signature.startsWith('http') ? (
+                    <div className="flex flex-col items-center">
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
+                        <img src={formData.noted_by_signature} alt="Signature" className="max-h-24 object-contain" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleChange("noted_by_signature", "")}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Remove Signature
+                      </button>
+                    </div>
+                  ) : (
+                    <SignaturePad
+                      label="Service Manager"
+                      value={formData.noted_by_signature}
+                      onChange={(val) => handleChange("noted_by_signature", val)}
                       subtitle="Sign above"
                     />
                   )}

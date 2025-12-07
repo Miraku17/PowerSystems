@@ -57,6 +57,8 @@ export default function DeutzServiceForm() {
     warrantable_failure: "No",
     service_technician: "",
     service_technician_signature: "",
+    noted_by: "",
+    noted_by_signature: "",
     approved_by: "",
     approved_by_signature: "",
     acknowledged_by: "",
@@ -221,6 +223,8 @@ export default function DeutzServiceForm() {
         warrantable_failure: "No",
         service_technician: "",
         service_technician_signature: "",
+        noted_by: "",
+        noted_by_signature: "",
         approved_by: "",
         approved_by_signature: "",
         acknowledged_by: "",
@@ -771,7 +775,7 @@ export default function DeutzServiceForm() {
               Signatures
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
               <Select
                 label="Service Technician"
@@ -785,6 +789,21 @@ export default function DeutzServiceForm() {
                 value={formData.service_technician_signature}
                 onChange={(signature: string) => handleSignatureChange('service_technician_signature', signature)}
                 subtitle="Signed by Technician"
+              />
+            </div>
+            <div className="flex flex-col space-y-4">
+              <Select
+                label="Noted By"
+                name="noted_by"
+                value={formData.noted_by}
+                onChange={handleChange}
+                options={users.map(user => user.fullName)}
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.noted_by_signature}
+                onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
+                subtitle="Service Manager"
               />
             </div>
             <div className="flex flex-col space-y-4">

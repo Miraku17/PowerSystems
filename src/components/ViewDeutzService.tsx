@@ -227,7 +227,7 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
                          {data.attending_technician_signature ? (
@@ -238,6 +238,17 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                     </div>
                     <Field label="Service Technician" value={data.service_technician} />
                     <p className="text-xs text-gray-400 mt-1 italic">Signed by Technician</p>
+                  </div>
+                  <div className="text-center flex flex-col items-center">
+                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.noted_by_signature ? (
+                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
+                    <Field label="Noted By" value={data.noted_by} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">

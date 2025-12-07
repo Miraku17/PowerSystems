@@ -161,6 +161,8 @@ export const POST = withAuth(async (request, { user }) => {
       recommendation,
       attending_technician,
       attending_technician_signature: rawAttendingSignature,
+      noted_by,
+      noted_by_signature: rawNotedBySignature,
       approved_by,
       approved_by_signature: rawApprovedSignature,
       acknowledged_by,
@@ -173,6 +175,11 @@ export const POST = withAuth(async (request, { user }) => {
       serviceSupabase,
       rawAttendingSignature,
       `commissioning-attending-technician-${timestamp}.png`
+    );
+    const noted_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawNotedBySignature,
+      `commissioning-noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
@@ -279,9 +286,11 @@ export const POST = withAuth(async (request, { user }) => {
           remarks,
           recommendation,
           attending_technician,
+          noted_by,
           approved_by,
           acknowledged_by,
           attending_technician_signature,
+          noted_by_signature,
           approved_by_signature,
           acknowledged_by_signature,
         },
@@ -395,6 +404,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       recommendation,
       attending_technician,
       attending_technician_signature: rawAttendingSignature,
+      noted_by,
+      noted_by_signature: rawNotedBySignature,
       approved_by,
       approved_by_signature: rawApprovedSignature,
       acknowledged_by,
@@ -429,6 +440,11 @@ export const PATCH = withAuth(async (request, { user }) => {
       serviceSupabase,
       rawAttendingSignature || "",
       `commissioning-attending-technician-${timestamp}.png`
+    );
+    const noted_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawNotedBySignature || "",
+      `commissioning-noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
@@ -514,6 +530,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       remarks,
       recommendation,
       attending_technician,
+      noted_by,
       approved_by,
       acknowledged_by,
     };
@@ -521,6 +538,9 @@ export const PATCH = withAuth(async (request, { user }) => {
     // Only update signatures if they were processed (non-empty)
     if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
     else if (rawAttendingSignature === "") updateData.attending_technician_signature = null; // Handle clearing
+
+    if (noted_by_signature) updateData.noted_by_signature = noted_by_signature;
+    else if (rawNotedBySignature === "") updateData.noted_by_signature = null;
 
     if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
     else if (rawApprovedSignature === "") updateData.approved_by_signature = null;

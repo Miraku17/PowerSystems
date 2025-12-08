@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import DeutzServiceForm from '@/components/DeutzServiceForm';
 import DeutzCommissioningReport from '@/components/DeutzCommissioningReport';
+import GrindexServiceForm from '@/components/GrindexServiceForm';
 import CustomSelect from '@/components/CustomSelect';
 
 const FillUpFormPage = () => {
-  const [activeForm, setActiveForm] = useState<'service' | 'commissioning'>('service');
+  const [activeForm, setActiveForm] = useState<'service' | 'commissioning' | 'grindex'>('service');
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -20,10 +21,11 @@ const FillUpFormPage = () => {
             </label>
             <CustomSelect
               value={activeForm}
-              onChange={(value) => setActiveForm(value as 'service' | 'commissioning')}
+              onChange={(value) => setActiveForm(value as 'service' | 'commissioning' | 'grindex')}
               options={[
                 { value: 'service', label: 'Deutz Service Form' },
-                { value: 'commissioning', label: 'Deutz Commissioning Report' }
+                { value: 'commissioning', label: 'Deutz Commissioning Report' },
+                { value: 'grindex', label: 'Grindex Service Form' }
               ]}
               placeholder="Select a form type"
             />
@@ -31,11 +33,9 @@ const FillUpFormPage = () => {
       </div>
       
       <div className="transition-opacity duration-300 ease-in-out">
-        {activeForm === 'service' ? (
-          <DeutzServiceForm />
-        ) : (
-          <DeutzCommissioningReport />
-        )}
+        {activeForm === 'service' && <DeutzServiceForm />}
+        {activeForm === 'commissioning' && <DeutzCommissioningReport />}
+        {activeForm === 'grindex' && <GrindexServiceForm />}
       </div>
     </div>
   );

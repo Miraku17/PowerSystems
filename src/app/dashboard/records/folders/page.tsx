@@ -16,6 +16,11 @@ export default function RecordsFoldersPage() {
       name: "Deutz Service",
       formType: "deutz-service",
     },
+    {
+      id: "grindex-service",
+      name: "Grindex Service",
+      formType: "grindex-service",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

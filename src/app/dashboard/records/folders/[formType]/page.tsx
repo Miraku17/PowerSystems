@@ -18,8 +18,10 @@ import apiClient from "@/lib/axios";
 import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
+import ViewGrindexService from "@/components/ViewGrindexService";
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
+import EditGrindexService from "@/components/EditGrindexService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -60,6 +62,7 @@ export default function FormRecordsPage() {
   const formTypeEndpoints: Record<string, { endpoint: string; name: string }> = {
     "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
+    "grindex-service": { endpoint: "/forms/grindex-service", name: "Grindex Service Form" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -144,6 +147,7 @@ export default function FormRecordsPage() {
         "commissioning": "deutz-commissioning",
         "deutz-service": "deutz-service",
         "service": "deutz-service",
+        "grindex-service": "grindex-service",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -552,6 +556,14 @@ export default function FormRecordsPage() {
         />
       )}
 
+      {selectedRecord && normalizedFormType === "grindex-service" && (
+        <ViewGrindexService
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
       {/* Edit Modals */}
       {editingRecord && normalizedFormType === "deutz-commissioning" && (
         <EditDeutzCommissioning
@@ -591,6 +603,15 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "commissioning" && (
         <EditDeutzCommissioning
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "grindex-service" && (
+        <EditGrindexService
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

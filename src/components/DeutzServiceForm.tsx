@@ -258,17 +258,17 @@ export default function DeutzServiceForm() {
   };
 
   return (
-    <div className="bg-white shadow-xl rounded-lg p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
+    <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">
+        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">
           Power Systems, Incorporated
         </h1>
-        <p className="text-sm text-gray-600 mt-2">
+        <p className="text-xs md:text-sm text-gray-600 mt-2">
           2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street,
           Bagumbayan, Libis, Quezon City
         </p>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-xs md:text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275
           to 78 <span className="mx-2">|</span>{" "}
           <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
@@ -816,7 +816,7 @@ export default function DeutzServiceForm() {
               Signatures
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
               <Select
                 label="Service Technician"
@@ -880,23 +880,23 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        <div className="flex justify-end pt-6 pb-12">
+        <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4 pt-6 pb-12">
           <button
             type="button"
-            className="mr-4 bg-white text-gray-700 font-bold py-3 px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150"
+            className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base"
             disabled={isLoading}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-3 px-10 rounded-lg shadow-md transition duration-150 flex items-center"
+            className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base"
             disabled={isLoading}
           >
             <span className="mr-2">Submit Service Report</span>
             {isLoading ? (
               <svg
-                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                className="animate-spin h-5 w-5 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

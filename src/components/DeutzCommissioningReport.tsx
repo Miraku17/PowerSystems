@@ -313,12 +313,12 @@ export default function DeutzCommissioningReport() {
   };
 
   return (
-    <div className="bg-white shadow-xl rounded-lg p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
+    <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
-        <p className="text-sm text-gray-600 mt-1">
+        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
+        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
+        <p className="text-xs md:text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275 to 78 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
         </p>
         <p className="text-sm text-gray-600 mt-1">
@@ -554,35 +554,61 @@ export default function DeutzCommissioningReport() {
                     <Input label="Cyl. Head Temp" name="cylinder_head_temp" value={formData.cylinder_head_temp} onChange={handleChange} />
                     <Input label="Cylinder No." name="cylinder_no" value={formData.cylinder_no} onChange={handleChange} />
                 </div>
-                <div className="grid grid-cols-6 gap-4 mb-4">
-                    <div className="font-bold text-center text-gray-600 text-sm">A1</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">A2</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">A3</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">A4</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">A5</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">A6</div>
-                    
-                    <input name="cylinder_a1" value={formData.cylinder_a1} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_a2" value={formData.cylinder_a2} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_a3" value={formData.cylinder_a3} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_a4" value={formData.cylinder_a4} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_a5" value={formData.cylinder_a5} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_a6" value={formData.cylinder_a6} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
+                
+                {/* Cylinder A */}
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-4 mb-6">
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A1</label>
+                        <input name="cylinder_a1" value={formData.cylinder_a1} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A2</label>
+                        <input name="cylinder_a2" value={formData.cylinder_a2} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A3</label>
+                        <input name="cylinder_a3" value={formData.cylinder_a3} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A4</label>
+                        <input name="cylinder_a4" value={formData.cylinder_a4} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A5</label>
+                        <input name="cylinder_a5" value={formData.cylinder_a5} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">A6</label>
+                        <input name="cylinder_a6" value={formData.cylinder_a6} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
                 </div>
-                <div className="grid grid-cols-6 gap-4">
-                    <div className="font-bold text-center text-gray-600 text-sm">B1</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">B2</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">B3</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">B4</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">B5</div>
-                    <div className="font-bold text-center text-gray-600 text-sm">B6</div>
-                    
-                    <input name="cylinder_b1" value={formData.cylinder_b1} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_b2" value={formData.cylinder_b2} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_b3" value={formData.cylinder_b3} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_b4" value={formData.cylinder_b4} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_b5" value={formData.cylinder_b5} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
-                    <input name="cylinder_b6" value={formData.cylinder_b6} onChange={handleChange} className="text-center border rounded p-1 text-sm" placeholder="Temp" />
+
+                {/* Cylinder B */}
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B1</label>
+                        <input name="cylinder_b1" value={formData.cylinder_b1} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B2</label>
+                        <input name="cylinder_b2" value={formData.cylinder_b2} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B3</label>
+                        <input name="cylinder_b3" value={formData.cylinder_b3} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B4</label>
+                        <input name="cylinder_b4" value={formData.cylinder_b4} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B5</label>
+                        <input name="cylinder_b5" value={formData.cylinder_b5} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label className="font-bold text-center text-gray-600 text-sm">B6</label>
+                        <input name="cylinder_b6" value={formData.cylinder_b6} onChange={handleChange} className="text-center border rounded p-2 text-sm w-full" placeholder="Temp" />
+                    </div>
                 </div>
             </div>
         </div>
@@ -626,7 +652,7 @@ export default function DeutzCommissioningReport() {
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
                 <div className="flex flex-col space-y-4">
                     <Select label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} options={users.map(user => user.fullName)} />
                     <SignaturePad
@@ -666,14 +692,14 @@ export default function DeutzCommissioningReport() {
             </div>
         </div>
 
-        <div className="flex justify-end pt-6 pb-12">
-            <button type="button" className="mr-4 bg-white text-gray-700 font-bold py-3 px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150">
+        <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4 pt-6 pb-12">
+            <button type="button" className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base">
                 Cancel
             </button>
-            <button type="submit" className="bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-3 px-10 rounded-lg shadow-md transition duration-150 flex items-center" disabled={isLoading}>
+            <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isLoading}>
                 <span className="mr-2">Submit Commissioning Report</span>
                 {isLoading ? (
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>

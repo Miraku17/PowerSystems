@@ -406,6 +406,11 @@ export const GET = withAuth(async (request, { user, params }) => {
           imageUrl: record.attending_technician_signature,
         },
         {
+          label: "Noted By",
+          name: record.noted_by,
+          imageUrl: record.noted_by_signature,
+        },
+        {
           label: "Approved By",
           name: record.approved_by,
           imageUrl: record.approved_by_signature,
@@ -418,7 +423,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       ];
 
       const sigBoxHeight = 42;
-      const sigBoxWidth = (contentWidth - 6) / 3;
+      const sigBoxWidth = (contentWidth - 6) / 4;
 
       if (yPos + sigBoxHeight > pageHeight - 15) {
         doc.addPage();

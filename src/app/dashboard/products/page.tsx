@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Engines from "@/components/Engines";
+import Pumps from "@/components/Pumps";
 
 function ProductsPageContent() {
   const searchParams = useSearchParams();
@@ -85,9 +86,7 @@ function ProductsPageContent() {
       {activeTab === "engines" ? (
         <Engines withFilterOptions={true} />
       ) : activeTab === "pumps" ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Pumps section - Coming soon</p>
-        </div>
+        <Pumps withFilterOptions={true} />
       ) : null}
     </div>
   );

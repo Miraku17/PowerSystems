@@ -43,12 +43,50 @@ export const GET = withAuth(async (request, { user }) => {
   }
 });
 
+// Helper to extract file path from Supabase storage URL
+const getFilePathFromUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    // URL format: /storage/v1/object/public/signatures/filename.png
+    const bucketIndex = pathParts.indexOf('public');
+    if (bucketIndex !== -1 && pathParts.length > bucketIndex + 2) {
+      return pathParts.slice(bucketIndex + 2).join('/');
+    }
+  } catch (e) {
+    console.error('Error parsing URL:', e);
+  }
+  return null;
+};
+
+// Helper to delete signature from storage
+const deleteSignature = async (serviceSupabase: any, url: string | null) => {
+  if (!url) return;
+  const filePath = getFilePathFromUrl(url);
+  if (!filePath) return;
+
+  try {
+    const { error } = await serviceSupabase.storage
+      .from('signatures')
+      .remove([filePath]);
+
+    if (error) {
+      console.error(`Error deleting signature ${filePath}:`, error);
+    } else {
+      console.log(`Successfully deleted signature: ${filePath}`);
+    }
+  } catch (e) {
+    console.error(`Exception deleting signature ${filePath}:`, e);
+  }
+};
+
 // Helper to upload signature server-side
 const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
   if (!base64Data) return '';
   if (base64Data.startsWith('http')) return base64Data;
   if (!base64Data.startsWith('data:image')) return '';
-  
+
   try {
     const base64Image = base64Data.split(';base64,').pop();
     if (!base64Image) return '';
@@ -129,6 +167,8 @@ export const POST = withAuth(async (request, { user }) => {
     const summary_details = getString('summary_details');
     const service_technician = getString('service_technician');
     const rawServiceTechSignature = getString('service_technician_signature');
+    const noted_by = getString('noted_by');
+    const rawNotedBySignature = getString('noted_by_signature');
     const approved_by = getString('approved_by');
     const rawApprovedBySignature = getString('approved_by_signature');
     const acknowledged_by = getString('acknowledged_by');
@@ -145,6 +185,11 @@ export const POST = withAuth(async (request, { user }) => {
       rawServiceTechSignature,
       `service-technician-${timestamp}.png`
     );
+    const noted_by_signature = await uploadSignature(
+      supabase,
+      rawNotedBySignature,
+      `noted-by-${timestamp}.png`
+    );
     const approved_by_signature = await uploadSignature(
       supabase,
       rawApprovedBySignature,
@@ -156,31 +201,9 @@ export const POST = withAuth(async (request, { user }) => {
       `acknowledged-by-${timestamp}.png`
     );
 
-    // Handle Attachment Upload
-    let attachmentUrl: string | null = null;
-    const attachmentFile = formData.get('attachments') as File | null;
-
-    if (attachmentFile && attachmentFile.size > 0) {
-      const filename = `deutz/${Date.now()}-${attachmentFile.name.replace(/\s/g, '_')}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('service-reports')
-        .upload(filename, attachmentFile, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error('Error uploading file:', uploadError);
-        // Continue, but maybe log specific RLS errors if they persist (though service role should fix RLS)
-      } else {
-        const { data: publicUrlData } = supabase.storage
-          .from('service-reports')
-          .getPublicUrl(filename);
-        
-        attachmentUrl = publicUrlData.publicUrl;
-      }
-    }
+    // Handle Multiple Attachment Uploads - Process later after report is created
+    const attachmentFiles = formData.getAll('attachment_files') as File[];
+    const attachmentTitles = formData.getAll('attachment_titles') as string[];
 
     // Insert into Database
     const { data, error } = await supabase
@@ -223,6 +246,8 @@ export const POST = withAuth(async (request, { user }) => {
           summary_details,
           service_technician,
           attending_technician_signature,
+          noted_by,
+          noted_by_signature,
           approved_by,
           approved_by_signature,
           acknowledged_by,
@@ -231,7 +256,6 @@ export const POST = withAuth(async (request, { user }) => {
           observation,
           findings,
           recommendations,
-          attachments: attachmentUrl ? [attachmentUrl] : [],
         },
       ])
       .select();
@@ -239,6 +263,54 @@ export const POST = withAuth(async (request, { user }) => {
     if (error) {
       console.error('Error inserting data:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Upload attachments and save to deutz_service_attachments table
+    if (attachmentFiles.length > 0 && data && data[0]) {
+      const reportId = data[0].id;
+
+      for (let i = 0; i < attachmentFiles.length; i++) {
+        const file = attachmentFiles[i];
+        const title = attachmentTitles[i] || '';
+
+        if (file && file.size > 0) {
+          // Upload to service-reports/deutz bucket
+          const filename = `deutz/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('service-reports')
+            .upload(filename, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error(`Error uploading file ${file.name}:`, uploadError);
+            continue; // Skip this file and continue with others
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from('service-reports')
+            .getPublicUrl(filename);
+
+          const fileUrl = publicUrlData.publicUrl;
+
+          // Insert into deutz_service_attachments table
+          const { error: attachmentError } = await supabase
+            .from('deutz_service_attachments')
+            .insert([
+              {
+                report_id: reportId,
+                file_url: fileUrl,
+                file_title: title,
+              },
+            ]);
+
+          if (attachmentError) {
+            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+          }
+        }
+      }
     }
 
     return NextResponse.json({ message: 'Service Report submitted successfully', data }, { status: 201 });
@@ -269,6 +341,18 @@ export const PATCH = withAuth(async (request, { user }) => {
       approved_by_signature: body.approved_by_signature,
       acknowledged_by_signature: body.acknowledged_by_signature,
     });
+
+    // Fetch the current record to get old signature URLs for deletion
+    const { data: currentRecord, error: fetchError } = await supabase
+      .from("deutz_service_report")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching current record:", fetchError);
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
 
     // Extract fields matching the database schema
     // Note: In POST, service_technician_signature is mapped to attending_technician_signature in DB
@@ -310,6 +394,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       service_technician,
       attending_technician_signature: rawServiceTechSignature, // Frontend Edit component uses this name
       service_technician_signature: rawServiceTechSignatureAlt, // Frontend Create component uses this name
+      noted_by,
+      noted_by_signature: rawNotedBySignature,
       approved_by,
       approved_by_signature: rawApprovedBySignature,
       acknowledged_by,
@@ -352,6 +438,11 @@ export const PATCH = withAuth(async (request, { user }) => {
       signatureToProcess || "",
       `service-technician-${timestamp}.png`
     );
+    const noted_by_signature = await uploadSignature(
+      serviceSupabase,
+      rawNotedBySignature || "",
+      `noted-by-${timestamp}.png`
+    );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
       rawApprovedBySignature || "",
@@ -362,6 +453,42 @@ export const PATCH = withAuth(async (request, { user }) => {
       rawAcknowledgedBySignature || "",
       `acknowledged-by-${timestamp}.png`
     );
+
+    // Delete old signatures only if they were replaced with new ones OR explicitly cleared
+    if (currentRecord.attending_technician_signature) {
+      // Delete if signature was cleared
+      if (signatureToProcess === "") {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
+      }
+      // Or if a NEW signature was uploaded (different from the old one)
+      else if (attending_technician_signature && attending_technician_signature !== currentRecord.attending_technician_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
+      }
+    }
+    if (currentRecord.noted_by_signature) {
+      if (rawNotedBySignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.noted_by_signature);
+      }
+      else if (noted_by_signature && noted_by_signature !== currentRecord.noted_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.noted_by_signature);
+      }
+    }
+    if (currentRecord.approved_by_signature) {
+      if (rawApprovedBySignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
+      }
+      else if (approved_by_signature && approved_by_signature !== currentRecord.approved_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
+      }
+    }
+    if (currentRecord.acknowledged_by_signature) {
+      if (rawAcknowledgedBySignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
+      }
+      else if (acknowledged_by_signature && acknowledged_by_signature !== currentRecord.acknowledged_by_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
+      }
+    }
 
     // Construct update object
     const updateData: any = {
@@ -400,6 +527,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       warrantable_failure,
       summary_details,
       service_technician,
+      noted_by,
       approved_by,
       acknowledged_by,
       action_taken,
@@ -411,6 +539,9 @@ export const PATCH = withAuth(async (request, { user }) => {
      // Only update signatures if they were processed (non-empty) or explicitly cleared
      if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
      else if (signatureToProcess === "") updateData.attending_technician_signature = null;
+
+     if (noted_by_signature) updateData.noted_by_signature = noted_by_signature;
+     else if (rawNotedBySignature === "") updateData.noted_by_signature = null;
 
      if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
      else if (rawApprovedBySignature === "") updateData.approved_by_signature = null;

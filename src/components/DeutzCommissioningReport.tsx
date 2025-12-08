@@ -92,6 +92,8 @@ export default function DeutzCommissioningReport() {
     recommendation: '',
     attending_technician: '',
     attending_technician_signature: '',
+    noted_by: '',
+    noted_by_signature: '',
     approved_by: '',
     approved_by_signature: '',
     acknowledged_by: '',
@@ -282,6 +284,8 @@ export default function DeutzCommissioningReport() {
           recommendation: '',
           attending_technician: '',
           attending_technician_signature: '',
+          noted_by: '',
+          noted_by_signature: '',
           approved_by: '',
           approved_by_signature: '',
           acknowledged_by: '',
@@ -622,7 +626,7 @@ export default function DeutzCommissioningReport() {
                 <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-8 rounded-lg border border-gray-100">
                 <div className="flex flex-col space-y-4">
                     <Select label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} options={users.map(user => user.fullName)} />
                     <SignaturePad
@@ -630,6 +634,15 @@ export default function DeutzCommissioningReport() {
                         value={formData.attending_technician_signature}
                         onChange={(signature: string) => handleSignatureChange('attending_technician_signature', signature)}
                         subtitle="Technician"
+                    />
+                </div>
+                <div className="flex flex-col space-y-4">
+                    <Select label="Noted By" name="noted_by" value={formData.noted_by} onChange={handleChange} options={users.map(user => user.fullName)} />
+                    <SignaturePad
+                        label="Draw Signature"
+                        value={formData.noted_by_signature}
+                        onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
+                        subtitle="Service Manager"
                     />
                 </div>
                 <div className="flex flex-col space-y-4">

@@ -17,10 +17,22 @@ export default function UpdatePasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSessionValid, setIsSessionValid] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [sessionError, setSessionError] = useState<string | null>(null);
 
   // Check for valid recovery session on mount
   useEffect(() => {
     const checkSession = async () => {
+      // Check for error in hash first
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const errorDescription = hashParams.get('error_description');
+      const error = hashParams.get('error');
+
+      if (error || errorDescription) {
+        setSessionError(errorDescription?.replace(/\+/g, ' ') || error || "Invalid recovery link");
+        setCheckingSession(false);
+        return;
+      }
+
       // Supabase automatically parses the hash fragment to set the session
       // We just need to check if we have a user
       const { data: { session } } = await supabase.auth.getSession();
@@ -141,7 +153,7 @@ export default function UpdatePasswordPage() {
           {!isSessionValid ? (
              <div className="text-center space-y-4">
                  <div className="p-4 bg-red-50 text-red-600 rounded-xl border border-red-100">
-                     <p>Invalid or expired password reset link.</p>
+                     <p>{sessionError || "Invalid or expired password reset link."}</p>
                  </div>
                  <button
                     onClick={() => router.push("/forgot-password")}

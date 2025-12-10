@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     }
 
     // Get the base URL for redirection
-    const origin = request.headers.get("origin") || "";
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || request.headers.get("origin") || "";
     const redirectTo = `${origin}/update-password`;
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

@@ -20,6 +20,14 @@ export const authService = {
     return response.data;
   },
 
+  // Forgot password
+  forgotPassword: async (email: string): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>("/auth/forgot-password", {
+      email,
+    });
+    return response.data;
+  },
+
   // Logout user
   logout: async (): Promise<void> => {
     try {

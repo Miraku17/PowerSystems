@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { LoginForm } from "@/types";
 import Image from "next/image";
 import { EyeIcon, EyeSlashIcon, XMarkIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
@@ -247,7 +248,7 @@ export default function AuthPage() {
               </button>
             </div>
             <div className="text-right mt-2">
-              <a href="#" className="text-sm text-primary-blue font-medium hover:underline">Forgot Password?</a>
+              <Link href="/forgot-password" className="text-sm text-primary-blue font-medium hover:underline">Forgot Password?</Link>
             </div>
           </div>
 

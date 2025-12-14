@@ -117,8 +117,11 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 
 export const POST = withAuth(async (request, { user }) => {
   try {
-    const body = await request.json();
+    const formData = await request.formData();
     const serviceSupabase = getServiceSupabase();
+
+    // Helper to safely get string values
+    const getString = (key: string) => formData.get(key) as string || '';
 
     // Helper to convert empty strings to null for numeric fields
     const toNumeric = (value: any) => {
@@ -126,86 +129,88 @@ export const POST = withAuth(async (request, { user }) => {
       return value;
     };
 
-    const {
-      reporting_person_name,
-      equipment_name,
-      running_hours,
-      customer_name,
-      contact_person,
-      address,
-      email_address,
-      phone_number,
-      commissioning_location,
-      job_order_no,
-      commissioning_date,
-      engine_model,
-      engine_serial_no,
-      commissioning_no,
-      equipment_manufacturer,
-      equipment_no,
-      equipment_type,
-      output,
-      revolutions,
-      main_effective_pressure,
-      lube_oil_type,
-      fuel_type,
-      cooling_water_additives,
-      fuel_pump_serial_no,
-      fuel_pump_code,
-      turbo_model,
-      turbo_serial_no,
-      summary,
-      check_oil_level,
-      check_air_filter,
-      check_hoses_clamps,
-      check_engine_support,
-      check_v_belt,
-      check_water_level,
-      crankshaft_end_play,
-      inspector,
-      comments_action,
-      rpm_idle_speed,
-      rpm_full_speed,
-      oil_pressure_idle,
-      oil_pressure_full,
-      oil_temperature,
-      engine_smoke,
-      engine_vibration,
-      check_engine_leakage,
-      cylinder_head_temp,
-      cylinder_no,
-      cylinder_a1,
-      cylinder_a2,
-      cylinder_a3,
-      cylinder_a4,
-      cylinder_a5,
-      cylinder_a6,
-      cylinder_b1,
-      cylinder_b2,
-      cylinder_b3,
-      cylinder_b4,
-      cylinder_b5,
-      cylinder_b6,
-      starter_part_no,
-      alternator_part_no,
-      v_belt_part_no,
-      air_filter_part_no,
-      oil_filter_part_no,
-      fuel_filter_part_no,
-      pre_fuel_filter_part_no,
-      controller_brand,
-      controller_model,
-      remarks,
-      recommendation,
-      attending_technician,
-      attending_technician_signature: rawAttendingSignature,
-      noted_by,
-      noted_by_signature: rawNotedBySignature,
-      approved_by,
-      approved_by_signature: rawApprovedSignature,
-      acknowledged_by,
-      acknowledged_by_signature: rawAcknowledgedSignature,
-    } = body;
+    const reporting_person_name = getString('reporting_person_name');
+    const equipment_name = getString('equipment_name');
+    const running_hours = getString('running_hours');
+    const customer_name = getString('customer_name');
+    const contact_person = getString('contact_person');
+    const address = getString('address');
+    const email_address = getString('email_address');
+    const phone_number = getString('phone_number');
+    const commissioning_location = getString('commissioning_location');
+    const job_order_no = getString('job_order_no');
+    const commissioning_date = getString('commissioning_date');
+    const engine_model = getString('engine_model');
+    const engine_serial_no = getString('engine_serial_no');
+    const commissioning_no = getString('commissioning_no');
+    const equipment_manufacturer = getString('equipment_manufacturer');
+    const equipment_no = getString('equipment_no');
+    const equipment_type = getString('equipment_type');
+    const output = getString('output');
+    const revolutions = getString('revolutions');
+    const main_effective_pressure = getString('main_effective_pressure');
+    const lube_oil_type = getString('lube_oil_type');
+    const fuel_type = getString('fuel_type');
+    const cooling_water_additives = getString('cooling_water_additives');
+    const fuel_pump_serial_no = getString('fuel_pump_serial_no');
+    const fuel_pump_code = getString('fuel_pump_code');
+    const turbo_model = getString('turbo_model');
+    const turbo_serial_no = getString('turbo_serial_no');
+    const summary = getString('summary');
+    const check_oil_level = getString('check_oil_level');
+    const check_air_filter = getString('check_air_filter');
+    const check_hoses_clamps = getString('check_hoses_clamps');
+    const check_engine_support = getString('check_engine_support');
+    const check_v_belt = getString('check_v_belt');
+    const check_water_level = getString('check_water_level');
+    const crankshaft_end_play = getString('crankshaft_end_play');
+    const inspector = getString('inspector');
+    const comments_action = getString('comments_action');
+    const rpm_idle_speed = getString('rpm_idle_speed');
+    const rpm_full_speed = getString('rpm_full_speed');
+    const oil_pressure_idle = getString('oil_pressure_idle');
+    const oil_pressure_full = getString('oil_pressure_full');
+    const oil_temperature = getString('oil_temperature');
+    const engine_smoke = getString('engine_smoke');
+    const engine_vibration = getString('engine_vibration');
+    const check_engine_leakage = getString('check_engine_leakage');
+    const cylinder_head_temp = getString('cylinder_head_temp');
+    const cylinder_no = getString('cylinder_no');
+    const cylinder_a1 = getString('cylinder_a1');
+    const cylinder_a2 = getString('cylinder_a2');
+    const cylinder_a3 = getString('cylinder_a3');
+    const cylinder_a4 = getString('cylinder_a4');
+    const cylinder_a5 = getString('cylinder_a5');
+    const cylinder_a6 = getString('cylinder_a6');
+    const cylinder_b1 = getString('cylinder_b1');
+    const cylinder_b2 = getString('cylinder_b2');
+    const cylinder_b3 = getString('cylinder_b3');
+    const cylinder_b4 = getString('cylinder_b4');
+    const cylinder_b5 = getString('cylinder_b5');
+    const cylinder_b6 = getString('cylinder_b6');
+    const starter_part_no = getString('starter_part_no');
+    const alternator_part_no = getString('alternator_part_no');
+    const v_belt_part_no = getString('v_belt_part_no');
+    const air_filter_part_no = getString('air_filter_part_no');
+    const oil_filter_part_no = getString('oil_filter_part_no');
+    const fuel_filter_part_no = getString('fuel_filter_part_no');
+    const pre_fuel_filter_part_no = getString('pre_fuel_filter_part_no');
+    const controller_brand = getString('controller_brand');
+    const controller_model = getString('controller_model');
+    const remarks = getString('remarks');
+    const recommendation = getString('recommendation');
+    const attending_technician = getString('attending_technician');
+    const rawAttendingSignature = getString('attending_technician_signature');
+    const noted_by = getString('noted_by');
+    const rawNotedBySignature = getString('noted_by_signature');
+    const approved_by = getString('approved_by');
+    const rawApprovedSignature = getString('approved_by_signature');
+    const acknowledged_by = getString('acknowledged_by');
+    const rawAcknowledgedSignature = getString('acknowledged_by_signature');
+
+    // Handle Multiple Attachment Uploads
+    const attachmentFiles = formData.getAll('attachment_files') as File[];
+    const attachmentTitles = formData.getAll('attachment_titles') as string[];
 
     // Process Signatures
     const timestamp = Date.now();
@@ -338,6 +343,54 @@ export const POST = withAuth(async (request, { user }) => {
     if (error) {
       console.error("Error inserting data:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Upload attachments and save to deutz_commission_attachments table
+    if (attachmentFiles.length > 0 && data && data[0]) {
+      const formId = data[0].id;
+
+      for (let i = 0; i < attachmentFiles.length; i++) {
+        const file = attachmentFiles[i];
+        const title = attachmentTitles[i] || '';
+
+        if (file && file.size > 0) {
+          // Upload to service-reports/deutz/commission bucket
+          const filename = `deutz/commission/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+
+          const { error: uploadError } = await serviceSupabase.storage
+            .from('service-reports')
+            .upload(filename, file, {
+              cacheControl: '3600',
+              upsert: false,
+            });
+
+          if (uploadError) {
+            console.error(`Error uploading file ${file.name}:`, uploadError);
+            continue; // Skip this file and continue with others
+          }
+
+          const { data: publicUrlData } = serviceSupabase.storage
+            .from('service-reports')
+            .getPublicUrl(filename);
+
+          const fileUrl = publicUrlData.publicUrl;
+
+          // Insert into deutz_commission_attachments table
+          const { error: attachmentError } = await supabase
+            .from('deutz_commission_attachments')
+            .insert([
+              {
+                form_id: formId,
+                file_url: fileUrl,
+                file_title: title,
+              },
+            ]);
+
+          if (attachmentError) {
+            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+          }
+        }
+      }
     }
 
     return NextResponse.json(

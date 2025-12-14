@@ -1,7 +1,8 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
+import { supabase } from "@/lib/supabase";
 
 interface ViewDeutzCommissioningProps {
   data: Record<string, any>;
@@ -9,7 +10,39 @@ interface ViewDeutzCommissioningProps {
   onExportPDF?: () => void;
 }
 
+interface Attachment {
+  id: string;
+  file_url: string;
+  file_title: string;
+  created_at: string;
+}
+
 export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: ViewDeutzCommissioningProps) {
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      try {
+        const { data: attachmentsData, error } = await supabase
+          .from('deutz_commission_attachments')
+          .select('*')
+          .eq('form_id', data.id)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching attachments:', error);
+        } else {
+          setAttachments(attachmentsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching attachments:', error);
+      }
+    };
+
+    if (data.id) {
+      fetchAttachments();
+    }
+  }, [data.id]);
   const Field = ({ label, value }: { label: string; value: any }) => (
     <div>
       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
@@ -269,6 +302,34 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                   <TextField label="Recommendation" value={data.recommendation} />
                 </div>
               </div>
+
+              {/* Image Attachments */}
+              {attachments.length > 0 && (
+                <div>
+                  <div className="flex items-center mb-4">
+                    <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                    <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Image Attachments</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {attachments.map((attachment) => (
+                      <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div className="aspect-video bg-gray-100 relative">
+                          <img
+                            src={attachment.file_url}
+                            alt={attachment.file_title || 'Attachment'}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        {attachment.file_title && (
+                          <div className="p-3 bg-white">
+                            <p className="text-sm font-medium text-gray-900">{attachment.file_title}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Section 9: Signatures */}
               <div>

@@ -394,6 +394,101 @@ export const GET = withAuth(async (request, { user, params }) => {
     addTextAreaField("Remarks", record.remarks);
     addTextAreaField("Recommendation", record.recommendation);
 
+    // Fetch and display attachments
+    const { data: attachments } = await supabase
+      .from('deutz_commission_attachments')
+      .select('*')
+      .eq('form_id', id)
+      .order('created_at', { ascending: true });
+
+    if (attachments && attachments.length > 0) {
+      addSection("Image Attachments");
+
+      const maxImgWidth = (contentWidth - 10) / 2;
+      const maxImgHeight = 80;
+      const gap = 5;
+
+      for (let i = 0; i < attachments.length; i += 2) {
+        const attachment1 = attachments[i];
+        const attachment2 = attachments[i + 1];
+
+        const renderAttachment = async (attachment: any, xStart: number) => {
+          try {
+            const imgResponse = await fetch(attachment.file_url);
+            const arrayBuffer = await imgResponse.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const imgBase64 = buffer.toString('base64');
+
+            const props = doc.getImageProperties(imgBase64);
+            const aspectRatio = props.width / props.height;
+
+            let imgWidth = maxImgWidth - 4;
+            let imgHeight = imgWidth / aspectRatio;
+
+            if (imgHeight > maxImgHeight) {
+              imgHeight = maxImgHeight;
+              imgWidth = imgHeight * aspectRatio;
+            }
+
+            const boxHeight = imgHeight + 12;
+
+            doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+            doc.setLineWidth(0.3);
+            doc.rect(xStart, yPos, maxImgWidth, boxHeight);
+
+            const imgXOffset = xStart + (maxImgWidth - imgWidth) / 2;
+
+            doc.addImage(
+              imgBase64,
+              "JPEG",
+              imgXOffset,
+              yPos + 2,
+              imgWidth,
+              imgHeight,
+              undefined,
+              "FAST"
+            );
+
+            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+            doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
+
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(0, 0, 0);
+            const titleLines = doc.splitTextToSize(attachment.file_title || "Untitled", maxImgWidth - 4);
+            doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+
+            return boxHeight;
+          } catch (error) {
+            console.error(`Error loading attachment image:`, error);
+            return 0;
+          }
+        };
+
+        let maxBoxHeight = 0;
+
+        if (yPos + maxImgHeight + 20 > pageHeight - 20) {
+          doc.addPage();
+          yPos = 15;
+        }
+
+        if (attachment1) {
+          const height1 = await renderAttachment(attachment1, leftMargin);
+          maxBoxHeight = Math.max(maxBoxHeight, height1);
+        }
+
+        if (attachment2) {
+          const xOffset = leftMargin + maxImgWidth + gap;
+          const height2 = await renderAttachment(attachment2, xOffset);
+          maxBoxHeight = Math.max(maxBoxHeight, height2);
+        }
+
+        yPos += maxBoxHeight + 5;
+      }
+
+      yPos += 5;
+    }
+
     // Signatures
     addSection("Signatures");
 

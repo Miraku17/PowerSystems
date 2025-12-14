@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
+import { supabase } from "@/lib/supabase";
 
 interface EditDeutzCommissioningProps {
   data: Record<string, any>;
@@ -16,6 +17,13 @@ interface EditDeutzCommissioningProps {
 interface User {
   id: string;
   fullName: string;
+}
+
+interface Attachment {
+  id: string;
+  file_url: string;
+  file_title: string;
+  created_at: string;
 }
 
 // Helper Components - Moved outside to prevent re-creation on every render
@@ -159,6 +167,9 @@ export default function EditDeutzCommissioning({
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
+  const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -173,8 +184,27 @@ export default function EditDeutzCommissioning({
       }
     };
 
+    const fetchAttachments = async () => {
+      try {
+        const { data: attachmentsData, error } = await supabase
+          .from('deutz_commission_attachments')
+          .select('*')
+          .eq('form_id', recordId)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching attachments:', error);
+        } else {
+          setExistingAttachments(attachmentsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching attachments:', error);
+      }
+    };
+
     fetchUsers();
-  }, []);
+    fetchAttachments();
+  }, [recordId]);
 
   const handleChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -192,7 +222,22 @@ export default function EditDeutzCommissioning({
       );
 
       if (response.status === 200) {
-        toast.success("Report updated successfully!", { id: loadingToast });
+        // Handle attachments updates
+        const formDataObj = new FormData();
+        formDataObj.append('form_id', recordId);
+        formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
+        formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
+
+        // Append new attachments
+        newAttachments.forEach((attachment) => {
+          formDataObj.append('attachment_files', attachment.file);
+          formDataObj.append('attachment_titles', attachment.title);
+        });
+
+        // Update attachments
+        await apiClient.post('/forms/deutz-commissioning/attachments', formDataObj);
+
+        toast.success("Commissioning Report updated successfully!", { id: loadingToast });
         onSaved();
         onClose();
       }
@@ -850,6 +895,182 @@ export default function EditDeutzCommissioning({
                   value={formData.recommendation}
                   onChange={handleChange}
                 />
+              </div>
+            </div>
+
+            {/* Image Attachments */}
+            <div>
+              <div className="flex items-center mb-4">
+                <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+                <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Image Attachments</h4>
+              </div>
+              <div className="space-y-4">
+                {/* Existing Attachments */}
+                {existingAttachments.map((attachment) => (
+                  <div key={attachment.id} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-4">
+                        <div className="shrink-0">
+                          <img
+                            src={attachment.file_url}
+                            alt={attachment.file_title}
+                            className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <input
+                                type="text"
+                                placeholder="Enter image title"
+                                value={attachment.file_title}
+                                onChange={(e) => {
+                                  const updatedAttachments = existingAttachments.map((att) =>
+                                    att.id === attachment.id ? { ...att, file_title: e.target.value } : att
+                                  );
+                                  setExistingAttachments(updatedAttachments);
+                                }}
+                                className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setAttachmentsToDelete([...attachmentsToDelete, attachment.id]);
+                                setExistingAttachments(existingAttachments.filter((att) => att.id !== attachment.id));
+                              }}
+                              className="ml-4 text-red-600 hover:text-red-800 transition-colors shrink-0"
+                              title="Remove image"
+                            >
+                              <svg
+                                className="h-5 w-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* New Attachments */}
+                {newAttachments.map((attachment, index) => {
+                  const previewUrl = URL.createObjectURL(attachment.file);
+                  return (
+                    <div key={`new-${index}`} className="px-6 py-4 border-2 border-blue-300 rounded-md bg-blue-50 shadow-sm">
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-4">
+                          <div className="shrink-0">
+                            <img
+                              src={previewUrl}
+                              alt={attachment.file.name}
+                              className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                              onLoad={() => URL.revokeObjectURL(previewUrl)}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate mb-2">{attachment.file.name}</p>
+                                <input
+                                  type="text"
+                                  placeholder="Enter image title"
+                                  value={attachment.title}
+                                  onChange={(e) => {
+                                    const updated = [...newAttachments];
+                                    updated[index].title = e.target.value;
+                                    setNewAttachments(updated);
+                                  }}
+                                  className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setNewAttachments(newAttachments.filter((_, i) => i !== index));
+                                }}
+                                className="ml-4 text-red-600 hover:text-red-800 transition-colors shrink-0"
+                                title="Remove image"
+                              >
+                                <svg
+                                  className="h-5 w-5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M6 18L18 6M6 6l12 12"
+                                  />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Upload new image */}
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="file-upload-edit"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      >
+                        <span>Upload an image</span>
+                        <input
+                          id="file-upload-edit"
+                          name="file-upload-edit"
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              const file = e.target.files[0];
+                              if (!file.type.startsWith('image/')) {
+                                toast.error('Please select only image files (PNG, JPG, etc.)');
+                                return;
+                              }
+                              setNewAttachments([...newAttachments, { file, title: '' }]);
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                      <p className="pl-1">or drag and drop</p>
+                    </div>
+                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                  </div>
+                </div>
               </div>
             </div>
 

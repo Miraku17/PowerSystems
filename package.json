@@ -16,7 +16,7 @@
     "axios": "^1.13.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
-    "next": "^16.0.7",
+    "next": "16.0.10",
     "openai": "^6.9.0",
     "puppeteer": "^24.31.0",
     "puppeteer-core": "^24.31.0",

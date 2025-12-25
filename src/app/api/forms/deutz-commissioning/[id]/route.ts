@@ -52,10 +52,10 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // First, fetch the record to get signature URLs
+    // First, fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase
       .from("deutz_commissioning_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
       .eq("id", id)
       .single();
 
@@ -64,25 +64,39 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    // Delete signature files from storage
-    const serviceSupabase = getServiceSupabase();
-    await Promise.all([
-      deleteSignature(serviceSupabase, record.attending_technician_signature),
-      deleteSignature(serviceSupabase, record.noted_by_signature),
-      deleteSignature(serviceSupabase, record.approved_by_signature),
-      deleteSignature(serviceSupabase, record.acknowledged_by_signature),
-    ]);
+    // Check if record is already soft-deleted
+    if (record.deleted_at) {
+      return NextResponse.json(
+        { error: "Record is already deleted" },
+        { status: 400 }
+      );
+    }
 
-    // Now delete the database record
+    // Soft delete: Update the record with deleted_at and deleted_by instead of deleting
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
-      .delete()
-      .eq("id", id);
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.id,
+      })
+      .eq("id", id)
+      .select();
 
     if (error) {
-      console.error("Error deleting record:", error);
+      console.error("Error soft deleting record:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Log to audit_logs
+    await supabase.from('audit_logs').insert({
+      table_name: 'deutz_commissioning_report',
+      record_id: id,
+      action: 'DELETE',
+      old_data: record,
+      new_data: data && data[0] ? data[0] : null,
+      performed_by: user.id,
+      performed_at: new Date().toISOString(),
+    });
 
     return NextResponse.json(
       { message: "Report deleted successfully", data },

@@ -8,6 +8,7 @@ export const GET = withAuth(async (request, { user }) => {
     const { data, error } = await supabase
       .from('grindex_service_forms')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -238,6 +239,7 @@ export const POST = withAuth(async (request, { user }) => {
           approved_by_signature,
           acknowledged_by,
           acknowledged_by_signature,
+          created_by: user.id,
         },
       ])
       .select();
@@ -293,6 +295,19 @@ export const POST = withAuth(async (request, { user }) => {
           }
         }
       }
+    }
+
+    // Log to audit_logs
+    if (data && data[0]) {
+      await supabase.from('audit_logs').insert({
+        table_name: 'grindex_service_forms',
+        record_id: data[0].id,
+        action: 'CREATE',
+        old_data: null,
+        new_data: data[0],
+        performed_by: user.id,
+        performed_at: new Date().toISOString(),
+      });
     }
 
     return NextResponse.json({ message: 'Grindex Service Form submitted successfully', data }, { status: 201 });
@@ -493,8 +508,12 @@ export const PATCH = withAuth(async (request, { user }) => {
     if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
     else if (rawAcknowledgedBySignature === "") updateData.acknowledged_by_signature = null;
 
+    // Set updated_by and updated_at
+    updateData.updated_by = user.id;
+    updateData.updated_at = new Date().toISOString();
+
     // Update the record in Supabase
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from("grindex_service_forms")
       .update(updateData)
       .eq("id", id)
@@ -512,6 +531,17 @@ export const PATCH = withAuth(async (request, { user }) => {
         { status: 404 }
       );
     }
+
+    // Log to audit_logs
+    await supabase.from('audit_logs').insert({
+      table_name: 'grindex_service_forms',
+      record_id: id,
+      action: 'UPDATE',
+      old_data: currentRecord,
+      new_data: data,
+      performed_by: user.id,
+      performed_at: new Date().toISOString(),
+    });
 
     return NextResponse.json(
       { message: "Grindex Service Form updated successfully", data },

@@ -19,6 +19,11 @@ interface Attachment {
 
 export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: ViewDeutzCommissioningProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [auditInfo, setAuditInfo] = useState<{
+    createdBy?: string;
+    updatedBy?: string;
+    deletedBy?: string;
+  }>({});
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -43,6 +48,41 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
       fetchAttachments();
     }
   }, [data.id]);
+
+  useEffect(() => {
+    const fetchAuditInfo = async () => {
+      const userIds = new Set<string>();
+      if (data.created_by) userIds.add(data.created_by);
+      if (data.updated_by) userIds.add(data.updated_by);
+      if (data.deleted_by) userIds.add(data.deleted_by);
+
+      if (userIds.size === 0) return;
+
+      try {
+        const { data: users, error } = await supabase
+          .from('users')
+          .select('id, firstname, lastname')
+          .in('id', Array.from(userIds));
+
+        if (error) {
+          console.error('Error fetching user info:', error);
+          return;
+        }
+
+        const userMap = new Map(users?.map(u => [u.id, `${u.firstname} ${u.lastname}`.trim()]) || []);
+        setAuditInfo({
+          createdBy: data.created_by ? userMap.get(data.created_by) : undefined,
+          updatedBy: data.updated_by ? userMap.get(data.updated_by) : undefined,
+          deletedBy: data.deleted_by ? userMap.get(data.deleted_by) : undefined,
+        });
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+
+    fetchAuditInfo();
+  }, [data.created_by, data.updated_by, data.deleted_by]);
+
   const Field = ({ label, value }: { label: string; value: any }) => (
     <div>
       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
@@ -65,21 +105,95 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
     </div>
   );
 
+  // Helper function to format UTC time to Philippine Time
+  const formatToPHTime = (utcDateString: any) => {
+    if (!utcDateString) {
+      return 'N/A';
+    }
+
+    // Convert to string if it's not already
+    const dateString = typeof utcDateString === 'string' ? utcDateString : String(utcDateString);
+
+    try {
+      // Check if the string already has timezone info (+00:00, -05:00, or Z)
+      const hasTimezone = dateString.match(/[+-]\d{2}:\d{2}$/) || dateString.endsWith('Z');
+
+      // Only append 'Z' if there's no timezone information
+      const utcString = hasTimezone ? dateString : dateString + 'Z';
+      const date = new Date(utcString);
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.error('Invalid date string:', dateString);
+        return 'Invalid Date';
+      }
+
+      // Add 8 hours for Philippine Time (UTC+8)
+      const phDate = new Date(date.getTime() + (8 * 60 * 60 * 1000));
+
+      const month = String(phDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(phDate.getUTCDate()).padStart(2, '0');
+      const year = phDate.getUTCFullYear();
+
+      let hours = phDate.getUTCHours();
+      const minutes = String(phDate.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(phDate.getUTCSeconds()).padStart(2, '0');
+
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12; // 0 should be 12
+      const hoursStr = String(hours).padStart(2, '0');
+
+      return `${month}/${day}/${year}, ${hoursStr}:${minutes}:${seconds} ${ampm}`;
+    } catch (error) {
+      console.error('Error formatting date:', error, 'Input:', dateString);
+      return 'Error';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-white z-10">
-          <div>
-            <h3 className="text-xl font-bold text-gray-900">Deutz Commissioning Report</h3>
+        <div className="px-6 py-4 border-b border-gray-100 bg-white z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-xl font-bold text-gray-900">Deutz Commissioning Report</h3>
+              {/* Audit Log */}
+              {(data.created_at || data.updated_at || data.deleted_at) && (
+                <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
+                  {data.created_at && (
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">Created:</span>
+                      <span>{formatToPHTime(data.created_at)}</span>
+                      {auditInfo.createdBy && <span className="text-gray-400">by {auditInfo.createdBy}</span>}
+                    </div>
+                  )}
+                  {data.updated_at && (
+                    <div className="flex items-center gap-1">
+                      <span className="font-semibold">Updated:</span>
+                      <span>{formatToPHTime(data.updated_at)}</span>
+                      {auditInfo.updatedBy && <span className="text-gray-400">by {auditInfo.updatedBy}</span>}
+                    </div>
+                  )}
+                  {data.deleted_at && (
+                    <div className="flex items-center gap-1 text-red-600">
+                      <span className="font-semibold">Deleted:</span>
+                      <span>{formatToPHTime(data.deleted_at)}</span>
+                      {auditInfo.deletedBy && <span className="text-red-400">by {auditInfo.deletedBy}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
         </div>
 
         {/* Content */}

@@ -52,16 +52,24 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // First, fetch the record to get signature URLs
+    // First, fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase
       .from("grindex_service_forms")
-      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
       .eq("id", id)
       .single();
 
     if (fetchError) {
       console.error("Error fetching record:", fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
+    // Check if record is already soft-deleted
+    if (record.deleted_at) {
+      return NextResponse.json(
+        { error: "Record is already deleted" },
+        { status: 400 }
+      );
     }
 
     const serviceSupabase = getServiceSupabase();
@@ -110,24 +118,31 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       console.error("Error deleting attachment records:", deleteAttachmentsError);
     }
 
-    // Delete signature files from storage
-    await Promise.all([
-      deleteSignature(serviceSupabase, record.service_technician_signature),
-      deleteSignature(serviceSupabase, record.noted_by_signature),
-      deleteSignature(serviceSupabase, record.approved_by_signature),
-      deleteSignature(serviceSupabase, record.acknowledged_by_signature),
-    ]);
-
-    // Now delete the database record
+    // Soft delete: Update the record with deleted_at and deleted_by instead of deleting
     const { data, error } = await supabase
       .from("grindex_service_forms")
-      .delete()
-      .eq("id", id);
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by: user.id,
+      })
+      .eq("id", id)
+      .select();
 
     if (error) {
-      console.error("Error deleting record:", error);
+      console.error("Error soft deleting record:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Log to audit_logs
+    await supabase.from('audit_logs').insert({
+      table_name: 'grindex_service_forms',
+      record_id: id,
+      action: 'DELETE',
+      old_data: record,
+      new_data: data && data[0] ? data[0] : null,
+      performed_by: user.id,
+      performed_at: new Date().toISOString(),
+    });
 
     return NextResponse.json(
       { message: "Grindex Service Form deleted successfully", data },

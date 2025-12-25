@@ -14,6 +14,7 @@ import {
   XMarkIcon,
   ChevronDownIcon,
   ClipboardDocumentListIcon,
+  ClipboardDocumentCheckIcon,
   DocumentDuplicateIcon,
   DocumentTextIcon,
   ChevronRightIcon,
@@ -187,6 +188,11 @@ export default function DashboardLayout({
       name: "Form Records",
       icon: ClipboardDocumentListIcon,
       href: "/dashboard/records",
+    },
+    {
+      name: "Audit Logs",
+      icon: ClipboardDocumentCheckIcon,
+      href: "/dashboard/audit-logs",
     },
   ];
 

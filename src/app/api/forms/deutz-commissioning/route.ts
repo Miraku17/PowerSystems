@@ -7,6 +7,7 @@ export const GET = withAuth(async (request, { user }) => {
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
       .select("*")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -217,22 +218,22 @@ export const POST = withAuth(async (request, { user }) => {
     const attending_technician_signature = await uploadSignature(
       serviceSupabase,
       rawAttendingSignature,
-      `commissioning-attending-technician-${timestamp}.png`
+      `deutz/commission/commissioning-attending-technician-${timestamp}.png`
     );
     const noted_by_signature = await uploadSignature(
       serviceSupabase,
       rawNotedBySignature,
-      `commissioning-noted-by-${timestamp}.png`
+      `deutz/commission/commissioning-noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
       rawApprovedSignature,
-      `commissioning-approved-by-${timestamp}.png`
+      `deutz/commission/commissioning-approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       serviceSupabase,
       rawAcknowledgedSignature,
-      `commissioning-acknowledged-by-${timestamp}.png`
+      `deutz/commission/commissioning-acknowledged-by-${timestamp}.png`
     );
 
     // Generate Job Order No. - MANUALLY INPUT NOW
@@ -336,6 +337,7 @@ export const POST = withAuth(async (request, { user }) => {
           noted_by_signature,
           approved_by_signature,
           acknowledged_by_signature,
+          created_by: user.id,
         },
       ])
       .select();
@@ -393,6 +395,19 @@ export const POST = withAuth(async (request, { user }) => {
       }
     }
 
+    // Log to audit_logs
+    if (data && data[0]) {
+      await supabase.from('audit_logs').insert({
+        table_name: 'deutz_commissioning_report',
+        record_id: data[0].id,
+        action: 'CREATE',
+        old_data: null,
+        new_data: data[0],
+        performed_by: user.id,
+        performed_at: new Date().toISOString(),
+      });
+    }
+
     return NextResponse.json(
       { message: "Report submitted successfully", data },
       { status: 201 }
@@ -424,13 +439,21 @@ export const PATCH = withAuth(async (request, { user }) => {
     // Fetch the current record to get old signature URLs for deletion
     const { data: currentRecord, error: fetchError } = await supabase
       .from("deutz_commissioning_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
       .eq("id", id)
       .single();
 
     if (fetchError) {
       console.error("Error fetching current record:", fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
+    // Check if record is soft-deleted
+    if (currentRecord.deleted_at) {
+      return NextResponse.json(
+        { error: "Cannot update a deleted record" },
+        { status: 400 }
+      );
     }
 
     // Extract fields matching the database schema (same as POST)
@@ -542,22 +565,22 @@ export const PATCH = withAuth(async (request, { user }) => {
     const attending_technician_signature = await uploadSignature(
       serviceSupabase,
       rawAttendingSignature || "",
-      `commissioning-attending-technician-${timestamp}.png`
+      `deutz/commission/commissioning-attending-technician-${timestamp}.png`
     );
     const noted_by_signature = await uploadSignature(
       serviceSupabase,
       rawNotedBySignature || "",
-      `commissioning-noted-by-${timestamp}.png`
+      `deutz/commission/commissioning-noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
       rawApprovedSignature || "",
-      `commissioning-approved-by-${timestamp}.png`
+      `deutz/commission/commissioning-approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       serviceSupabase,
       rawAcknowledgedSignature || "",
-      `commissioning-acknowledged-by-${timestamp}.png`
+      `deutz/commission/commissioning-acknowledged-by-${timestamp}.png`
     );
 
     // Delete old signatures only if they were replaced with new ones OR explicitly cleared
@@ -687,6 +710,9 @@ export const PATCH = withAuth(async (request, { user }) => {
     if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
     else if (rawAcknowledgedSignature === "") updateData.acknowledged_by_signature = null;
 
+    // Set updated_by and updated_at
+    updateData.updated_by = user.id;
+    updateData.updated_at = new Date().toISOString();
 
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
@@ -699,6 +725,17 @@ export const PATCH = withAuth(async (request, { user }) => {
       console.error("Error updating record:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    // Log to audit_logs
+    await supabase.from('audit_logs').insert({
+      table_name: 'deutz_commissioning_report',
+      record_id: id,
+      action: 'UPDATE',
+      old_data: currentRecord,
+      new_data: data,
+      performed_by: user.id,
+      performed_at: new Date().toISOString(),
+    });
 
     return NextResponse.json(
       { message: "Report updated successfully", data },

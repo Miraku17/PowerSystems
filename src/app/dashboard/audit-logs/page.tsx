@@ -1,99 +1,93 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
+import { useAuth } from "@/hooks/useAuth";
 
-// Mock Data for Audit Logs
 interface AuditLog {
   id: string;
-  timestamp: string;
-  user: string;
-  role: string;
-  action: "Create" | "Update" | "Delete" | "Login" | "Logout";
-  entity: string;
+  performed_at: string;
+  performed_by_name: string;
+  action: string;
+  entity_name: string;
   details: string;
-  status: "Success" | "Failed";
+  job_order?: string;
+  table_name: string;
 }
 
-const MOCK_LOGS: AuditLog[] = [
-  {
-    id: "1",
-    timestamp: "2023-10-27 14:30:00",
-    user: "John Doe",
-    role: "Admin",
-    action: "Create",
-    entity: "Company",
-    details: "Created new company 'Acme Corp'",
-    status: "Success",
-  },
-  {
-    id: "2",
-    timestamp: "2023-10-27 14:15:00",
-    user: "Jane Smith",
-    role: "User",
-    action: "Login",
-    entity: "Auth",
-    details: "User logged in successfully",
-    status: "Success",
-  },
-  {
-    id: "3",
-    timestamp: "2023-10-27 13:45:00",
-    user: "John Doe",
-    role: "Admin",
-    action: "Update",
-    entity: "Engine",
-    details: "Updated engine specifications for SN-12345",
-    status: "Success",
-  },
-  {
-    id: "4",
-    timestamp: "2023-10-27 11:20:00",
-    user: "Mike Johnson",
-    role: "User",
-    action: "Delete",
-    entity: "Form Record",
-    details: "Deleted form record #4421",
-    status: "Success",
-  },
-  {
-    id: "5",
-    timestamp: "2023-10-27 09:10:00",
-    user: "Jane Smith",
-    role: "User",
-    action: "Login",
-    entity: "Auth",
-    details: "Failed login attempt (Invalid password)",
-    status: "Failed",
-  },
-  {
-    id: "6",
-    timestamp: "2023-10-26 16:55:00",
-    user: "Admin User",
-    role: "Super Admin",
-    action: "Update",
-    entity: "User",
-    details: "Changed role for user 'mike.j' to 'Admin'",
-    status: "Success",
-  },
-];
-
 export default function AuditLogsPage() {
+  useAuth(); // Protect the page
   const [searchTerm, setSearchTerm] = useState("");
-  const [logs, setLogs] = useState<AuditLog[]>(MOCK_LOGS);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        const token = localStorage.getItem("authToken");
+        const headers: HeadersInit = {};
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetch('/api/audit-logs?limit=100', {
+          headers: headers
+        });
+        
+        if (response.status === 401) {
+             console.error("Unauthorized: Please login again.");
+             // Optional: Force redirect if 401, though useAuth should handle it eventually
+             return;
+        }
+
+        const result = await response.json();
+        if (result.success) {
+          setLogs(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching audit logs:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, []);
 
   // Filter logs based on search
   const filteredLogs = logs.filter(
     (log) =>
-      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.entity.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchTerm.toLowerCase())
+      (log.performed_by_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.action || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.entity_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (log.details || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const formatTimestamp = (dateString: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric', 
+      hour: 'numeric', 
+      minute: 'numeric', 
+      hour12: true 
+    });
+  };
+
+  const getActionColor = (action: string) => {
+    const act = action.toUpperCase();
+    if (act === 'CREATE') return 'bg-green-100 text-green-800';
+    if (act === 'UPDATE') return 'bg-blue-100 text-blue-800';
+    if (act === 'DELETE') return 'bg-red-100 text-red-800';
+    return 'bg-gray-100 text-gray-800';
+  };
 
   return (
     <div className="space-y-6">
@@ -154,12 +148,6 @@ export default function AuditLogsPage() {
                 >
                   User
                 </th>
-                 <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell"
-                >
-                  Role
-                </th>
                 <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -176,63 +164,49 @@ export default function AuditLogsPage() {
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell"
                 >
-                  Details
-                </th>
-                <th
-                  scope="col"
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                >
-                  Status
+                  Details (Job Order / ID)
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredLogs.length > 0 ? (
+              {loading ? (
+                 <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
+                    Loading logs...
+                  </td>
+                </tr>
+              ) : filteredLogs.length > 0 ? (
                 filteredLogs.map((log) => (
                   <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {log.timestamp}
+                      {formatTimestamp(log.performed_at)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
-                            {log.user.charAt(0)}
+                            {(log.performed_by_name || "?").charAt(0)}
                         </div>
                         <div className="text-sm font-medium text-gray-900">
-                          {log.user}
+                          {log.performed_by_name}
                         </div>
                       </div>
                     </td>
-                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        {log.role}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionColor(log.action)}`}>
+                        {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {log.action}
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                      {log.entity}
+                      {log.entity_name}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate hidden lg:table-cell">
                       {log.details}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          log.status === "Success"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {log.status}
-                      </span>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-gray-500">
+                  <td colSpan={5} className="px-6 py-10 text-center text-gray-500">
                     No logs found matching your search.
                   </td>
                 </tr>

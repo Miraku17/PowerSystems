@@ -7,6 +7,7 @@ import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
 
 interface User {
   id: string;
@@ -16,54 +17,8 @@ interface User {
 export default function DeutzServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
-    job_order: "",
-    reporting_person_name: "",
-    report_date: "",
-    customer_name: "",
-    contact_person: "",
-    address: "",
-    email_address: "",
-    phone_number: "",
-    equipment_manufacturer: "",
-    equipment_model: "",
-    equipment_serial_no: "",
-    engine_model: "",
-    engine_serial_no: "",
-    alternator_brand_model: "",
-    alternator_serial_no: "",
-    location: "",
-    date_in_service: "",
-    rating: "",
-    revolution: "",
-    starting_voltage: "",
-    running_hours: "",
-    fuel_pump_serial_no: "",
-    fuel_pump_code: "",
-    lube_oil_type: "",
-    fuel_type: "",
-    cooling_water_additives: "",
-    date_failed: "",
-    turbo_model: "",
-    turbo_serial_no: "",
-    customer_complaint: "",
-    possible_cause: "",
-    observation: "",
-    findings: "",
-    action_taken: "",
-    recommendations: "",
-    summary_details: "",
-    within_coverage_period: "No",
-    warrantable_failure: "No",
-    service_technician: "",
-    service_technician_signature: "",
-    noted_by: "",
-    noted_by_signature: "",
-    approved_by: "",
-    approved_by_signature: "",
-    acknowledged_by: "",
-    acknowledged_by_signature: "",
-  });
+  // Use Zustand store for persistent form data
+  const { formData, setFormData, resetFormData } = useDeutzServiceFormStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -117,12 +72,11 @@ export default function DeutzServiceForm() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData({ [name]: value });
   };
 
   const handleCustomerSelect = (customer: any) => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
       reporting_person_name: customer.name || "",
       customer_name: customer.customer || "",
       contact_person: customer.contactPerson || "",
@@ -130,12 +84,11 @@ export default function DeutzServiceForm() {
       email_address: customer.email || "",
       phone_number: customer.phone || "",
       equipment_manufacturer: customer.equipment || "",
-    }));
+    });
   };
 
   const handleEngineSelect = (engine: any) => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
       engine_model: engine.model || "",
       engine_serial_no: engine.serialNo || "",
       alternator_brand_model: engine.altBrandModel || "",
@@ -147,19 +100,19 @@ export default function DeutzServiceForm() {
       turbo_model: engine.turboModel || "",
       turbo_serial_no: engine.turboSN || "",
       // Add more fields if they map directly
-      rating: engine.rating || prev.rating,
-      revolution: engine.rpm || prev.revolution,
-      starting_voltage: engine.startVoltage || prev.starting_voltage,
-      running_hours: engine.runHours || prev.running_hours,
-      lube_oil_type: engine.lubeOil || prev.lube_oil_type,
-      fuel_type: engine.fuelType || prev.fuel_type,
-      cooling_water_additives: engine.coolantAdditive || prev.cooling_water_additives,
-      location: engine.location || prev.location,
-    }));
+      rating: engine.rating || formData.rating,
+      revolution: engine.rpm || formData.revolution,
+      starting_voltage: engine.startVoltage || formData.starting_voltage,
+      running_hours: engine.runHours || formData.running_hours,
+      lube_oil_type: engine.lubeOil || formData.lube_oil_type,
+      fuel_type: engine.fuelType || formData.fuel_type,
+      cooling_water_additives: engine.coolantAdditive || formData.cooling_water_additives,
+      location: engine.location || formData.location,
+    });
   };
 
   const handleSignatureChange = (name: string, signature: string) => {
-    setFormData((prev) => ({ ...prev, [name]: signature }));
+    setFormData({ [name]: signature });
   };
 
   const handleConfirmSubmit = async () => {
@@ -185,54 +138,7 @@ export default function DeutzServiceForm() {
       toast.success("Service Report submitted successfully!", {
         id: loadingToastId,
       });
-      setFormData({
-        job_order: "",
-        reporting_person_name: "",
-        report_date: "",
-        customer_name: "",
-        contact_person: "",
-        address: "",
-        email_address: "",
-        phone_number: "",
-        equipment_manufacturer: "",
-        equipment_model: "",
-        equipment_serial_no: "",
-        engine_model: "",
-        engine_serial_no: "",
-        alternator_brand_model: "",
-        alternator_serial_no: "",
-        location: "",
-        date_in_service: "",
-        rating: "",
-        revolution: "",
-        starting_voltage: "",
-        running_hours: "",
-        fuel_pump_serial_no: "",
-        fuel_pump_code: "",
-        lube_oil_type: "",
-        fuel_type: "",
-        cooling_water_additives: "",
-        date_failed: "",
-        turbo_model: "",
-        turbo_serial_no: "",
-        customer_complaint: "",
-        possible_cause: "",
-        observation: "",
-        findings: "",
-        action_taken: "",
-        recommendations: "",
-        summary_details: "",
-        within_coverage_period: "No",
-        warrantable_failure: "No",
-        service_technician: "",
-        service_technician_signature: "",
-        noted_by: "",
-        noted_by_signature: "",
-        approved_by: "",
-        approved_by_signature: "",
-        acknowledged_by: "",
-        acknowledged_by_signature: "",
-      });
+      resetFormData();
       setAttachments([]);
     } catch (error: any) {
       console.error("Submission error:", error);

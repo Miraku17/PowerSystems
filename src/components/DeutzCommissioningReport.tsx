@@ -7,6 +7,7 @@ import SignaturePad from './SignaturePad';
 import { supabase } from '@/lib/supabase';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormStore";
 
 interface User {
   id: string;
@@ -15,90 +16,9 @@ interface User {
 
 export default function DeutzCommissioningReport() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    job_order_no: '',
-    reporting_person_name: '',
-    equipment_name: '',
-    running_hours: '',
-    customer_name: '',
-    contact_person: '',
-    address: '',
-    email_address: '',
-    phone_number: '',
-    commissioning_location: '',
-    commissioning_date: '',
-    engine_model: '',
-    engine_serial_no: '',
-    commissioning_no: '',
-    equipment_manufacturer: '',
-    equipment_no: '',
-    equipment_type: '',
-    output: '',
-    revolutions: '',
-    main_effective_pressure: '',
-    lube_oil_type: '',
-    fuel_type: '',
-    cooling_water_additives: '',
-    fuel_pump_serial_no: '',
-    fuel_pump_code: '',
-    turbo_model: '',
-    turbo_serial_no: '',
-    // Inspection Prior Test
-    inspection_summary: '',
-    check_oil_level: '',
-    check_air_filter: '',
-    check_hoses_clamps: '',
-    check_engine_support: '',
-    check_v_belt: '',
-    check_water_level: '',
-    crankshaft_end_play: '',
-    inspector: '',
-    inspection_comments: '',
-    // Operational Readings
-    rpm_idle_speed: '',
-    rpm_full_speed: '',
-    oil_pressure_idle: '',
-    oil_pressure_full: '',
-    oil_temperature: '',
-    engine_smoke: '',
-    engine_vibration: '',
-    check_engine_leakage: '',
-    // Cylinder
-    cylinder_head_temp: '',
-    cylinder_no: '',
-    cylinder_a1: '',
-    cylinder_a2: '',
-    cylinder_a3: '',
-    cylinder_a4: '',
-    cylinder_a5: '',
-    cylinder_a6: '',
-    cylinder_b1: '',
-    cylinder_b2: '',
-    cylinder_b3: '',
-    cylinder_b4: '',
-    cylinder_b5: '',
-    cylinder_b6: '',
-    // Parts Reference
-    starter_part_no: '',
-    alternator_part_no: '',
-    v_belt_part_no: '',
-    air_filter_part_no: '',
-    oil_filter_part_no: '',
-    fuel_filter_part_no: '',
-    pre_fuel_filter_part_no: '',
-    controller_brand: '',
-    controller_model: '',
-    remarks: '',
-    recommendation: '',
-    attending_technician: '',
-    attending_technician_signature: '',
-    noted_by: '',
-    noted_by_signature: '',
-    approved_by: '',
-    approved_by_signature: '',
-    acknowledged_by: '',
-    acknowledged_by_signature: '',
-  });
+
+  // Use Zustand store for persistent form data
+  const { formData, setFormData, resetFormData } = useDeutzCommissioningFormStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -148,12 +68,11 @@ export default function DeutzCommissioningReport() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData({ [name]: value });
   };
 
   const handleCustomerSelect = (customer: any) => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
       reporting_person_name: customer.name || "",
       customer_name: customer.customer || "",
       contact_person: customer.contactPerson || "",
@@ -161,20 +80,18 @@ export default function DeutzCommissioningReport() {
       email_address: customer.email || "",
       phone_number: customer.phone || "",
       equipment_name: customer.equipment || "",
-    }));
+    });
   };
 
   const handleEngineSelect = (engine: any) => {
-    setFormData((prev) => ({
-      ...prev,
-      equipment_manufacturer: engine.company?.name || prev.equipment_manufacturer, // Or potentially another field if mapped
-      equipment_type: engine.equipModel || "", // Assuming equipModel maps to Type or adjust as needed
+    setFormData({
+      equipment_manufacturer: engine.company?.name || formData.equipment_manufacturer,
+      equipment_type: engine.equipModel || "",
       equipment_no: engine.equipSerialNo || "",
       engine_model: engine.model || "",
       engine_serial_no: engine.serialNo || "",
       output: engine.rating || "",
       revolutions: engine.rpm || "",
-      // main_effective_pressure: engine.mep || "", // If available
       running_hours: engine.runHours || "",
       lube_oil_type: engine.lubeOil || "",
       fuel_type: engine.fuelType || "",
@@ -183,11 +100,11 @@ export default function DeutzCommissioningReport() {
       fuel_pump_code: engine.fuelPumpCode || "",
       turbo_model: engine.turboModel || "",
       turbo_serial_no: engine.turboSN || "",
-    }));
+    });
   };
 
   const handleSignatureChange = (name: string, signature: string) => {
-    setFormData(prev => ({ ...prev, [name]: signature }));
+    setFormData({ [name]: signature });
   };
 
   const handleConfirmSubmit = async () => {
@@ -223,90 +140,7 @@ export default function DeutzCommissioningReport() {
       console.log('Success:', response.data);
       toast.success('Commissioning Report submitted successfully!', { id: loadingToastId });
       setAttachments([]);
-      setFormData({
-          job_order_no: '',
-          reporting_person_name: '',
-          equipment_name: '',
-          running_hours: '',
-          customer_name: '',
-          contact_person: '',
-          address: '',
-          email_address: '',
-          phone_number: '',
-          commissioning_location: '',
-          commissioning_date: '',
-          engine_model: '',
-          engine_serial_no: '',
-          commissioning_no: '',
-          equipment_manufacturer: '',
-          equipment_no: '',
-          equipment_type: '',
-          output: '',
-          revolutions: '',
-          main_effective_pressure: '',
-          lube_oil_type: '',
-          fuel_type: '',
-          cooling_water_additives: '',
-          fuel_pump_serial_no: '',
-          fuel_pump_code: '',
-          turbo_model: '',
-          turbo_serial_no: '',
-          // Inspection Prior Test
-          inspection_summary: '',
-          check_oil_level: '',
-          check_air_filter: '',
-          check_hoses_clamps: '',
-          check_engine_support: '',
-          check_v_belt: '',
-          check_water_level: '',
-          crankshaft_end_play: '',
-          inspector: '',
-          inspection_comments: '',
-          // Operational Readings
-          rpm_idle_speed: '',
-          rpm_full_speed: '',
-          oil_pressure_idle: '',
-          oil_pressure_full: '',
-          oil_temperature: '',
-          engine_smoke: '',
-          engine_vibration: '',
-          check_engine_leakage: '',
-          // Cylinder
-          cylinder_head_temp: '',
-          cylinder_no: '',
-          cylinder_a1: '',
-          cylinder_a2: '',
-          cylinder_a3: '',
-          cylinder_a4: '',
-          cylinder_a5: '',
-          cylinder_a6: '',
-          cylinder_b1: '',
-          cylinder_b2: '',
-          cylinder_b3: '',
-          cylinder_b4: '',
-          cylinder_b5: '',
-          cylinder_b6: '',
-          // Parts Reference
-          starter_part_no: '',
-          alternator_part_no: '',
-          v_belt_part_no: '',
-          air_filter_part_no: '',
-          oil_filter_part_no: '',
-          fuel_filter_part_no: '',
-          pre_fuel_filter_part_no: '',
-          controller_brand: '',
-          controller_model: '',
-          remarks: '',
-          recommendation: '',
-          attending_technician: '',
-          attending_technician_signature: '',
-          noted_by: '',
-          noted_by_signature: '',
-          approved_by: '',
-          approved_by_signature: '',
-          acknowledged_by: '',
-          acknowledged_by_signature: '',
-        });
+      resetFormData();
     } catch (error: any) {
       console.error('Submission error:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';

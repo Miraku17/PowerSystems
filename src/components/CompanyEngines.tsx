@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Engine, Company } from "@/types";
 import { engineService, companyService } from "@/services";
 import toast from "react-hot-toast";
+import { useCompanyEngineFormStore } from "@/stores/companyEngineFormStore";
 import {
   PencilIcon,
   TrashIcon,
@@ -68,7 +69,12 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
       setCompanies([]);
     }
   };
-  const [formData, setFormData] = useState({
+
+  // Zustand store for persistent form data
+  const { formData: storedFormData, setFormData: setStoredFormData, resetFormData } = useCompanyEngineFormStore();
+
+  // Local state for edit mode (not persisted)
+  const [editFormData, setEditFormData] = useState({
     model: "",
     serialNo: "",
     altBrandModel: "",
@@ -90,36 +96,22 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
     companyId: "",
   });
 
+  // Use appropriate form data based on mode
+  const formData = modalMode === "edit" ? editFormData : storedFormData;
+  const setFormData = modalMode === "edit"
+    ? (data: Partial<typeof editFormData>) => setEditFormData(prev => ({ ...prev, ...data }))
+    : setStoredFormData;
+
   const handleOpenCreateModal = () => {
+    // Form data persists in Zustand store
     setModalMode("create");
-    setFormData({
-      model: "",
-      serialNo: "",
-      altBrandModel: "",
-      equipModel: "",
-      equipSerialNo: "",
-      altSerialNo: "",
-      location: "",
-      rating: "",
-      rpm: "",
-      startVoltage: "",
-      runHours: "",
-      fuelPumpSN: "",
-      fuelPumpCode: "",
-      lubeOil: "",
-      fuelType: "",
-      coolantAdditive: "",
-      turboModel: "",
-      turboSN: "",
-      companyId: "",
-    });
     setShowModal(true);
   };
 
   const handleOpenEditModal = (engine: Engine) => {
     setModalMode("edit");
     setSelectedEngine(engine);
-    setFormData({
+    setEditFormData({
       model: engine.model,
       serialNo: engine.serialNo,
       altBrandModel: engine.altBrandModel,
@@ -159,6 +151,7 @@ export default function CompanyEngines({ companyId }: CompanyEnginesProps) {
         // Reload engines list from server
         await loadEngines();
         toast.success("Engine created successfully!", { id: loadingToast });
+        resetFormData(); // Clear persisted form data
       } else if (selectedEngine) {
         const loadingToast = toast.loading("Updating engine...");
         await engineService.update(selectedEngine.id, formData);

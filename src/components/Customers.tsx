@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Customer } from "@/types";
 import { customerService } from "@/services";
 import toast from "react-hot-toast";
+import { useCustomerFormStore } from "@/stores/customerFormStore";
 import {
   PencilIcon,
   TrashIcon,
@@ -70,7 +71,12 @@ export default function Customers() {
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+
+  // Zustand store for persistent form data
+  const { formData, setFormData, resetFormData } = useCustomerFormStore();
+
+  // Local state for edit mode (not persisted)
+  const [editFormData, setEditFormData] = useState({
     name: "",
     equipment: "",
     customer: "",
@@ -79,6 +85,12 @@ export default function Customers() {
     email: "",
     phone: "",
   });
+
+  // Use editFormData when in edit mode, formData (from store) when in create mode
+  const currentFormData = modalMode === "edit" ? editFormData : formData;
+  const updateFormData = modalMode === "edit"
+    ? (data: Partial<typeof editFormData>) => setEditFormData(prev => ({ ...prev, ...data }))
+    : setFormData;
 
   // Load customers on mount
   useEffect(() => {
@@ -100,17 +112,7 @@ export default function Customers() {
   };
 
   const handleOpenCreateModal = () => {
-    if (modalMode === "edit") {
-      setFormData({
-        name: "",
-        equipment: "",
-        customer: "",
-        contactPerson: "",
-        address: "",
-        email: "",
-        phone: "",
-      });
-    }
+    // Form data persists in Zustand store, no need to reset
     setModalMode("create");
     setShowModal(true);
   };
@@ -118,7 +120,7 @@ export default function Customers() {
   const handleOpenEditModal = (customer: Customer) => {
     setModalMode("edit");
     setSelectedCustomer(customer);
-    setFormData({
+    setEditFormData({
       name: customer.name,
       equipment: customer.equipment,
       customer: customer.customer,
@@ -148,18 +150,10 @@ export default function Customers() {
     setIsSubmitting(true);
     try {
       const loadingToast = toast.loading("Creating customer...");
-      await customerService.create(formData);
+      await customerService.create(currentFormData);
       await loadCustomers();
       toast.success("Customer created successfully!", { id: loadingToast });
-      setFormData({
-        name: "",
-        equipment: "",
-        customer: "",
-        contactPerson: "",
-        address: "",
-        email: "",
-        phone: "",
-      });
+      resetFormData(); // Clear the persisted form data after successful creation
       handleCloseModal();
     } catch (error) {
       toast.error("Failed to create customer");
@@ -174,7 +168,7 @@ export default function Customers() {
     setIsSubmitting(true);
     try {
       const loadingToast = toast.loading("Updating customer...");
-      await customerService.update(selectedCustomer.id, formData);
+      await customerService.update(selectedCustomer.id, currentFormData);
       await loadCustomers();
       toast.success("Customer updated successfully!", { id: loadingToast });
       handleCloseModal();
@@ -452,8 +446,8 @@ export default function Customers() {
                     <input
                       type="text"
                       required
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      value={currentFormData.name}
+                      onChange={(e) => updateFormData({ name: e.target.value })}
                       className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. John Doe"
                     />
@@ -469,8 +463,8 @@ export default function Customers() {
                     <input
                       type="text"
                       required
-                      value={formData.equipment}
-                      onChange={(e) => setFormData({ ...formData, equipment: e.target.value })}
+                      value={currentFormData.equipment}
+                      onChange={(e) => updateFormData({ equipment: e.target.value })}
                       className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. Generator X-100"
                     />
@@ -488,8 +482,8 @@ export default function Customers() {
                     <input
                       type="text"
                       required
-                      value={formData.customer}
-                      onChange={(e) => setFormData({ ...formData, customer: e.target.value })}
+                      value={currentFormData.customer}
+                      onChange={(e) => updateFormData({ customer: e.target.value })}
                       className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. Acme Corp"
                     />
@@ -505,8 +499,8 @@ export default function Customers() {
                     <input
                       type="text"
                       required
-                      value={formData.contactPerson}
-                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      value={currentFormData.contactPerson}
+                      onChange={(e) => updateFormData({ contactPerson: e.target.value })}
                       className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. Jane Smith"
                     />
@@ -523,8 +517,8 @@ export default function Customers() {
                   <input
                     type="email"
                     // required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    value={currentFormData.email}
+                    onChange={(e) => updateFormData({ email: e.target.value })}
                     className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. jane@example.com"
                   />
@@ -539,8 +533,8 @@ export default function Customers() {
                   </div>
                   <input
                     type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    value={currentFormData.phone}
+                    onChange={(e) => updateFormData({ phone: e.target.value })}
                     className="block w-full pl-10 px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. +63 917 123 4567"
                   />
@@ -552,8 +546,8 @@ export default function Customers() {
                 <textarea
                   required
                   rows={3}
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  value={currentFormData.address}
+                  onChange={(e) => updateFormData({ address: e.target.value })}
                   className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm resize-none"
                   placeholder="Full address..."
                 />

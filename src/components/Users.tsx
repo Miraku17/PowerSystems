@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { User } from "@/types";
 import { userService } from "@/services";
 import toast from "react-hot-toast";
+import { useUserFormStore } from "@/stores/userFormStore";
 import {
   PencilIcon,
   TrashIcon,
@@ -69,17 +70,61 @@ export default function Users() {
   const [showCreateConfirm, setShowCreateConfirm] = useState(false);
   const [showEditConfirm, setShowEditConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+
+  // Zustand store for persistent form data (excludes passwords for security)
+  const { formData: storedFormData, setFormData: setStoredFormData, resetFormData } = useUserFormStore();
+
+  // Local state for passwords (never persisted for security)
+  const [passwordData, setPasswordData] = useState({
+    password: "",
+    confirmPassword: "",
+  });
+
+  // Local state for edit mode (not persisted)
+  const [editFormData, setEditFormData] = useState({
     firstname: "",
     lastname: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     username: "",
     address: "",
     phone: "",
     role: "user" as "user" | "admin",
   });
+
+  // Combined form data for create mode
+  const createFormData = {
+    ...storedFormData,
+    ...passwordData,
+  };
+
+  // Combined form data for edit mode
+  const editFormDataWithPassword = {
+    ...editFormData,
+    password: "",
+    confirmPassword: "",
+  };
+
+  // Use appropriate form data based on mode
+  const currentFormData = modalMode === "edit" ? editFormDataWithPassword : createFormData;
+
+  const updateFormData = (data: Partial<typeof currentFormData>) => {
+    if (modalMode === "edit") {
+      const { password, confirmPassword, ...rest } = data;
+      setEditFormData(prev => ({ ...prev, ...rest }));
+    } else {
+      const { password, confirmPassword, ...rest } = data;
+      if (password !== undefined || confirmPassword !== undefined) {
+        setPasswordData(prev => ({
+          ...prev,
+          ...(password !== undefined ? { password } : {}),
+          ...(confirmPassword !== undefined ? { confirmPassword } : {}),
+        }));
+      }
+      if (Object.keys(rest).length > 0) {
+        setStoredFormData(rest);
+      }
+    }
+  };
 
   // Load users on mount
   useEffect(() => {
@@ -101,19 +146,8 @@ export default function Users() {
   };
 
   const handleOpenCreateModal = () => {
-    if (modalMode === "edit") {
-      setFormData({
-        firstname: "",
-        lastname: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        username: "",
-        address: "",
-        phone: "",
-        role: "user",
-      });
-    }
+    // Reset password fields when opening create modal
+    setPasswordData({ password: "", confirmPassword: "" });
     setModalMode("create");
     setShowModal(true);
   };
@@ -121,12 +155,10 @@ export default function Users() {
   const handleOpenEditModal = (user: User) => {
     setModalMode("edit");
     setSelectedUser(user);
-    setFormData({
+    setEditFormData({
       firstname: user.firstname,
       lastname: user.lastname,
       email: user.email,
-      password: "",
-      confirmPassword: "",
       username: user.username,
       address: user.address,
       phone: user.phone,
@@ -143,7 +175,7 @@ export default function Users() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (modalMode === "create") {
-      if (formData.password !== formData.confirmPassword) {
+      if (passwordData.password !== passwordData.confirmPassword) {
         toast.error("Passwords do not match");
         return;
       }
@@ -157,20 +189,11 @@ export default function Users() {
     setIsSubmitting(true);
     const loadingToast = toast.loading("Creating user...");
     try {
-      await userService.create(formData);
+      await userService.create(currentFormData);
       await loadUsers();
       toast.success("User created successfully!", { id: loadingToast });
-      setFormData({
-        firstname: "",
-        lastname: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        username: "",
-        address: "",
-        phone: "",
-        role: "user",
-      });
+      resetFormData(); // Clear persisted form data
+      setPasswordData({ password: "", confirmPassword: "" }); // Clear passwords
       handleCloseModal();
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to create user", {
@@ -187,7 +210,7 @@ export default function Users() {
     setIsSubmitting(true);
     const loadingToast = toast.loading("Updating user...");
     try {
-      await userService.update(selectedUser.id, formData);
+      await userService.update(selectedUser.id, currentFormData);
       await loadUsers();
       toast.success("User updated successfully!", { id: loadingToast });
       handleCloseModal();
@@ -454,9 +477,9 @@ export default function Users() {
                     <input
                       type="text"
                       required
-                      value={formData.firstname}
+                      value={currentFormData.firstname}
                       onChange={(e) =>
-                        setFormData({ ...formData, firstname: e.target.value })
+                        updateFormData({ firstname: e.target.value })
                       }
                       className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. John"
@@ -470,9 +493,9 @@ export default function Users() {
                     <input
                       type="text"
                       required
-                      value={formData.lastname}
+                      value={currentFormData.lastname}
                       onChange={(e) =>
-                        setFormData({ ...formData, lastname: e.target.value })
+                        updateFormData({ lastname: e.target.value })
                       }
                       className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                       placeholder="e.g. Doe"
@@ -487,9 +510,9 @@ export default function Users() {
                   <input
                     type="text"
                     required
-                    value={formData.username}
+                    value={currentFormData.username}
                     onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
+                      updateFormData({ username: e.target.value })
                     }
                     className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. johndoe"
@@ -502,9 +525,9 @@ export default function Users() {
                   </label>
                   <textarea
                     required
-                    value={formData.address}
+                    value={currentFormData.address}
                     onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
+                      updateFormData({ address: e.target.value })
                     }
                     className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. 123 Main St"
@@ -518,9 +541,9 @@ export default function Users() {
                   <input
                     type="text"
                     required
-                    value={formData.phone}
+                    value={currentFormData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                      updateFormData({ phone: e.target.value })
                     }
                     className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. +639123456789"
@@ -534,9 +557,9 @@ export default function Users() {
                   <input
                     type="email"
                     required
-                    value={formData.email}
+                    value={currentFormData.email}
                     onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
+                      updateFormData({ email: e.target.value })
                     }
                     className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                     placeholder="e.g. jane@example.com"
@@ -550,10 +573,9 @@ export default function Users() {
                   </label>
                   <select
                     required
-                    value={formData.role}
+                    value={currentFormData.role}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
+                      updateFormData({
                         role: e.target.value as "user" | "admin",
                       })
                     }
@@ -573,9 +595,9 @@ export default function Users() {
                       <input
                         type={showPassword ? "text" : "password"}
                         required
-                        value={formData.password}
+                        value={passwordData.password}
                         onChange={(e) =>
-                          setFormData({ ...formData, password: e.target.value })
+                          setPasswordData({ ...passwordData, password: e.target.value })
                         }
                         className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
                         placeholder="••••••••"
@@ -599,10 +621,10 @@ export default function Users() {
                       <input
                         type={showConfirmPassword ? "text" : "password"}
                         required
-                        value={formData.confirmPassword}
+                        value={passwordData.confirmPassword}
                         onChange={(e) =>
-                          setFormData({
-                            ...formData,
+                          setPasswordData({
+                            ...passwordData,
                             confirmPassword: e.target.value,
                           })
                         }

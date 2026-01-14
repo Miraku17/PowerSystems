@@ -64,13 +64,16 @@ export async function POST(request: Request) {
 
     // Set the auth token in an HTTP-only cookie for middleware protection
     const cookieStore = await cookies();
-    cookieStore.set("authToken", data.session.access_token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: "lax" as const,
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
-    });
+    };
+
+    cookieStore.set("authToken", data.session.access_token, cookieOptions);
+    cookieStore.set("refreshToken", data.session.refresh_token, cookieOptions);
 
     // Return the user and token to the frontend as well
     return NextResponse.json(

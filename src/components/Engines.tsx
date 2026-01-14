@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Engine, Company } from "@/types";
 import { engineService, companyService } from "@/services";
 import toast from "react-hot-toast";
+import { useEngineFormStore } from "@/stores/engineFormStore";
 import {
   PencilIcon,
   TrashIcon,
@@ -51,7 +52,11 @@ export default function Engines({
   const [sortOrder, setSortOrder] = useState<string>("asc");
   const [filterType, setFilterType] = useState<string>("all");
 
-  const [formData, setFormData] = useState({
+  // Zustand store for persistent form data
+  const { formData: storedFormData, setFormData: setStoredFormData, resetFormData } = useEngineFormStore();
+
+  // Local state for edit mode (not persisted)
+  const [editFormData, setEditFormData] = useState({
     model: "",
     serialNo: "",
     altBrandModel: "",
@@ -72,6 +77,13 @@ export default function Engines({
     turboSN: "",
     companyId: "",
   });
+
+  // Use appropriate form data based on mode
+  const formData = modalMode === "edit" ? editFormData : storedFormData;
+  const setFormData = modalMode === "edit"
+    ? (data: Partial<typeof editFormData>) => setEditFormData(prev => ({ ...prev, ...data }))
+    : setStoredFormData;
+
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loadingImages, setLoadingImages] = useState<Record<string, boolean>>({});
@@ -108,31 +120,9 @@ export default function Engines({
   };
 
   const handleOpenCreateModal = () => {
-    if (modalMode === "edit") {
-      setFormData({
-        model: "",
-        serialNo: "",
-        altBrandModel: "",
-        equipModel: "",
-        equipSerialNo: "",
-        altSerialNo: "",
-        location: "",
-        rating: "",
-        rpm: "",
-        startVoltage: "",
-        runHours: "",
-        fuelPumpSN: "",
-        fuelPumpCode: "",
-        lubeOil: "",
-        fuelType: "",
-        coolantAdditive: "",
-        turboModel: "",
-        turboSN: "",
-        companyId: "",
-      });
-      setSelectedImage(null);
-      setImagePreview(null);
-    }
+    // Form data persists in Zustand store, only reset image
+    setSelectedImage(null);
+    setImagePreview(null);
     setModalMode("create");
     setShowModal(true);
   };
@@ -140,7 +130,7 @@ export default function Engines({
   const handleOpenEditModal = (engine: Engine) => {
     setModalMode("edit");
     setSelectedEngine(engine);
-    setFormData({
+    setEditFormData({
       model: engine.model,
       serialNo: engine.serialNo,
       altBrandModel: engine.altBrandModel,
@@ -205,27 +195,7 @@ export default function Engines({
       await engineService.create(dataToSubmit);
       await loadEngines();
       toast.success("Engine created successfully!", { id: loadingToast });
-      setFormData({
-        model: "",
-        serialNo: "",
-        altBrandModel: "",
-        equipModel: "",
-        equipSerialNo: "",
-        altSerialNo: "",
-        location: "",
-        rating: "",
-        rpm: "",
-        startVoltage: "",
-        runHours: "",
-        fuelPumpSN: "",
-        fuelPumpCode: "",
-        lubeOil: "",
-        fuelType: "",
-        coolantAdditive: "",
-        turboModel: "",
-        turboSN: "",
-        companyId: "",
-      });
+      resetFormData(); // Clear persisted form data
       setSelectedImage(null);
       setImagePreview(null);
       handleCloseModal();

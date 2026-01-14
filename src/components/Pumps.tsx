@@ -5,6 +5,7 @@ import { Pump, pumpService } from "@/services/pumps";
 import { Company } from "@/types";
 import { companyService } from "@/services";
 import toast from "react-hot-toast";
+import { usePumpFormStore } from "@/stores/pumpFormStore";
 import {
   PencilIcon,
   TrashIcon,
@@ -51,7 +52,11 @@ export default function Pumps({
   const [filterKW, setFilterKW] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("asc");
 
-  const [formData, setFormData] = useState({
+  // Zustand store for persistent form data
+  const { formData: storedFormData, setFormData: setStoredFormData, resetFormData } = usePumpFormStore();
+
+  // Local state for edit mode (not persisted)
+  const [editFormData, setEditFormData] = useState({
     engineModel: "",
     engineSerialNumber: "",
     kw: "",
@@ -64,6 +69,13 @@ export default function Pumps({
     runningHours: "",
     companyId: "",
   });
+
+  // Use appropriate form data based on mode
+  const formData = modalMode === "edit" ? editFormData : storedFormData;
+  const setFormData = modalMode === "edit"
+    ? (data: Partial<typeof editFormData>) => setEditFormData(prev => ({ ...prev, ...data }))
+    : setStoredFormData;
+
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
@@ -99,23 +111,9 @@ export default function Pumps({
   };
 
   const handleOpenCreateModal = () => {
-    if (modalMode === "edit") {
-      setFormData({
-        engineModel: "",
-        engineSerialNumber: "",
-        kw: "",
-        pumpModel: "",
-        pumpSerialNumber: "",
-        rpm: "",
-        productNumber: "",
-        hmax: "",
-        qmax: "",
-        runningHours: "",
-        companyId: "",
-      });
-      setSelectedImage(null);
-      setImagePreview(null);
-    }
+    // Form data persists in Zustand store, only reset image
+    setSelectedImage(null);
+    setImagePreview(null);
     setModalMode("create");
     setShowModal(true);
   };
@@ -123,7 +121,7 @@ export default function Pumps({
   const handleOpenEditModal = (pump: Pump) => {
     setModalMode("edit");
     setSelectedPump(pump);
-    setFormData({
+    setEditFormData({
       engineModel: pump.engineModel || "",
       engineSerialNumber: pump.engineSerialNumber || "",
       kw: pump.kw || "",
@@ -180,19 +178,7 @@ export default function Pumps({
       await pumpService.create(dataToSubmit as any);
       await loadPumps();
       toast.success("Pump created successfully!", { id: loadingToast });
-      setFormData({
-        engineModel: "",
-        engineSerialNumber: "",
-        kw: "",
-        pumpModel: "",
-        pumpSerialNumber: "",
-        rpm: "",
-        productNumber: "",
-        hmax: "",
-        qmax: "",
-        runningHours: "",
-        companyId: "",
-      });
+      resetFormData(); // Clear persisted form data
       setSelectedImage(null);
       setImagePreview(null);
       handleCloseModal();

@@ -37,7 +37,11 @@ apiClient.interceptors.response.use(
       console.error("API Error:", error.response.data);
 
       // Handle 401 Unauthorized - invalid or expired token
-      if (error.response.status === 401) {
+      // Skip redirect for login endpoint (wrong credentials should not redirect)
+      const requestUrl = error.config?.url || "";
+      const isLoginRequest = requestUrl.includes("/auth/login");
+
+      if (error.response.status === 401 && !isLoginRequest) {
         if (typeof window !== "undefined") {
           // Clear auth data from localStorage
           localStorage.removeItem("authToken");

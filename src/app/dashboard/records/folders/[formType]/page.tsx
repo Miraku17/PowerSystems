@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
+import { authService } from "@/services/auth";
 import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
@@ -31,6 +32,7 @@ interface FormRecord {
   data: Record<string, any>;
   dateCreated: string;
   dateUpdated: string;
+  created_by?: string;
   companyForm: {
     id: string;
     name: string;
@@ -49,10 +51,28 @@ export default function FormRecordsPage() {
   const [selectedRecord, setSelectedRecord] = useState<FormRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<FormRecord | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ id: string; role: "user" | "admin" } | null>(null);
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
+
+  // Load current user on mount
+  useEffect(() => {
+    const user = authService.getUser();
+    if (user) {
+      setCurrentUser({ id: user.id, role: user.role });
+    }
+  }, []);
+
+  // Check if current user can edit/delete a record
+  const canEditRecord = (record: FormRecord): boolean => {
+    if (!currentUser) return false;
+    // Admin can edit all records
+    if (currentUser.role === "admin") return true;
+    // Regular users can only edit their own records
+    return record.created_by === currentUser.id;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -378,13 +398,15 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => setEditingRecord(record)}
-                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                            title="Edit Record"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </button>
+                          {canEditRecord(record) && (
+                            <button
+                              onClick={() => setEditingRecord(record)}
+                              className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                              title="Edit Record"
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleExportPDF(record.id)}
                             className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
@@ -392,13 +414,15 @@ export default function FormRecordsPage() {
                           >
                             <PrinterIcon className="h-4 w-4" />
                           </button>
-                          <button
-                            onClick={() => setRecordToDelete(record)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete Record"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
+                          {canEditRecord(record) && (
+                            <button
+                              onClick={() => setRecordToDelete(record)}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Delete Record"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -447,13 +471,15 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        <button
-                          onClick={() => setEditingRecord(record)}
-                          className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                          title="Edit"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
+                        {canEditRecord(record) && (
+                          <button
+                            onClick={() => setEditingRecord(record)}
+                            className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleExportPDF(record.id)}
                           className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
@@ -461,13 +487,15 @@ export default function FormRecordsPage() {
                         >
                           <PrinterIcon className="h-5 w-5" />
                         </button>
-                        <button
-                          onClick={() => setRecordToDelete(record)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
+                        {canEditRecord(record) && (
+                          <button
+                            onClick={() => setRecordToDelete(record)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        )}
                      </div>
                   </div>
                 </div>

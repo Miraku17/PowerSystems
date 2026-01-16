@@ -198,13 +198,19 @@ export default function DashboardLayout({
 
   const navigation =
     userRole === "user"
-      ? allNavigation.filter((item) => item.href === "/dashboard/fill-up-form")
+      ? allNavigation.filter(
+          (item) =>
+            item.href === "/dashboard/fill-up-form" ||
+            item.href === "/dashboard/records"
+        )
       : allNavigation;
 
   // Redirect restricted users
   useEffect(() => {
     if (!userLoading && userRole === "user") {
-      const isAllowed = pathname.startsWith("/dashboard/fill-up-form");
+      const isAllowed =
+        pathname.startsWith("/dashboard/fill-up-form") ||
+        pathname.startsWith("/dashboard/records");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

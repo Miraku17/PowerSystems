@@ -436,10 +436,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
-    // Fetch the current record to get old signature URLs for deletion
+    // Fetch the current record to get old signature URLs for deletion and permission check
     const { data: currentRecord, error: fetchError } = await supabase
       .from("deutz_commissioning_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -453,6 +453,29 @@ export const PATCH = withAuth(async (request, { user }) => {
       return NextResponse.json(
         { error: "Cannot update a deleted record" },
         { status: 400 }
+      );
+    }
+
+    // Permission check: Get user's role
+    const { data: userData, error: userError } = await serviceSupabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user role:", userError);
+      return NextResponse.json({ error: "Failed to verify user permissions" }, { status: 500 });
+    }
+
+    // Check if user can edit this record (admin can edit all, users can only edit their own)
+    const isAdmin = userData?.role === "admin";
+    const isOwner = currentRecord.created_by === user.id;
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json(
+        { error: "You do not have permission to edit this record" },
+        { status: 403 }
       );
     }
 

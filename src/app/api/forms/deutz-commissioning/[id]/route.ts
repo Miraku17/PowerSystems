@@ -52,10 +52,12 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
+    const serviceSupabase = getServiceSupabase();
+
     // First, fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase
       .from("deutz_commissioning_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -69,6 +71,29 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       return NextResponse.json(
         { error: "Record is already deleted" },
         { status: 400 }
+      );
+    }
+
+    // Permission check: Get user's role
+    const { data: userData, error: userError } = await serviceSupabase
+      .from("users")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user role:", userError);
+      return NextResponse.json({ error: "Failed to verify user permissions" }, { status: 500 });
+    }
+
+    // Check if user can delete this record (admin can delete all, users can only delete their own)
+    const isAdmin = userData?.role === "admin";
+    const isOwner = record.created_by === user.id;
+
+    if (!isAdmin && !isOwner) {
+      return NextResponse.json(
+        { error: "You do not have permission to delete this record" },
+        { status: 403 }
       );
     }
 

@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
+import { checkRecordPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -74,27 +75,16 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Permission check: Get user's role
-    const { data: userData, error: userError } = await serviceSupabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Permission check
+    const permission = await checkRecordPermission(
+      serviceSupabase,
+      user.id,
+      record.created_by,
+      'delete'
+    );
 
-    if (userError) {
-      console.error("Error fetching user role:", userError);
-      return NextResponse.json({ error: "Failed to verify user permissions" }, { status: 500 });
-    }
-
-    // Check if user can delete this record (admin can delete all, users can only delete their own)
-    const isAdmin = userData?.role === "admin";
-    const isOwner = record.created_by === user.id;
-
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json(
-        { error: "You do not have permission to delete this record" },
-        { status: 403 }
-      );
+    if (!permission.allowed) {
+      return permission.error;
     }
 
     // Soft delete: Update the record with deleted_at and deleted_by instead of deleting

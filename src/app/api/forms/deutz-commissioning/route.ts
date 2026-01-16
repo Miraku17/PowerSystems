@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase, getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { checkRecordPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -456,27 +457,16 @@ export const PATCH = withAuth(async (request, { user }) => {
       );
     }
 
-    // Permission check: Get user's role
-    const { data: userData, error: userError } = await serviceSupabase
-      .from("users")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Permission check
+    const permission = await checkRecordPermission(
+      serviceSupabase,
+      user.id,
+      currentRecord.created_by,
+      'edit'
+    );
 
-    if (userError) {
-      console.error("Error fetching user role:", userError);
-      return NextResponse.json({ error: "Failed to verify user permissions" }, { status: 500 });
-    }
-
-    // Check if user can edit this record (admin can edit all, users can only edit their own)
-    const isAdmin = userData?.role === "admin";
-    const isOwner = currentRecord.created_by === user.id;
-
-    if (!isAdmin && !isOwner) {
-      return NextResponse.json(
-        { error: "You do not have permission to edit this record" },
-        { status: 403 }
-      );
+    if (!permission.allowed) {
+      return permission.error;
     }
 
     // Extract fields matching the database schema (same as POST)

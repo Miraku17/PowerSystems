@@ -9,6 +9,7 @@ import { EyeIcon, EyeSlashIcon, XMarkIcon, ArrowRightIcon } from "@heroicons/rea
 import toast from "react-hot-toast";
 import { authService } from "@/services";
 import apiClient from "@/lib/axios";
+import { useAuthStore } from "@/stores/authStore";
 
 // --- Modal Component ---
 interface ModalProps {
@@ -78,7 +79,8 @@ const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 
 export default function AuthPage() {
   const router = useRouter();
-  
+  const setUser = useAuthStore((state) => state.setUser);
+
     // Modal States
     const [showLoginModal, setShowLoginModal] = useState(false);
   
@@ -127,7 +129,8 @@ export default function AuthPage() {
           const { access_token, user } = result.data;
           authService.saveToken(access_token);
           authService.saveUser(user);
-  
+          setUser(user); // Set user in Zustand store
+
           toast.success("Login successful! Redirecting...", {
             id: loadingToast,
           });

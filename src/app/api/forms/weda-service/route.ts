@@ -7,13 +7,13 @@ import { checkRecordPermission } from "@/lib/permissions";
 export const GET = withAuth(async (request, { user }) => {
   try {
     const { data, error } = await supabase
-      .from('grindex_service_forms')
+      .from('weda_service_report')
       .select('*')
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Supabase error fetching grindex service forms:', error);
+      console.error('Supabase error fetching weda service reports:', error);
       return NextResponse.json(
         { success: false, message: error.message },
         { status: 500 }
@@ -28,16 +28,17 @@ export const GET = withAuth(async (request, { user }) => {
       data: record,
       dateCreated: record.created_at,
       dateUpdated: record.updated_at,
+      created_by: record.created_by,
       companyForm: {
-        id: 'grindex-service',
-        name: 'Grindex Service Form',
-        formType: 'grindex-service',
+        id: 'weda-service',
+        name: 'WEDA Service Report',
+        formType: 'weda-service',
       },
     }));
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
-    console.error('API error fetching grindex service forms:', error);
+    console.error('API error fetching weda service reports:', error);
     return NextResponse.json(
       { success: false, message: 'Internal Server Error' },
       { status: 500 }
@@ -51,7 +52,6 @@ const getFilePathFromUrl = (url: string | null): string | null => {
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    // URL format: /storage/v1/object/public/signatures/filename.png
     const bucketIndex = pathParts.indexOf('public');
     if (bucketIndex !== -1 && pathParts.length > bucketIndex + 2) {
       return pathParts.slice(bucketIndex + 2).join('/');
@@ -126,45 +126,61 @@ export const POST = withAuth(async (request, { user }) => {
     // Helper to safely get string values
     const getString = (key: string) => formData.get(key) as string || '';
 
-    // Extract fields matching grindex_service_forms schema
+    // Extract fields matching weda_service_report schema
     const job_order = getString('job_order');
     const report_date = getString('report_date');
     const reporting_person_name = getString('reporting_person_name');
+    const telephone_fax = getString('telephone_fax');
+    const equipment_manufacturer = getString('equipment_manufacturer');
     const customer_name = getString('customer_name');
     const contact_person = getString('contact_person');
     const address = getString('address');
     const email_address = getString('email_address');
     const phone_number = getString('phone_number');
 
-    // Pump Fields
+    // Pump Details
     const pump_model = getString('pump_model');
     const pump_serial_no = getString('pump_serial_no');
-    const engine_model = getString('engine_model');
-    const engine_serial_no = getString('engine_serial_no');
-    const kw = getString('kw');
-    const rpm = getString('rpm');
-    const product_number = getString('product_number');
-    const hmax = getString('hmax');
-    const qmax = getString('qmax');
+    const commissioning_no = getString('commissioning_no');
+    const equipment_model = getString('equipment_model');
+    const equipment_serial_no = getString('equipment_serial_no');
+    const pump_type = getString('pump_type');
+    const pump_weight = getString('pump_weight');
+
+    // Technical Specifications
+    const rating = getString('rating');
+    const revolution = getString('revolution');
+    const related_current_amps = getString('related_current_amps');
     const running_hours = getString('running_hours');
+    const phase = getString('phase');
+    const frequency_hz = getString('frequency_hz');
+    const oil_type = getString('oil_type');
+    const maximum_height_m = getString('maximum_height_m');
+    const maximum_capacity = getString('maximum_capacity');
 
     // Operational Data
+    const location = getString('location');
     const date_in_service = getString('date_in_service');
     const date_failed = getString('date_failed');
-    const date_commissioned = getString('date_commissioned');
 
     // Complaints & Findings
     const customer_complaint = getString('customer_complaint');
     const possible_cause = getString('possible_cause');
+    const within_coverage_period_raw = getString('within_coverage_period');
+    const warrantable_failure_raw = getString('warrantable_failure');
+    const within_coverage_period = within_coverage_period_raw === 'Yes';
+    const warrantable_failure = warrantable_failure_raw === 'Yes';
+
+    // Service Report Details
+    const summary_details = getString('summary_details');
+    const action_taken = getString('action_taken');
     const observation = getString('observation');
     const findings = getString('findings');
-    const action_taken = getString('action_taken');
     const recommendations = getString('recommendations');
-    const summary_details = getString('summary_details');
 
     // Signatures
-    const service_technician = getString('service_technician');
-    const rawServiceTechSignature = getString('service_technician_signature');
+    const attending_technician = getString('attending_technician');
+    const rawAttendingTechSignature = getString('attending_technician_signature');
     const noted_by = getString('noted_by');
     const rawNotedBySignature = getString('noted_by_signature');
     const approved_by = getString('approved_by');
@@ -174,39 +190,41 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Process Signatures
     const timestamp = Date.now();
-    const service_technician_signature = await uploadSignature(
+    const attending_technician_signature = await uploadSignature(
       supabase,
-      rawServiceTechSignature,
-      `grindex/service-technician-${timestamp}.png`
+      rawAttendingTechSignature,
+      `weda/service/attending-technician-${timestamp}.png`
     );
     const noted_by_signature = await uploadSignature(
       supabase,
       rawNotedBySignature,
-      `grindex/noted-by-${timestamp}.png`
+      `weda/service/noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       supabase,
       rawApprovedBySignature,
-      `grindex/approved-by-${timestamp}.png`
+      `weda/service/approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       supabase,
       rawAcknowledgedBySignature,
-      `grindex/acknowledged-by-${timestamp}.png`
+      `weda/service/acknowledged-by-${timestamp}.png`
     );
 
-    // Handle Multiple Attachment Uploads - Process later after report is created
+    // Handle Multiple Attachment Uploads
     const attachmentFiles = formData.getAll('attachment_files') as File[];
     const attachmentTitles = formData.getAll('attachment_titles') as string[];
 
     // Insert into Database
     const { data, error } = await supabase
-      .from('grindex_service_forms')
+      .from('weda_service_report')
       .insert([
         {
           job_order,
           report_date: report_date || null,
           reporting_person_name,
+          telephone_fax,
+          equipment_manufacturer,
           customer_name,
           contact_person,
           address,
@@ -214,26 +232,34 @@ export const POST = withAuth(async (request, { user }) => {
           phone_number,
           pump_model,
           pump_serial_no,
-          engine_model,
-          engine_serial_no,
-          kw,
-          rpm,
-          product_number,
-          hmax,
-          qmax,
-          running_hours,
+          commissioning_no,
+          equipment_model,
+          equipment_serial_no,
+          pump_type,
+          pump_weight: pump_weight ? parseFloat(pump_weight) : null,
+          location,
           date_in_service: date_in_service || null,
           date_failed: date_failed || null,
-          date_commissioned: date_commissioned || null,
+          rating,
+          revolution,
+          related_current_amps: related_current_amps ? parseFloat(related_current_amps) : null,
+          running_hours: running_hours ? parseFloat(running_hours) : null,
+          phase,
+          frequency_hz: frequency_hz ? parseFloat(frequency_hz) : null,
+          oil_type,
+          maximum_height_m: maximum_height_m ? parseFloat(maximum_height_m) : null,
+          maximum_capacity: maximum_capacity ? parseFloat(maximum_capacity) : null,
           customer_complaint,
           possible_cause,
+          within_coverage_period,
+          warrantable_failure,
+          summary_details,
+          action_taken,
           observation,
           findings,
-          action_taken,
           recommendations,
-          summary_details,
-          service_technician,
-          service_technician_signature,
+          attending_technician,
+          attending_technician_signature,
           noted_by,
           noted_by_signature,
           approved_by,
@@ -246,11 +272,11 @@ export const POST = withAuth(async (request, { user }) => {
       .select();
 
     if (error) {
-      console.error('Error inserting grindex service form data:', error);
+      console.error('Error inserting weda service report data:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Upload attachments and save to grindex_service_attachments table
+    // Upload attachments and save to weda_service_attachments table
     if (attachmentFiles.length > 0 && data && data[0]) {
       const formId = data[0].id;
 
@@ -259,8 +285,7 @@ export const POST = withAuth(async (request, { user }) => {
         const title = attachmentTitles[i] || '';
 
         if (file && file.size > 0) {
-          // Upload to service-reports/grindex bucket
-          const filename = `grindex/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+          const filename = `weda/service/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
 
           const { error: uploadError } = await supabase.storage
             .from('service-reports')
@@ -271,7 +296,7 @@ export const POST = withAuth(async (request, { user }) => {
 
           if (uploadError) {
             console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue; // Skip this file and continue with others
+            continue;
           }
 
           const { data: publicUrlData } = supabase.storage
@@ -280,9 +305,9 @@ export const POST = withAuth(async (request, { user }) => {
 
           const fileUrl = publicUrlData.publicUrl;
 
-          // Insert into grindex_service_attachments table
+          // Insert into weda_service_attachments table
           const { error: attachmentError } = await supabase
-            .from('grindex_service_attachments')
+            .from('weda_service_attachments')
             .insert([
               {
                 form_id: formId,
@@ -301,7 +326,7 @@ export const POST = withAuth(async (request, { user }) => {
     // Log to audit_logs
     if (data && data[0]) {
       await supabase.from('audit_logs').insert({
-        table_name: 'grindex_service_forms',
+        table_name: 'weda_service_report',
         record_id: data[0].id,
         action: 'CREATE',
         old_data: null,
@@ -311,9 +336,9 @@ export const POST = withAuth(async (request, { user }) => {
       });
     }
 
-    return NextResponse.json({ message: 'Grindex Service Form submitted successfully', data }, { status: 201 });
+    return NextResponse.json({ message: 'WEDA Service Report submitted successfully', data }, { status: 201 });
   } catch (error) {
-    console.error('Error processing grindex service form request:', error);
+    console.error('Error processing weda service report request:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 });
@@ -333,10 +358,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
-    // Fetch the current record to get old signature URLs for deletion and permission check
+    // Fetch the current record
     const { data: currentRecord, error: fetchError } = await supabase
-      .from("grindex_service_forms")
-      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, created_by")
+      .from("weda_service_report")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, created_by")
       .eq("id", id)
       .single();
 
@@ -362,6 +387,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       job_order,
       report_date,
       reporting_person_name,
+      telephone_fax,
+      equipment_manufacturer,
       customer_name,
       contact_person,
       address,
@@ -369,26 +396,34 @@ export const PATCH = withAuth(async (request, { user }) => {
       phone_number,
       pump_model,
       pump_serial_no,
-      engine_model,
-      engine_serial_no,
-      kw,
-      rpm,
-      product_number,
-      hmax,
-      qmax,
-      running_hours,
+      commissioning_no,
+      equipment_model,
+      equipment_serial_no,
+      pump_type,
+      pump_weight,
+      location,
       date_in_service,
       date_failed,
-      date_commissioned,
+      rating,
+      revolution,
+      related_current_amps,
+      running_hours,
+      phase,
+      frequency_hz,
+      oil_type,
+      maximum_height_m,
+      maximum_capacity,
       customer_complaint,
       possible_cause,
+      within_coverage_period: within_coverage_period_raw,
+      warrantable_failure: warrantable_failure_raw,
+      summary_details,
+      action_taken,
       observation,
       findings,
-      action_taken,
       recommendations,
-      summary_details,
-      service_technician,
-      service_technician_signature: rawServiceTechSignature,
+      attending_technician,
+      attending_technician_signature: rawAttendingTechSignature,
       noted_by,
       noted_by_signature: rawNotedBySignature,
       approved_by,
@@ -397,16 +432,20 @@ export const PATCH = withAuth(async (request, { user }) => {
       acknowledged_by_signature: rawAcknowledgedBySignature,
     } = body;
 
-    // Check for duplicate Job Order if it's being updated
+    // Convert warranty fields
+    const within_coverage_period = within_coverage_period_raw === 'Yes' || within_coverage_period_raw === true;
+    const warrantable_failure = warrantable_failure_raw === 'Yes' || warrantable_failure_raw === true;
+
+    // Check for duplicate Job Order
     if (job_order) {
       const { data: existingRecord, error: searchError } = await supabase
-        .from('grindex_service_forms')
+        .from('weda_service_report')
         .select('id')
         .eq('job_order', job_order)
-        .neq('id', id) // Exclude current record
+        .neq('id', id)
         .single();
 
-      if (searchError && searchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      if (searchError && searchError.code !== 'PGRST116') {
         console.error('Error checking for duplicate job order:', searchError);
         return NextResponse.json({ error: 'Failed to validate Job Order uniqueness.' }, { status: 500 });
       }
@@ -421,33 +460,33 @@ export const PATCH = withAuth(async (request, { user }) => {
 
     // Process Signatures
     const timestamp = Date.now();
-    const service_technician_signature = await uploadSignature(
+    const attending_technician_signature = await uploadSignature(
       serviceSupabase,
-      rawServiceTechSignature || "",
-      `grindex/service-technician-${timestamp}.png`
+      rawAttendingTechSignature || "",
+      `weda/service/attending-technician-${timestamp}.png`
     );
     const noted_by_signature = await uploadSignature(
       serviceSupabase,
       rawNotedBySignature || "",
-      `grindex/noted-by-${timestamp}.png`
+      `weda/service/noted-by-${timestamp}.png`
     );
     const approved_by_signature = await uploadSignature(
       serviceSupabase,
       rawApprovedBySignature || "",
-      `grindex/approved-by-${timestamp}.png`
+      `weda/service/approved-by-${timestamp}.png`
     );
     const acknowledged_by_signature = await uploadSignature(
       serviceSupabase,
       rawAcknowledgedBySignature || "",
-      `grindex/acknowledged-by-${timestamp}.png`
+      `weda/service/acknowledged-by-${timestamp}.png`
     );
 
-    // Delete old signatures only if they were replaced with new ones OR explicitly cleared
-    if (currentRecord.service_technician_signature) {
-      if (rawServiceTechSignature === "") {
-        await deleteSignature(serviceSupabase, currentRecord.service_technician_signature);
-      } else if (service_technician_signature && service_technician_signature !== currentRecord.service_technician_signature) {
-        await deleteSignature(serviceSupabase, currentRecord.service_technician_signature);
+    // Delete old signatures if replaced or cleared
+    if (currentRecord.attending_technician_signature) {
+      if (rawAttendingTechSignature === "") {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
+      } else if (attending_technician_signature && attending_technician_signature !== currentRecord.attending_technician_signature) {
+        await deleteSignature(serviceSupabase, currentRecord.attending_technician_signature);
       }
     }
     if (currentRecord.noted_by_signature) {
@@ -477,6 +516,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       job_order,
       report_date: report_date || null,
       reporting_person_name,
+      telephone_fax,
+      equipment_manufacturer,
       customer_name,
       contact_person,
       address,
@@ -484,33 +525,41 @@ export const PATCH = withAuth(async (request, { user }) => {
       phone_number,
       pump_model,
       pump_serial_no,
-      engine_model,
-      engine_serial_no,
-      kw,
-      rpm,
-      product_number,
-      hmax,
-      qmax,
-      running_hours,
+      commissioning_no,
+      equipment_model,
+      equipment_serial_no,
+      pump_type,
+      pump_weight: pump_weight ? parseFloat(pump_weight) : null,
+      location,
       date_in_service: date_in_service || null,
       date_failed: date_failed || null,
-      date_commissioned: date_commissioned || null,
+      rating,
+      revolution,
+      related_current_amps: related_current_amps ? parseFloat(related_current_amps) : null,
+      running_hours: running_hours ? parseFloat(running_hours) : null,
+      phase,
+      frequency_hz: frequency_hz ? parseFloat(frequency_hz) : null,
+      oil_type,
+      maximum_height_m: maximum_height_m ? parseFloat(maximum_height_m) : null,
+      maximum_capacity: maximum_capacity ? parseFloat(maximum_capacity) : null,
       customer_complaint,
       possible_cause,
+      within_coverage_period,
+      warrantable_failure,
+      summary_details,
+      action_taken,
       observation,
       findings,
-      action_taken,
       recommendations,
-      summary_details,
-      service_technician,
+      attending_technician,
       noted_by,
       approved_by,
       acknowledged_by,
     };
 
-    // Only update signatures if they were processed (non-empty) or explicitly cleared
-    if (service_technician_signature) updateData.service_technician_signature = service_technician_signature;
-    else if (rawServiceTechSignature === "") updateData.service_technician_signature = null;
+    // Handle signatures
+    if (attending_technician_signature) updateData.attending_technician_signature = attending_technician_signature;
+    else if (rawAttendingTechSignature === "") updateData.attending_technician_signature = null;
 
     if (noted_by_signature) updateData.noted_by_signature = noted_by_signature;
     else if (rawNotedBySignature === "") updateData.noted_by_signature = null;
@@ -525,16 +574,16 @@ export const PATCH = withAuth(async (request, { user }) => {
     updateData.updated_by = user.id;
     updateData.updated_at = new Date().toISOString();
 
-    // Update the record in Supabase
-    const { data, error} = await supabase
-      .from("grindex_service_forms")
+    // Update the record
+    const { data, error } = await supabase
+      .from("weda_service_report")
       .update(updateData)
       .eq("id", id)
       .select()
       .single();
 
     if (error) {
-      console.error("Error updating grindex service form:", error);
+      console.error("Error updating weda service report:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
@@ -547,7 +596,7 @@ export const PATCH = withAuth(async (request, { user }) => {
 
     // Log to audit_logs
     await supabase.from('audit_logs').insert({
-      table_name: 'grindex_service_forms',
+      table_name: 'weda_service_report',
       record_id: id,
       action: 'UPDATE',
       old_data: currentRecord,
@@ -557,11 +606,11 @@ export const PATCH = withAuth(async (request, { user }) => {
     });
 
     return NextResponse.json(
-      { message: "Grindex Service Form updated successfully", data },
+      { message: "WEDA Service Report updated successfully", data },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error processing grindex service form update request:", error);
+    console.error("Error processing weda service report update request:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

@@ -15,14 +15,16 @@ import {
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
-import { authService } from "@/services/auth";
+import { useAuthStore } from "@/stores/authStore";
 import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
 import ViewGrindexService from "@/components/ViewGrindexService";
+import ViewWedaService from "@/components/ViewWedaService";
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
 import EditGrindexService from "@/components/EditGrindexService";
+import EditWedaService from "@/components/EditWedaService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -51,28 +53,13 @@ export default function FormRecordsPage() {
   const [selectedRecord, setSelectedRecord] = useState<FormRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<FormRecord | null>(null);
-  const [currentUser, setCurrentUser] = useState<{ id: string; role: "user" | "admin" } | null>(null);
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  // Load current user on mount
-  useEffect(() => {
-    const user = authService.getUser();
-    if (user) {
-      setCurrentUser({ id: user.id, role: user.role });
-    }
-  }, []);
-
-  // Check if current user can edit/delete a record
-  const canEditRecord = (record: FormRecord): boolean => {
-    if (!currentUser) return false;
-    // Admin can edit all records
-    if (currentUser.role === "admin") return true;
-    // Regular users can only edit their own records
-    return record.created_by === currentUser.id;
-  };
+  // Get permission check function from auth store
+  const canEditRecord = useAuthStore((state) => state.canEditRecord);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -83,6 +70,7 @@ export default function FormRecordsPage() {
     "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
     "grindex-service": { endpoint: "/forms/grindex-service", name: "Grindex Service Form" },
+    "weda-service": { endpoint: "/forms/weda-service", name: "WEDA Service Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -168,6 +156,7 @@ export default function FormRecordsPage() {
         "deutz-service": "deutz-service",
         "service": "deutz-service",
         "grindex-service": "grindex-service",
+        "weda-service": "weda-service",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -398,7 +387,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record) && (
+                          {canEditRecord(record.created_by) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -414,7 +403,7 @@ export default function FormRecordsPage() {
                           >
                             <PrinterIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record) && (
+                          {canEditRecord(record.created_by) && (
                             <button
                               onClick={() => setRecordToDelete(record)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -471,7 +460,7 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canEditRecord(record) && (
+                        {canEditRecord(record.created_by) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -487,7 +476,7 @@ export default function FormRecordsPage() {
                         >
                           <PrinterIcon className="h-5 w-5" />
                         </button>
-                        {canEditRecord(record) && (
+                        {canEditRecord(record.created_by) && (
                           <button
                             onClick={() => setRecordToDelete(record)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -592,6 +581,14 @@ export default function FormRecordsPage() {
         />
       )}
 
+      {selectedRecord && normalizedFormType === "weda-service" && (
+        <ViewWedaService
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
       {/* Edit Modals */}
       {editingRecord && normalizedFormType === "deutz-commissioning" && (
         <EditDeutzCommissioning
@@ -640,6 +637,15 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "grindex-service" && (
         <EditGrindexService
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "weda-service" && (
+        <EditWedaService
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

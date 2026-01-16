@@ -10,7 +10,6 @@ const getFilePathFromUrl = (url: string | null): string | null => {
   try {
     const urlObj = new URL(url);
     const pathParts = urlObj.pathname.split('/');
-    // URL format: /storage/v1/object/public/signatures/filename.png
     const bucketIndex = pathParts.indexOf('public');
     if (bucketIndex !== -1 && pathParts.length > bucketIndex + 2) {
       return pathParts.slice(bucketIndex + 2).join('/');
@@ -55,10 +54,10 @@ export const DELETE = withAuth(async (request, { user, params }) => {
 
     const serviceSupabase = getServiceSupabase();
 
-    // First, fetch the record to check if it exists and is not already deleted
+    // Fetch the record
     const { data: record, error: fetchError } = await supabase
-      .from("grindex_service_forms")
-      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
+      .from("weda_service_report")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -89,7 +88,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
 
     // Fetch all attachments for this form
     const { data: attachments, error: attachmentsError } = await supabase
-      .from("grindex_service_attachments")
+      .from("weda_service_attachments")
       .select("file_url")
       .eq("form_id", id);
 
@@ -123,7 +122,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
 
     // Delete attachment records from database
     const { error: deleteAttachmentsError } = await supabase
-      .from("grindex_service_attachments")
+      .from("weda_service_attachments")
       .delete()
       .eq("form_id", id);
 
@@ -131,9 +130,9 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       console.error("Error deleting attachment records:", deleteAttachmentsError);
     }
 
-    // Soft delete: Update the record with deleted_at and deleted_by instead of deleting
+    // Soft delete: Update the record with deleted_at and deleted_by
     const { data, error } = await supabase
-      .from("grindex_service_forms")
+      .from("weda_service_report")
       .update({
         deleted_at: new Date().toISOString(),
         deleted_by: user.id,
@@ -148,7 +147,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
 
     // Log to audit_logs
     await supabase.from('audit_logs').insert({
-      table_name: 'grindex_service_forms',
+      table_name: 'weda_service_report',
       record_id: id,
       action: 'DELETE',
       old_data: record,
@@ -158,7 +157,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     });
 
     return NextResponse.json(
-      { message: "Grindex Service Form deleted successfully", data },
+      { message: "WEDA Service Report deleted successfully", data },
       { status: 200 }
     );
   } catch (error) {

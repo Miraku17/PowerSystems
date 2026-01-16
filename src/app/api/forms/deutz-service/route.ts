@@ -28,6 +28,7 @@ export const GET = withAuth(async (request, { user }) => {
       data: record,
       dateCreated: record.created_at,
       dateUpdated: record.updated_at,
+      created_by: record.created_by,
       companyForm: {
         id: 'deutz-service',
         name: 'Deutz Service Report',
@@ -132,6 +133,13 @@ export const POST = withAuth(async (request, { user }) => {
       return value.trim() === '' ? null : value;
     };
 
+    // Helper to convert string values to boolean or null
+    const getBoolean = (key: string): boolean | null => {
+      const value = (formData.get(key) as string || '').trim().toLowerCase();
+      if (value === '') return null;
+      return value === 'true' || value === '1' || value === 'yes';
+    };
+
     // Extract fields
     const reporting_person_name = getString('reporting_person_name');
     const equipment_manufacturer = getString('equipment_manufacturer');
@@ -164,8 +172,8 @@ export const POST = withAuth(async (request, { user }) => {
     const turbo_serial_no = getString('turbo_serial_no');
     const customer_complaint = getString('customer_complaint');
     const possible_cause = getString('possible_cause');
-    const within_coverage_period = getString('within_coverage_period');
-    const warrantable_failure = getString('warrantable_failure');
+    const within_coverage_period = getBoolean('within_coverage_period');
+    const warrantable_failure = getBoolean('warrantable_failure');
     const summary_details = getString('summary_details');
     const service_technician = getString('service_technician');
     const rawServiceTechSignature = getString('service_technician_signature');
@@ -387,7 +395,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     );
 
     if (!permission.allowed) {
-      return permission.error;
+      return permission.error ?? NextResponse.json(
+        { error: "Permission denied" },
+        { status: 403 }
+      );
     }
 
     // Extract fields matching the database schema

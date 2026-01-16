@@ -520,14 +520,14 @@ export default function DeutzServiceForm() {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Select
+            <RadioGroup
               label="Within Coverage Period?"
               name="within_coverage_period"
               value={formData.within_coverage_period}
               onChange={handleChange}
               options={["Yes", "No"]}
             />
-            <Select
+            <RadioGroup
               label="Warrantable Failure?"
               name="warrantable_failure"
               value={formData.warrantable_failure}
@@ -1001,6 +1001,51 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+};
+
+interface RadioGroupProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => void;
+  options: string[];
+}
+
+const RadioGroup = ({ label, name, value, onChange, options }: RadioGroupProps) => {
+  const handleChange = (option: string) => {
+    const syntheticEvent = {
+      target: { name, value: option }
+    } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+  };
+
+  return (
+    <div className="flex flex-col w-full">
+      <label className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="flex gap-6">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              checked={value === option}
+              onChange={() => handleChange(option)}
+              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+            />
+            <span className="text-gray-700">{option}</span>
+          </label>
+        ))}
       </div>
     </div>
   );

@@ -58,8 +58,9 @@ export default function FormRecordsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  // Get permission check function from auth store
+  // Get permission check functions from auth store
   const canEditRecord = useAuthStore((state) => state.canEditRecord);
+  const isAdmin = useAuthStore((state) => state.isAdmin);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -220,7 +221,7 @@ export default function FormRecordsPage() {
 
   const getSerialNo = (record: FormRecord): string => {
     const data = record.data;
-    return data?.engine_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
+    return data?.engine_serial_no || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
   };
 
   const filteredRecords = records.filter((record) => {
@@ -403,7 +404,7 @@ export default function FormRecordsPage() {
                           >
                             <PrinterIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && (
+                          {isAdmin() && (
                             <button
                               onClick={() => setRecordToDelete(record)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -476,7 +477,7 @@ export default function FormRecordsPage() {
                         >
                           <PrinterIcon className="h-5 w-5" />
                         </button>
-                        {canEditRecord(record.created_by) && (
+                        {isAdmin() && (
                           <button
                             onClick={() => setRecordToDelete(record)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

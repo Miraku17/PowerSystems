@@ -379,7 +379,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     );
 
     if (!permission.allowed) {
-      return permission.error;
+      return permission.error ?? NextResponse.json(
+        { error: "Permission denied" },
+        { status: 403 }
+      );
     }
 
     // Extract fields

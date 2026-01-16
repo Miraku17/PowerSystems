@@ -28,6 +28,7 @@ export const GET = withAuth(async (request, { user }) => {
       data: record,
       dateCreated: record.created_at,
       dateUpdated: record.updated_at,
+      created_by: record.created_by,
       companyForm: {
         id: 'grindex-service',
         name: 'Grindex Service Form',
@@ -354,7 +355,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     );
 
     if (!permission.allowed) {
-      return permission.error;
+      return permission.error ?? NextResponse.json(
+        { error: "Permission denied" },
+        { status: 403 }
+      );
     }
 
     // Extract fields

@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission } from "@/lib/permissions";
+import { checkRecordPermission, isUserAdmin } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -75,16 +75,13 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Permission check
-    const permission = await checkRecordPermission(
-      serviceSupabase,
-      user.id,
-      record.created_by,
-      'delete'
-    );
-
-    if (!permission.allowed) {
-      return permission.error;
+    // Permission check - only admins can delete
+    const adminCheck = await isUserAdmin(serviceSupabase, user.id);
+    if (!adminCheck) {
+      return NextResponse.json(
+        { error: "Only administrators can delete records" },
+        { status: 403 }
+      );
     }
 
     // Soft delete: Update the record with deleted_at and deleted_by instead of deleting

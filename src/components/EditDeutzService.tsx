@@ -107,6 +107,32 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
   );
 };
 
+const RadioGroup = ({ label, name, value, options, onChange }: { label: string; name: string; value: string; options: string[]; onChange: (name: string, value: any) => void }) => {
+  return (
+    <div className="flex flex-col w-full">
+      <label className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">{label}</label>
+      <div className="flex gap-6">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option}
+              checked={value === option}
+              onChange={() => onChange(name, option)}
+              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+            />
+            <span className="text-gray-700">{option}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 interface Attachment {
   id: string;
   file_url: string;
@@ -323,8 +349,8 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Warranty Coverage</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Select label="Within Coverage Period?" name="within_coverage_period" value={formData.within_coverage_period} options={['Yes', 'No']} onChange={handleChange} />
-                <Select label="Warrantable Failure?" name="warrantable_failure" value={formData.warrantable_failure} options={['Yes', 'No']} onChange={handleChange} />
+                <RadioGroup label="Within Coverage Period?" name="within_coverage_period" value={formData.within_coverage_period} options={['Yes', 'No']} onChange={handleChange} />
+                <RadioGroup label="Warrantable Failure?" name="warrantable_failure" value={formData.warrantable_failure} options={['Yes', 'No']} onChange={handleChange} />
               </div>
             </div>
 

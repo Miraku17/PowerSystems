@@ -190,7 +190,11 @@ export default function EditWedaService({ data, recordId, onClose, onSaved }: Ed
     const loadingToast = toast.loading('Saving changes...');
 
     try {
-      const response = await apiClient.patch(`/forms/weda-service?id=${recordId}`, formData);
+      const response = await apiClient({
+        method: 'PATCH',
+        url: `/forms/weda-service?id=${recordId}`,
+        data: formData,
+      });
 
       if (response.status === 200) {
         // Handle attachments updates

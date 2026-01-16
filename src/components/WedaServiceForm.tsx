@@ -368,6 +368,8 @@ export default function WedaServiceForm() {
             <Input
               label="Pump Weight (kg)"
               name="pump_weight"
+              type="number"
+              step="0.01"
               value={formData.pump_weight}
               onChange={handleChange}
             />
@@ -398,12 +400,16 @@ export default function WedaServiceForm() {
             <Input
               label="Related Current (Amps)"
               name="related_current_amps"
+              type="number"
+              step="0.01"
               value={formData.related_current_amps}
               onChange={handleChange}
             />
             <Input
               label="Running Hours"
               name="running_hours"
+              type="number"
+              step="0.01"
               value={formData.running_hours}
               onChange={handleChange}
             />
@@ -416,6 +422,8 @@ export default function WedaServiceForm() {
             <Input
               label="Frequency (Hz)"
               name="frequency_hz"
+              type="number"
+              step="0.01"
               value={formData.frequency_hz}
               onChange={handleChange}
             />
@@ -428,12 +436,16 @@ export default function WedaServiceForm() {
             <Input
               label="Maximum Height (m)"
               name="maximum_height_m"
+              type="number"
+              step="0.01"
               value={formData.maximum_height_m}
               onChange={handleChange}
             />
             <Input
               label="Maximum Capacity"
               name="maximum_capacity"
+              type="number"
+              step="0.01"
               value={formData.maximum_capacity}
               onChange={handleChange}
             />
@@ -881,9 +893,10 @@ interface InputProps {
     >
   ) => void;
   type?: string;
+  step?: string;
 }
 
-const Input = ({ label, name, value, onChange, type = "text" }: InputProps) => (
+const Input = ({ label, name, value, onChange, type = "text", step }: InputProps) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
       {label}
@@ -893,6 +906,7 @@ const Input = ({ label, name, value, onChange, type = "text" }: InputProps) => (
       name={name}
       value={value}
       onChange={onChange}
+      step={step}
       className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
       placeholder={`Enter ${label.toLowerCase()}`}
     />

@@ -28,7 +28,6 @@ export default function RecordsFoldersPage() {
       id: "weda-service",
       name: "WEDA Service Report",
       formType: "weda-service",
-      comingSoon: true,
     },
     {
       id: "weda-commissioning",

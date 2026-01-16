@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
+import { sanitizeFilename } from "@/lib/utils";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -261,7 +262,7 @@ export const POST = withAuth(async (request, { user }) => {
 
         if (file && file.size > 0) {
           // Upload to service-reports/grindex bucket
-          const filename = `grindex/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+          const filename = `grindex/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await supabase.storage
             .from('service-reports')

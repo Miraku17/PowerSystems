@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
+import { sanitizeFilename } from "@/lib/utils";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -79,7 +80,7 @@ export const POST = withAuth(async (request, { user }) => {
 
         if (file && file.size > 0) {
           // Upload to service-reports/grindex bucket
-          const filename = `grindex/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+          const filename = `grindex/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await serviceSupabase.storage
             .from('service-reports')

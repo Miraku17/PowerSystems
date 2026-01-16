@@ -338,38 +338,59 @@ export const GET = withAuth(async (request, { user, params }) => {
         const renderAttachment = async (attachment: any, xStart: number) => {
           try {
             const imgResponse = await fetch(attachment.file_url);
+            let contentType = imgResponse.headers.get('content-type') || '';
             const arrayBuffer = await imgResponse.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             const imgBase64 = buffer.toString('base64');
 
-            const props = doc.getImageProperties(imgBase64);
-            const aspectRatio = props.width / props.height;
+            // Detect image format from file extension if content-type is not an image type
+            const fileUrl = attachment.file_url.toLowerCase();
+            let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'JPEG';
 
-            let imgWidth = maxImgWidth - 4;
-            let imgHeight = imgWidth / aspectRatio;
-
-            if (imgHeight > maxImgHeight) {
-              imgHeight = maxImgHeight;
-              imgWidth = imgHeight * aspectRatio;
+            if (fileUrl.includes('.png')) {
+              imageFormat = 'PNG';
+              contentType = 'image/png';
+            } else if (fileUrl.includes('.gif')) {
+              imageFormat = 'GIF';
+              contentType = 'image/gif';
+            } else if (fileUrl.includes('.webp')) {
+              imageFormat = 'WEBP';
+              contentType = 'image/webp';
+            } else if (fileUrl.includes('.jpg') || fileUrl.includes('.jpeg')) {
+              imageFormat = 'JPEG';
+              contentType = 'image/jpeg';
+            } else if (contentType.includes('png')) {
+              imageFormat = 'PNG';
+            } else if (contentType.includes('gif')) {
+              imageFormat = 'GIF';
+            } else if (contentType.includes('webp')) {
+              imageFormat = 'WEBP';
+            } else {
+              // Default to JPEG
+              contentType = 'image/jpeg';
             }
 
-            const boxHeight = imgHeight + 12;
+            // Use fixed dimensions for images (will be scaled to fit)
+            const imgWidth = maxImgWidth - 4;
+            const imgHeight = maxImgHeight - 4;
+            const boxHeight = maxImgHeight + 12;
 
+            // Draw border around image box
             doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
             doc.setLineWidth(0.3);
             doc.rect(xStart, yPos, maxImgWidth, boxHeight);
 
-            const imgXOffset = xStart + (maxImgWidth - imgWidth) / 2;
+            // Center the image horizontally in the box
+            const imgXOffset = xStart + 2;
 
+            // Add image using raw base64 with explicit format
             doc.addImage(
-              imgBase64,
-              "JPEG",
+              `data:${contentType};base64,${imgBase64}`,
+              imageFormat,
               imgXOffset,
               yPos + 2,
               imgWidth,
-              imgHeight,
-              undefined,
-              "FAST"
+              imgHeight
             );
 
             doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);

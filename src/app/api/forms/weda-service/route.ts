@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
+import { sanitizeFilename } from "@/lib/utils";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -285,7 +286,7 @@ export const POST = withAuth(async (request, { user }) => {
         const title = attachmentTitles[i] || '';
 
         if (file && file.size > 0) {
-          const filename = `weda/service/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+          const filename = `weda/service/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await supabase.storage
             .from('service-reports')

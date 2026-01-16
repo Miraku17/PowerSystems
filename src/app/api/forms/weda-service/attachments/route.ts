@@ -36,7 +36,7 @@ export const POST = withAuth(async (request, { user }) => {
       for (const attachmentId of attachmentsToDelete) {
         // Fetch attachment to get file URL
         const { data: attachment } = await supabase
-          .from('deutz_commission_attachments')
+          .from('weda_service_attachments')
           .select('file_url')
           .eq('id', attachmentId)
           .single();
@@ -57,7 +57,7 @@ export const POST = withAuth(async (request, { user }) => {
 
           // Delete record from database
           await supabase
-            .from('deutz_commission_attachments')
+            .from('weda_service_attachments')
             .delete()
             .eq('id', attachmentId);
         }
@@ -67,7 +67,7 @@ export const POST = withAuth(async (request, { user }) => {
     // 2. Update titles for existing attachments
     for (const attachment of existingAttachments) {
       await supabase
-        .from('deutz_commission_attachments')
+        .from('weda_service_attachments')
         .update({ file_title: attachment.file_title })
         .eq('id', attachment.id);
     }
@@ -79,8 +79,8 @@ export const POST = withAuth(async (request, { user }) => {
         const title = attachmentTitles[i] || '';
 
         if (file && file.size > 0) {
-          // Upload to service-reports/deutz/commission bucket
-          const filename = `deutz/commission/${Date.now()}-${sanitizeFilename(file.name)}`;
+          // Upload to service-reports/weda/service bucket
+          const filename = `weda/service/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await serviceSupabase.storage
             .from('service-reports')
@@ -100,9 +100,9 @@ export const POST = withAuth(async (request, { user }) => {
 
           const fileUrl = publicUrlData.publicUrl;
 
-          // Insert into deutz_commission_attachments table
+          // Insert into weda_service_attachments table
           const { error: attachmentError } = await supabase
-            .from('deutz_commission_attachments')
+            .from('weda_service_attachments')
             .insert([
               {
                 form_id: formId,

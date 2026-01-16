@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase, getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
+import { sanitizeFilename } from "@/lib/utils";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -359,7 +360,7 @@ export const POST = withAuth(async (request, { user }) => {
 
         if (file && file.size > 0) {
           // Upload to service-reports/deutz/commission bucket
-          const filename = `deutz/commission/${Date.now()}-${file.name.replace(/\s/g, '_')}`;
+          const filename = `deutz/commission/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await serviceSupabase.storage
             .from('service-reports')

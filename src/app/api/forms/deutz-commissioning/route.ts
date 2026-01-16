@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabase, getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { checkRecordPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -26,6 +27,7 @@ export const GET = withAuth(async (request, { user }) => {
       data: record,
       dateCreated: record.created_at,
       dateUpdated: record.updated_at,
+      created_by: record.created_by,
       companyForm: {
         id: "deutz-commissioning",
         name: "Deutz Commissioning Report",
@@ -436,10 +438,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     const body = await request.json();
     const serviceSupabase = getServiceSupabase();
 
-    // Fetch the current record to get old signature URLs for deletion
+    // Fetch the current record to get old signature URLs for deletion and permission check
     const { data: currentRecord, error: fetchError } = await supabase
       .from("deutz_commissioning_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -453,6 +455,21 @@ export const PATCH = withAuth(async (request, { user }) => {
       return NextResponse.json(
         { error: "Cannot update a deleted record" },
         { status: 400 }
+      );
+    }
+
+    // Permission check
+    const permission = await checkRecordPermission(
+      serviceSupabase,
+      user.id,
+      currentRecord.created_by,
+      'edit'
+    );
+
+    if (!permission.allowed) {
+      return permission.error ?? NextResponse.json(
+        { error: "Permission denied" },
+        { status: 403 }
       );
     }
 

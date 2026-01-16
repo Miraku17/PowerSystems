@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
+import { checkRecordPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -27,6 +28,7 @@ export const GET = withAuth(async (request, { user }) => {
       data: record,
       dateCreated: record.created_at,
       dateUpdated: record.updated_at,
+      created_by: record.created_by,
       companyForm: {
         id: 'deutz-service',
         name: 'Deutz Service Report',
@@ -131,6 +133,13 @@ export const POST = withAuth(async (request, { user }) => {
       return value.trim() === '' ? null : value;
     };
 
+    // Helper to convert string values to boolean or null
+    const getBoolean = (key: string): boolean | null => {
+      const value = (formData.get(key) as string || '').trim().toLowerCase();
+      if (value === '') return null;
+      return value === 'true' || value === '1' || value === 'yes';
+    };
+
     // Extract fields
     const reporting_person_name = getString('reporting_person_name');
     const equipment_manufacturer = getString('equipment_manufacturer');
@@ -163,8 +172,8 @@ export const POST = withAuth(async (request, { user }) => {
     const turbo_serial_no = getString('turbo_serial_no');
     const customer_complaint = getString('customer_complaint');
     const possible_cause = getString('possible_cause');
-    const within_coverage_period = getString('within_coverage_period');
-    const warrantable_failure = getString('warrantable_failure');
+    const within_coverage_period = getBoolean('within_coverage_period');
+    const warrantable_failure = getBoolean('warrantable_failure');
     const summary_details = getString('summary_details');
     const service_technician = getString('service_technician');
     const rawServiceTechSignature = getString('service_technician_signature');
@@ -357,10 +366,10 @@ export const PATCH = withAuth(async (request, { user }) => {
       acknowledged_by_signature: body.acknowledged_by_signature,
     });
 
-    // Fetch the current record to get old signature URLs for deletion
+    // Fetch the current record to get old signature URLs for deletion and permission check
     const { data: currentRecord, error: fetchError } = await supabase
       .from("deutz_service_report")
-      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .select("attending_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -374,6 +383,21 @@ export const PATCH = withAuth(async (request, { user }) => {
       return NextResponse.json(
         { error: "Cannot update a deleted record" },
         { status: 400 }
+      );
+    }
+
+    // Permission check
+    const permission = await checkRecordPermission(
+      serviceSupabase,
+      user.id,
+      currentRecord.created_by,
+      'edit'
+    );
+
+    if (!permission.allowed) {
+      return permission.error ?? NextResponse.json(
+        { error: "Permission denied" },
+        { status: 403 }
       );
     }
 

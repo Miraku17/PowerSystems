@@ -23,6 +23,7 @@ import { Company } from "@/types";
 import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function DashboardLayout({
   children,
@@ -47,6 +48,10 @@ export default function DashboardLayout({
   const [userRole, setUserRole] = useState<string>("user");
   const [userLoading, setUserLoading] = useState(true);
 
+  // Auth store actions
+  const setAuthUser = useAuthStore((state) => state.setUser);
+  const clearAuthUser = useAuthStore((state) => state.clearUser);
+
   // Load companies and forms on mount
   useEffect(() => {
     loadCompanies();
@@ -59,7 +64,11 @@ export default function DashboardLayout({
     if (userStr) {
       const user = JSON.parse(userStr);
       console.log("User from localStorage:", user);
-      if (user && user.firstName && user.lastName) {
+
+      // Sync to auth store
+      setAuthUser(user);
+
+      if (user && user.firstName && user.firstName) {
         setUserName(`${user.firstName} ${user.lastName}`);
       } else if (user && user.username) {
         setUserName(user.username);
@@ -153,6 +162,8 @@ export default function DashboardLayout({
       // Clear local storage
       localStorage.removeItem("authToken");
       localStorage.removeItem("user");
+      // Clear auth store
+      clearAuthUser();
       // Clear authToken cookie
       document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       // Redirect to login page
@@ -198,13 +209,19 @@ export default function DashboardLayout({
 
   const navigation =
     userRole === "user"
-      ? allNavigation.filter((item) => item.href === "/dashboard/fill-up-form")
+      ? allNavigation.filter(
+          (item) =>
+            item.href === "/dashboard/fill-up-form" ||
+            item.href === "/dashboard/records"
+        )
       : allNavigation;
 
   // Redirect restricted users
   useEffect(() => {
     if (!userLoading && userRole === "user") {
-      const isAllowed = pathname.startsWith("/dashboard/fill-up-form");
+      const isAllowed =
+        pathname.startsWith("/dashboard/fill-up-form") ||
+        pathname.startsWith("/dashboard/records");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

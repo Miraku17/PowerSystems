@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
+import { checkRecordPermission, isUserAdmin } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -52,10 +53,12 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
+    const serviceSupabase = getServiceSupabase();
+
     // First, fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase
       .from("grindex_service_forms")
-      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -72,7 +75,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    const serviceSupabase = getServiceSupabase();
+    // Permission check - only admins can delete
+    const adminCheck = await isUserAdmin(serviceSupabase, user.id);
+    if (!adminCheck) {
+      return NextResponse.json(
+        { error: "Only administrators can delete records" },
+        { status: 403 }
+      );
+    }
 
     // Fetch all attachments for this form
     const { data: attachments, error: attachmentsError } = await supabase

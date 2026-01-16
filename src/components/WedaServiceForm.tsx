@@ -4,32 +4,33 @@ import React, { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
+import { useWedaServiceFormStore } from "@/stores/wedaServiceFormStore";
 
 interface User {
   id: string;
   fullName: string;
 }
 
-export default function DeutzServiceForm() {
+export default function WedaServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Use Zustand store for persistent form data
-  const { formData, setFormData, resetFormData } = useDeutzServiceFormStore();
+  const { formData, setFormData, resetFormData } = useWedaServiceFormStore();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [attachments, setAttachments] = useState<
+    { file: File; title: string }[]
+  >([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [engines, setEngines] = useState<any[]>([]);
+  const [pumps, setPumps] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const response = await apiClient.get('/users');
+        const response = await apiClient.get("/users");
         if (response.data.success) {
           setUsers(response.data.data);
         }
@@ -41,7 +42,7 @@ export default function DeutzServiceForm() {
 
     const fetchCustomers = async () => {
       try {
-        const response = await apiClient.get('/customers');
+        const response = await apiClient.get("/customers");
         if (response.data.success) {
           setCustomers(response.data.data);
         }
@@ -50,20 +51,22 @@ export default function DeutzServiceForm() {
       }
     };
 
-    const fetchEngines = async () => {
+    const fetchPumps = async () => {
       try {
-        const response = await apiClient.get('/engines');
+        const response = await apiClient.get("/pumps");
         if (response.data.success) {
-          setEngines(response.data.data);
+          setPumps(response.data.data);
+        } else if (Array.isArray(response.data)) {
+          setPumps(response.data);
         }
       } catch (error) {
-        console.error("Failed to fetch engines", error);
+        console.error("Failed to fetch pumps", error);
       }
     };
 
     fetchUsers();
     fetchCustomers();
-    fetchEngines();
+    fetchPumps();
   }, []);
 
   const handleChange = (
@@ -83,31 +86,16 @@ export default function DeutzServiceForm() {
       address: customer.address || "",
       email_address: customer.email || "",
       phone_number: customer.phone || "",
-      equipment_manufacturer: customer.equipment || "",
     });
   };
 
-  const handleEngineSelect = (engine: any) => {
+  const handlePumpSelect = (pump: any) => {
     setFormData({
-      engine_model: engine.model || "",
-      engine_serial_no: engine.serialNo || "",
-      alternator_brand_model: engine.altBrandModel || "",
-      alternator_serial_no: engine.altSerialNo || "",
-      equipment_model: engine.equipModel || "",
-      equipment_serial_no: engine.equipSerialNo || "",
-      fuel_pump_serial_no: engine.fuelPumpSN || "",
-      fuel_pump_code: engine.fuelPumpCode || "",
-      turbo_model: engine.turboModel || "",
-      turbo_serial_no: engine.turboSN || "",
-      // Add more fields if they map directly
-      rating: engine.rating || formData.rating,
-      revolution: engine.rpm || formData.revolution,
-      starting_voltage: engine.startVoltage || formData.starting_voltage,
-      running_hours: engine.runHours || formData.running_hours,
-      lube_oil_type: engine.lubeOil || formData.lube_oil_type,
-      fuel_type: engine.fuelType || formData.fuel_type,
-      cooling_water_additives: engine.coolantAdditive || formData.cooling_water_additives,
-      location: engine.location || formData.location,
+      pump_model: pump.pumpModel || "",
+      pump_serial_no: pump.pumpSerialNumber || "",
+      equipment_model: pump.engineModel || "",
+      equipment_serial_no: pump.engineSerialNumber || "",
+      running_hours: pump.runningHours || formData.running_hours,
     });
   };
 
@@ -118,32 +106,48 @@ export default function DeutzServiceForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsLoading(true);
-    const loadingToastId = toast.loading("Submitting Service Report...");
+    const loadingToastId = toast.loading(
+      "Submitting WEDA Service Report..."
+    );
 
     try {
-      const data = new FormData();
+      const formDataToSubmit = new FormData();
+
+      // Append all form fields
       Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
+        formDataToSubmit.append(key, value.toString());
       });
 
-      // Append multiple attachments with titles
-      attachments.forEach((attachment, index) => {
-        data.append(`attachment_files`, attachment.file);
-        data.append(`attachment_titles`, attachment.title);
+      // Append attachments
+      attachments.forEach((attachment) => {
+        formDataToSubmit.append("attachment_files", attachment.file);
+        formDataToSubmit.append("attachment_titles", attachment.title);
       });
 
-      const response = await apiClient.post("/forms/deutz-service", data);
+      const response = await apiClient.post(
+        "/forms/weda-service",
+        formDataToSubmit,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-      console.log("Success:", response.data);
-      toast.success("Service Report submitted successfully!", {
-        id: loadingToastId,
-      });
-      resetFormData();
-      setAttachments([]);
+      if (response.data) {
+        toast.success("WEDA Service Report submitted successfully!", {
+          id: loadingToastId,
+        });
+
+        // Reset form
+        resetFormData();
+        setAttachments([]);
+      }
     } catch (error: any) {
       console.error("Submission error:", error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "A network error occurred. Please try again.";
-      toast.error(`Failed to submit report: ${errorMessage}`, {
+      const errorMessage =
+        error?.response?.data?.error || "Failed to submit report.";
+      toast.error(errorMessage, {
         id: loadingToastId,
       });
     } finally {
@@ -155,8 +159,8 @@ export default function DeutzServiceForm() {
     e.preventDefault();
 
     // Validate job order number
-    if (!formData.job_order || formData.job_order.trim() === '') {
-      toast.error('Job Order Number is required');
+    if (!formData.job_order || formData.job_order.trim() === "") {
+      toast.error("Job Order Number is required");
       return;
     }
 
@@ -191,7 +195,7 @@ export default function DeutzServiceForm() {
         </div>
         <div className="mt-6">
           <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Deutz Service Form
+            WEDA Service Report
           </h2>
         </div>
       </div>
@@ -240,7 +244,18 @@ export default function DeutzServiceForm() {
               customers={customers}
               searchKey="name"
             />
-
+            <Input
+              label="Telephone/Fax"
+              name="telephone_fax"
+              value={formData.telephone_fax}
+              onChange={handleChange}
+            />
+            <Input
+              label="Equipment Manufacturer"
+              name="equipment_manufacturer"
+              value={formData.equipment_manufacturer}
+              onChange={handleChange}
+            />
             <div className="lg:col-span-2">
               <CustomerAutocomplete
                 label="Customer Name"
@@ -261,7 +276,6 @@ export default function DeutzServiceForm() {
               customers={customers}
               searchKey="contactPerson"
             />
-
             <div className="lg:col-span-3">
               <CustomerAutocomplete
                 label="Address"
@@ -291,87 +305,154 @@ export default function DeutzServiceForm() {
               customers={customers}
               searchKey="phone"
             />
-            <CustomerAutocomplete
-              label="Equipment Manufacturer"
-              name="equipment_manufacturer"
-              value={formData.equipment_manufacturer}
-              onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="equipment"
-            />
           </div>
         </div>
 
-        {/* Section 2: Equipment & Engine Details */}
+        {/* Section 2: Pump Details */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">
-              Equipment & Engine Details
+              Pump Details
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <EngineAutocomplete
+            <PumpAutocomplete
+              label="Pump Model"
+              name="pump_model"
+              value={formData.pump_model}
+              onChange={handleChange}
+              onSelect={handlePumpSelect}
+              pumps={pumps}
+              searchKey="pumpModel"
+            />
+            <PumpAutocomplete
+              label="Pump Serial No."
+              name="pump_serial_no"
+              value={formData.pump_serial_no}
+              onChange={handleChange}
+              onSelect={handlePumpSelect}
+              pumps={pumps}
+              searchKey="pumpSerialNumber"
+            />
+            <Input
+              label="Commissioning No."
+              name="commissioning_no"
+              value={formData.commissioning_no}
+              onChange={handleChange}
+            />
+            <PumpAutocomplete
               label="Equipment Model"
               name="equipment_model"
               value={formData.equipment_model}
               onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="equipModel"
+              onSelect={handlePumpSelect}
+              pumps={pumps}
+              searchKey="engineModel"
             />
-            <EngineAutocomplete
+            <PumpAutocomplete
               label="Equipment Serial No."
               name="equipment_serial_no"
               value={formData.equipment_serial_no}
               onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="equipSerialNo"
+              onSelect={handlePumpSelect}
+              pumps={pumps}
+              searchKey="engineSerialNumber"
             />
-
-            <EngineAutocomplete
-              label="Engine Model"
-              name="engine_model"
-              value={formData.engine_model}
+            <Input
+              label="Pump Type"
+              name="pump_type"
+              value={formData.pump_type}
               onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="model"
             />
-            <EngineAutocomplete
-              label="Engine Serial No."
-              name="engine_serial_no"
-              value={formData.engine_serial_no}
+            <Input
+              label="Pump Weight (kg)"
+              name="pump_weight"
+              type="number"
+              step="0.01"
+              value={formData.pump_weight}
               onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="serialNo"
-            />
-
-            <EngineAutocomplete
-              label="Alternator Brand/Model"
-              name="alternator_brand_model"
-              value={formData.alternator_brand_model}
-              onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="altBrandModel"
-            />
-            <EngineAutocomplete
-              label="Alternator Serial No."
-              name="alternator_serial_no"
-              value={formData.alternator_serial_no}
-              onChange={handleChange}
-              onSelect={handleEngineSelect}
-              engines={engines}
-              searchKey="altSerialNo"
             />
           </div>
         </div>
 
-        {/* Section 3: Operational Data */}
+        {/* Section 3: Technical Specifications */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">
+              Technical Specifications
+            </h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <Input
+              label="Rating"
+              name="rating"
+              value={formData.rating}
+              onChange={handleChange}
+            />
+            <Input
+              label="Revolution"
+              name="revolution"
+              value={formData.revolution}
+              onChange={handleChange}
+            />
+            <Input
+              label="Related Current (Amps)"
+              name="related_current_amps"
+              type="number"
+              step="0.01"
+              value={formData.related_current_amps}
+              onChange={handleChange}
+            />
+            <Input
+              label="Running Hours"
+              name="running_hours"
+              type="number"
+              step="0.01"
+              value={formData.running_hours}
+              onChange={handleChange}
+            />
+            <Input
+              label="Phase"
+              name="phase"
+              value={formData.phase}
+              onChange={handleChange}
+            />
+            <Input
+              label="Frequency (Hz)"
+              name="frequency_hz"
+              type="number"
+              step="0.01"
+              value={formData.frequency_hz}
+              onChange={handleChange}
+            />
+            <Input
+              label="Oil Type"
+              name="oil_type"
+              value={formData.oil_type}
+              onChange={handleChange}
+            />
+            <Input
+              label="Maximum Height (m)"
+              name="maximum_height_m"
+              type="number"
+              step="0.01"
+              value={formData.maximum_height_m}
+              onChange={handleChange}
+            />
+            <Input
+              label="Maximum Capacity"
+              name="maximum_capacity"
+              type="number"
+              step="0.01"
+              value={formData.maximum_capacity}
+              onChange={handleChange}
+            />
+          </div>
+        </div>
+
+        {/* Section 4: Operational Data */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -379,7 +460,7 @@ export default function DeutzServiceForm() {
               Operational Data
             </h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <Input
               label="Location"
               name="location"
@@ -387,7 +468,7 @@ export default function DeutzServiceForm() {
               onChange={handleChange}
             />
             <Input
-              label="Date in Service"
+              label="Date In Service"
               name="date_in_service"
               type="date"
               value={formData.date_in_service}
@@ -400,82 +481,10 @@ export default function DeutzServiceForm() {
               value={formData.date_failed}
               onChange={handleChange}
             />
-            <Input
-              label="Rating"
-              name="rating"
-              value={formData.rating}
-              onChange={handleChange}
-            />
-            <Input
-              label="Revolution (RPM)"
-              name="revolution"
-              value={formData.revolution}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Starting Voltage"
-              name="starting_voltage"
-              value={formData.starting_voltage}
-              onChange={handleChange}
-            />
-            <Input
-              label="Running Hours"
-              name="running_hours"
-              type="number"
-              value={formData.running_hours}
-              onChange={handleChange}
-            />
-            <Input
-              label="Lube Oil Type"
-              name="lube_oil_type"
-              value={formData.lube_oil_type}
-              onChange={handleChange}
-            />
-            <Input
-              label="Fuel Type"
-              name="fuel_type"
-              value={formData.fuel_type}
-              onChange={handleChange}
-            />
-
-            <Input
-              label="Fuel Pump Code"
-              name="fuel_pump_code"
-              value={formData.fuel_pump_code}
-              onChange={handleChange}
-            />
-            <Input
-              label="Fuel Pump Serial No."
-              name="fuel_pump_serial_no"
-              value={formData.fuel_pump_serial_no}
-              onChange={handleChange}
-            />
-
-            <div className="lg:col-span-2">
-              <Input
-                label="Cooling Water Additives"
-                name="cooling_water_additives"
-                value={formData.cooling_water_additives}
-                onChange={handleChange}
-              />
-            </div>
-            <Input
-              label="Turbo Model"
-              name="turbo_model"
-              value={formData.turbo_model}
-              onChange={handleChange}
-            />
-            <Input
-              label="Turbo Serial No."
-              name="turbo_serial_no"
-              value={formData.turbo_serial_no}
-              onChange={handleChange}
-            />
           </div>
         </div>
 
-        {/* Section 4: Customer Complaint */}
+        {/* Section 5: Customer Complaint */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -493,7 +502,7 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 5: Possible Cause */}
+        {/* Section 6: Possible Cause */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -511,24 +520,24 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 6: Warranty Coverage */}
+        {/* Section 7: Warranty Information */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">
-              Warranty Coverage
+              Warranty Information
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <RadioGroup
-              label="Within Coverage Period?"
+              label="Within Coverage Period"
               name="within_coverage_period"
               value={formData.within_coverage_period}
               onChange={handleChange}
               options={["Yes", "No"]}
             />
             <RadioGroup
-              label="Warrantable Failure?"
+              label="Warrantable Failure"
               name="warrantable_failure"
               value={formData.warrantable_failure}
               onChange={handleChange}
@@ -537,7 +546,7 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 7: Service Report Details */}
+        {/* Section 8: Service Report Details */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -588,7 +597,10 @@ export default function DeutzServiceForm() {
                   {attachments.map((attachment, index) => {
                     const previewUrl = URL.createObjectURL(attachment.file);
                     return (
-                      <div key={index} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
+                      <div
+                        key={index}
+                        className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm"
+                      >
                         <div className="space-y-3">
                           <div className="flex items-start gap-4">
                             {/* Image Preview */}
@@ -609,13 +621,16 @@ export default function DeutzServiceForm() {
                                     {attachment.file.name}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {(attachment.file.size / 1024).toFixed(2)} KB
+                                    {(attachment.file.size / 1024).toFixed(2)}{" "}
+                                    KB
                                   </p>
                                 </div>
                                 <button
                                   type="button"
                                   onClick={() => {
-                                    const newAttachments = attachments.filter((_, i) => i !== index);
+                                    const newAttachments = attachments.filter(
+                                      (_, i) => i !== index
+                                    );
                                     setAttachments(newAttachments);
                                   }}
                                   className="ml-4 text-red-600 hover:text-red-800 transition-colors flex-shrink-0"
@@ -645,7 +660,8 @@ export default function DeutzServiceForm() {
                                   value={attachment.title}
                                   onChange={(e) => {
                                     const newAttachments = [...attachments];
-                                    newAttachments[index].title = e.target.value;
+                                    newAttachments[index].title =
+                                      e.target.value;
                                     setAttachments(newAttachments);
                                   }}
                                   className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
@@ -679,13 +695,13 @@ export default function DeutzServiceForm() {
                   </svg>
                   <div className="flex text-sm text-gray-600">
                     <label
-                      htmlFor="file-upload"
+                      htmlFor="weda-file-upload"
                       className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
                     >
                       <span>Upload an image</span>
                       <input
-                        id="file-upload"
-                        name="file-upload"
+                        id="weda-file-upload"
+                        name="weda-file-upload"
                         type="file"
                         accept="image/*"
                         className="sr-only"
@@ -693,12 +709,17 @@ export default function DeutzServiceForm() {
                           if (e.target.files && e.target.files[0]) {
                             const file = e.target.files[0];
                             // Validate that it's an image
-                            if (!file.type.startsWith('image/')) {
-                              toast.error('Please select only image files (PNG, JPG, etc.)');
+                            if (!file.type.startsWith("image/")) {
+                              toast.error(
+                                "Please select only image files (PNG, JPG, etc.)"
+                              );
                               return;
                             }
-                            setAttachments([...attachments, { file, title: '' }]);
-                            e.target.value = '';
+                            setAttachments([
+                              ...attachments,
+                              { file, title: "" },
+                            ]);
+                            e.target.value = "";
                           }
                         }}
                       />
@@ -714,7 +735,7 @@ export default function DeutzServiceForm() {
           </div>
         </div>
 
-        {/* Section 8: Signatures */}
+        {/* Section 9: Signatures */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -725,16 +746,21 @@ export default function DeutzServiceForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
               <Select
-                label="Service Technician"
-                name="service_technician"
-                value={formData.service_technician}
+                label="Attending Technician"
+                name="attending_technician"
+                value={formData.attending_technician}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={users.map((user) => user.fullName)}
               />
               <SignaturePad
                 label="Draw Signature"
-                value={formData.service_technician_signature}
-                onChange={(signature: string) => handleSignatureChange('service_technician_signature', signature)}
+                value={formData.attending_technician_signature}
+                onChange={(signature: string) =>
+                  handleSignatureChange(
+                    "attending_technician_signature",
+                    signature
+                  )
+                }
                 subtitle="Signed by Technician"
               />
             </div>
@@ -744,12 +770,14 @@ export default function DeutzServiceForm() {
                 name="noted_by"
                 value={formData.noted_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={users.map((user) => user.fullName)}
               />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.noted_by_signature}
-                onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
+                onChange={(signature: string) =>
+                  handleSignatureChange("noted_by_signature", signature)
+                }
                 subtitle="Service Manager"
               />
             </div>
@@ -759,12 +787,14 @@ export default function DeutzServiceForm() {
                 name="approved_by"
                 value={formData.approved_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={users.map((user) => user.fullName)}
               />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.approved_by_signature}
-                onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
+                onChange={(signature: string) =>
+                  handleSignatureChange("approved_by_signature", signature)
+                }
                 subtitle="Authorized Signature"
               />
             </div>
@@ -774,12 +804,14 @@ export default function DeutzServiceForm() {
                 name="acknowledged_by"
                 value={formData.acknowledged_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={users.map((user) => user.fullName)}
               />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.acknowledged_by_signature}
-                onChange={(signature: string) => handleSignatureChange('acknowledged_by_signature', signature)}
+                onChange={(signature: string) =>
+                  handleSignatureChange("acknowledged_by_signature", signature)
+                }
                 subtitle="Customer Signature"
               />
             </div>
@@ -789,6 +821,7 @@ export default function DeutzServiceForm() {
         <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4 pt-6 pb-12">
           <button
             type="button"
+            onClick={resetFormData}
             className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base"
             disabled={isLoading}
           >
@@ -843,7 +876,7 @@ export default function DeutzServiceForm() {
         onConfirm={handleConfirmSubmit}
         onClose={() => setIsModalOpen(false)}
         title="Confirm Submission"
-        message="Are you sure you want to submit this Deutz Service Report?"
+        message="Are you sure you want to submit this WEDA Service Report?"
       />
     </div>
   );
@@ -860,9 +893,10 @@ interface InputProps {
     >
   ) => void;
   type?: string;
+  step?: string;
 }
 
-const Input = ({ label, name, value, onChange, type = "text" }: InputProps) => (
+const Input = ({ label, name, value, onChange, type = "text", step }: InputProps) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
       {label}
@@ -872,6 +906,7 @@ const Input = ({ label, name, value, onChange, type = "text" }: InputProps) => (
       name={name}
       value={value}
       onChange={onChange}
+      step={step}
       className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
       placeholder={`Enter ${label.toLowerCase()}`}
     />
@@ -923,18 +958,21 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setShowDropdown(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const handleSelectOption = (option: string) => {
     const syntheticEvent = {
-      target: { name, value: option }
+      target: { name, value: option },
     } as React.ChangeEvent<HTMLInputElement>;
     onChange(syntheticEvent);
     setShowDropdown(false);
@@ -1011,15 +1049,17 @@ interface RadioGroupProps {
   name: string;
   value: string;
   onChange: (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => void;
   options: string[];
 }
 
 const RadioGroup = ({ label, name, value, onChange, options }: RadioGroupProps) => {
-  const handleChange = (option: string) => {
+  const handleRadioChange = (optionValue: string) => {
     const syntheticEvent = {
-      target: { name, value: option }
+      target: { name, value: optionValue },
     } as React.ChangeEvent<HTMLInputElement>;
     onChange(syntheticEvent);
   };
@@ -1029,21 +1069,18 @@ const RadioGroup = ({ label, name, value, onChange, options }: RadioGroupProps) 
       <label className="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">
         {label}
       </label>
-      <div className="flex gap-6">
+      <div className="flex space-x-6">
         {options.map((option) => (
-          <label
-            key={option}
-            className="flex items-center gap-2 cursor-pointer"
-          >
+          <label key={option} className="inline-flex items-center cursor-pointer">
             <input
               type="radio"
               name={name}
               value={option}
               checked={value === option}
-              onChange={() => handleChange(option)}
-              className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 focus:ring-2"
+              onChange={() => handleRadioChange(option)}
+              className="form-radio h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
             />
-            <span className="text-gray-700">{option}</span>
+            <span className="ml-2 text-sm text-gray-700">{option}</span>
           </label>
         ))}
       </div>
@@ -1128,104 +1165,101 @@ const CustomerAutocomplete = ({
                 className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
               >
                 <div className="font-medium">{customer.name}</div>
-                                <div className="text-xs text-gray-500">
-                                  {customer.customer}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                };
-                
-                interface EngineAutocompleteProps {
-                  label: string;
-                  name: string;
-                  value: string;
-                  onChange: (
-                    e: React.ChangeEvent<
-                      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-                    >
-                  ) => void;
-                  onSelect: (engine: any) => void;
-                  engines: any[];
-                  searchKey?: string;
-                }
-                
-                const EngineAutocomplete = ({
-                  label,
-                  name,
-                  value,
-                  onChange,
-                  onSelect,
-                  engines,
-                  searchKey = "model",
-                }: EngineAutocompleteProps) => {
-                  const [showDropdown, setShowDropdown] = React.useState(false);
-                  const dropdownRef = React.useRef<HTMLDivElement>(null);
-                
-                  React.useEffect(() => {
-                    const handleClickOutside = (event: MouseEvent) => {
-                      if (
-                        dropdownRef.current &&
-                        !dropdownRef.current.contains(event.target as Node)
-                      ) {
-                        setShowDropdown(false);
-                      }
-                    };
-                
-                    document.addEventListener("mousedown", handleClickOutside);
-                    return () => document.removeEventListener("mousedown", handleClickOutside);
-                  }, []);
-                
-                  const handleSelectEngine = (engine: any) => {
-                    onSelect(engine);
-                    setShowDropdown(false);
-                  };
-                
-                  const filteredEngines = engines.filter((e) =>
-                    (e[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-                  );
-                
-                  return (
-                    <div className="flex flex-col w-full" ref={dropdownRef}>
-                      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-                        {label}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          name={name}
-                          value={value}
-                          onChange={(e) => {
-                            onChange(e);
-                            setShowDropdown(true);
-                          }}
-                          onFocus={() => setShowDropdown(true)}
-                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-                          placeholder={`Enter ${label.toLowerCase()}`}
-                          autoComplete="off"
-                        />
-                        {showDropdown && (
-                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                            {filteredEngines.map((engine) => (
-                              <div
-                                key={engine.id}
-                                onClick={() => handleSelectEngine(engine)}
-                                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-                              >
-                                <div className="font-medium">{engine.model}</div>
-                                <div className="text-xs text-gray-500">
-                                  S/N: {engine.serialNo} • {engine.company?.name}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                };
-                
+                <div className="text-xs text-gray-500">{customer.customer}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface PumpAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
+  ) => void;
+  onSelect: (pump: any) => void;
+  pumps: any[];
+  searchKey?: string;
+}
+
+const PumpAutocomplete = ({
+  label,
+  name,
+  value,
+  onChange,
+  onSelect,
+  pumps,
+  searchKey = "pumpModel",
+}: PumpAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectPump = (pump: any) => {
+    onSelect(pump);
+    setShowDropdown(false);
+  };
+
+  const filteredPumps = pumps.filter((p) =>
+    (p[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={(e) => {
+            onChange(e);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredPumps.map((pump) => (
+              <div
+                key={pump.id}
+                onClick={() => handleSelectPump(pump)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{pump.pumpModel}</div>
+                <div className="text-xs text-gray-500">
+                  S/N: {pump.pumpSerialNumber} • {pump.company?.name}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

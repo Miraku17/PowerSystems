@@ -289,10 +289,16 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += boxHeight + 5;
     };
 
+    // Job Reference
+    addSection("Job Reference");
+    addFieldsGrid([
+      { label: "Job Order No.", value: record.job_order_no },
+      { label: "Commissioning Date", value: record.commissioning_date },
+    ]);
+
     // General Information
     addSection("General Information");
     addFieldsGrid([
-      { label: "Job Order No.", value: record.job_order_no },
       { label: "Reporting Person", value: record.reporting_person_name },
       { label: "Commissioning No.", value: record.commissioning_no },
       { label: "Equipment Name", value: record.equipment_name },
@@ -302,81 +308,83 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Commissioning Location", value: record.commissioning_location, span: 2 },
       { label: "Email Address", value: record.email_address },
       { label: "Phone Number", value: record.phone_number },
-      { label: "Commissioning Date", value: record.commissioning_date },
     ]);
 
-    // Equipment & Engine Details
-    addSection("Equipment & Engine Details");
+    // Equipment & Engine Data
+    addSection("Equipment & Engine Data");
     addFieldsGrid([
+      { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
+      { label: "Equipment Type", value: record.equipment_type },
+      { label: "Equipment No.", value: record.equipment_no },
       { label: "Engine Model", value: record.engine_model },
       { label: "Engine Serial No.", value: record.engine_serial_no },
-      { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
-      { label: "Equipment No.", value: record.equipment_no },
-      { label: "Equipment Type", value: record.equipment_type },
-      { label: "Output", value: record.output },
-      { label: "Revolutions", value: record.revolutions },
+      { label: "Output (kW/HP)", value: record.output },
+      { label: "Revolutions (RPM)", value: record.revolutions },
       { label: "Main Effective Pressure", value: record.main_effective_pressure },
+      { label: "Running Hours", value: record.running_hours },
+    ]);
+
+    // Technical Specifications
+    addSection("Technical Specifications");
+    addFieldsGrid([
       { label: "Lube Oil Type", value: record.lube_oil_type },
       { label: "Fuel Type", value: record.fuel_type },
       { label: "Cooling Water Additives", value: record.cooling_water_additives, span: 2 },
-      { label: "Fuel Pump Serial No.", value: record.fuel_pump_serial_no },
       { label: "Fuel Pump Code", value: record.fuel_pump_code },
+      { label: "Fuel Pump Serial No.", value: record.fuel_pump_serial_no },
       { label: "Turbo Model", value: record.turbo_model },
       { label: "Turbo Serial No.", value: record.turbo_serial_no },
-      { label: "Running Hours", value: record.running_hours },
     ]);
 
     // Inspection Prior Test
     addSection("Inspection Prior Test");
     addTextAreaField("Summary", record.summary);
     addFieldsGrid([
-      { label: "Check Oil Level", value: record.check_oil_level },
-      { label: "Check Air Filter", value: record.check_air_filter },
-      { label: "Check Hoses Clamps", value: record.check_hoses_clamps },
-      { label: "Check Engine Support", value: record.check_engine_support },
-      { label: "Check V-Belt", value: record.check_v_belt },
-      { label: "Check Water Level", value: record.check_water_level },
-      { label: "Crankshaft End Play", value: record.crankshaft_end_play },
+      { label: "1. Check Oil Level", value: record.check_oil_level },
+      { label: "2. Check Air Filter Element", value: record.check_air_filter },
+      { label: "3. Check Hoses and Clamps", value: record.check_hoses_clamps },
+      { label: "4. Check Engine Support", value: record.check_engine_support },
+      { label: "5. Check V-Belt", value: record.check_v_belt },
+      { label: "6. Check Water Level", value: record.check_water_level },
+      { label: "7. Crankshaft End Play", value: record.crankshaft_end_play },
       { label: "Inspector", value: record.inspector },
     ]);
-    addTextAreaField("Comments/Action", record.comments_action);
+    addTextAreaField("Comments / Action", record.comments_action);
 
-    // Operational Readings
-    addSection("Operational Readings");
+    // Operational Readings (Test Run)
+    addSection("Operational Readings (Test Run)");
     addFieldsGrid([
-      { label: "RPM Idle Speed", value: record.rpm_idle_speed },
-      { label: "RPM Full Speed", value: record.rpm_full_speed },
-      { label: "Oil Pressure Idle", value: record.oil_pressure_idle },
-      { label: "Oil Pressure Full", value: record.oil_pressure_full },
+      { label: "RPM (Idle Speed)", value: record.rpm_idle_speed },
+      { label: "RPM (Full Speed)", value: record.rpm_full_speed },
+      { label: "Oil Press. (Idle)", value: record.oil_pressure_idle },
+      { label: "Oil Press. (Full)", value: record.oil_pressure_full },
       { label: "Oil Temperature", value: record.oil_temperature },
       { label: "Engine Smoke", value: record.engine_smoke },
       { label: "Engine Vibration", value: record.engine_vibration },
-      { label: "Check Engine Leakage", value: record.check_engine_leakage },
+      { label: "Engine Leakage", value: record.check_engine_leakage },
     ]);
 
-    // Cylinder Data
-    if (record.cylinder_no) {
-      addSection("Cylinder Data");
-      addFieldsGrid([
-        { label: "Cylinder Head Temp", value: record.cylinder_head_temp },
-        { label: "Cylinder No.", value: record.cylinder_no },
-        { label: "Cylinder A1", value: record.cylinder_a1 },
-        { label: "Cylinder A2", value: record.cylinder_a2 },
-        { label: "Cylinder A3", value: record.cylinder_a3 },
-        { label: "Cylinder A4", value: record.cylinder_a4 },
-        { label: "Cylinder A5", value: record.cylinder_a5 },
-        { label: "Cylinder A6", value: record.cylinder_a6 },
-        { label: "Cylinder B1", value: record.cylinder_b1 },
-        { label: "Cylinder B2", value: record.cylinder_b2 },
-        { label: "Cylinder B3", value: record.cylinder_b3 },
-        { label: "Cylinder B4", value: record.cylinder_b4 },
-        { label: "Cylinder B5", value: record.cylinder_b5 },
-        { label: "Cylinder B6", value: record.cylinder_b6 },
-      ]);
-    }
+    // Cylinder
+    addSection("Cylinder");
+    addFieldsGrid([
+      { label: "Cyl. Head Temp", value: record.cylinder_head_temp },
+      { label: "Cylinder No.", value: record.cylinder_no },
+      { label: "A1", value: record.cylinder_a1 },
+      { label: "A2", value: record.cylinder_a2 },
+      { label: "A3", value: record.cylinder_a3 },
+      { label: "A4", value: record.cylinder_a4 },
+      { label: "A5", value: record.cylinder_a5 },
+      { label: "A6", value: record.cylinder_a6 },
+      { label: "B1", value: record.cylinder_b1 },
+      { label: "B2", value: record.cylinder_b2 },
+      { label: "B3", value: record.cylinder_b3 },
+      { label: "B4", value: record.cylinder_b4 },
+      { label: "B5", value: record.cylinder_b5 },
+      { label: "B6", value: record.cylinder_b6 },
+    ]);
 
-    // Parts Reference
-    addSection("Parts Reference");
+    // Parts Reference & Controller
+    addSection("Parts Reference & Controller");
     addFieldsGrid([
       { label: "Starter Part No.", value: record.starter_part_no },
       { label: "Alternator Part No.", value: record.alternator_part_no },
@@ -470,14 +478,17 @@ export const GET = withAuth(async (request, { user, params }) => {
               imgHeight
             );
 
-            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-            doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
+            // Add title background and text only if there's a title
+            if (attachment.file_title) {
+              doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+              doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
 
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            const titleLines = doc.splitTextToSize(attachment.file_title || "Untitled", maxImgWidth - 4);
-            doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+              doc.setFontSize(8);
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(0, 0, 0);
+              const titleLines = doc.splitTextToSize(attachment.file_title, maxImgWidth - 4);
+              doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+            }
 
             return boxHeight;
           } catch (error) {

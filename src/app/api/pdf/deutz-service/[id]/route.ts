@@ -302,59 +302,77 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += boxHeight + 5;
     };
 
+    // Job Reference
+    addSection("Job Reference");
+    addFieldsGrid([
+      { label: "Job Order No.", value: record.job_order },
+      { label: "Date", value: record.report_date },
+    ]);
+
     // General Information
     addSection("General Information");
     addFieldsGrid([
-      { label: "Job Order", value: record.job_order },
-      { label: "Report Date", value: record.report_date },
       { label: "Reporting Person", value: record.reporting_person_name },
-      { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
       { label: "Customer Name", value: record.customer_name, span: 2 },
       { label: "Contact Person", value: record.contact_person },
       { label: "Address", value: record.address, span: 2 },
       { label: "Email Address", value: record.email_address },
       { label: "Phone Number", value: record.phone_number },
+      { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
     ]);
 
-    // Equipment Information
-    addSection("Equipment Information");
+    // Equipment & Engine Details
+    addSection("Equipment & Engine Details");
     addFieldsGrid([
-      { label: "Engine Model", value: record.engine_model },
-      { label: "Engine Serial No.", value: record.engine_serial_no },
       { label: "Equipment Model", value: record.equipment_model },
       { label: "Equipment Serial No.", value: record.equipment_serial_no },
+      { label: "Engine Model", value: record.engine_model },
+      { label: "Engine Serial No.", value: record.engine_serial_no },
       { label: "Alternator Brand/Model", value: record.alternator_brand_model },
       { label: "Alternator Serial No.", value: record.alternator_serial_no },
-      { label: "Location", value: record.location },
-      { label: "Date in Service", value: record.date_in_service },
-      { label: "Rating", value: record.rating },
-      { label: "Revolution", value: record.revolution },
-      { label: "Starting Voltage", value: record.starting_voltage },
-      { label: "Running Hours", value: record.running_hours },
     ]);
 
-    // Technical Specifications
-    addSection("Technical Specifications");
+    // Operational Data
+    addSection("Operational Data");
     addFieldsGrid([
-      { label: "Fuel Pump Serial No.", value: record.fuel_pump_serial_no },
-      { label: "Fuel Pump Code", value: record.fuel_pump_code },
+      { label: "Location", value: record.location },
+      { label: "Date in Service", value: record.date_in_service },
+      { label: "Date Failed", value: record.date_failed },
+      { label: "Rating", value: record.rating },
+      { label: "Revolution (RPM)", value: record.revolution },
+      { label: "Starting Voltage", value: record.starting_voltage },
+      { label: "Running Hours", value: record.running_hours },
       { label: "Lube Oil Type", value: record.lube_oil_type },
       { label: "Fuel Type", value: record.fuel_type },
+      { label: "Fuel Pump Code", value: record.fuel_pump_code },
+      { label: "Fuel Pump Serial No.", value: record.fuel_pump_serial_no },
       { label: "Cooling Water Additives", value: record.cooling_water_additives, span: 2 },
-      { label: "Date Failed", value: record.date_failed },
       { label: "Turbo Model", value: record.turbo_model },
       { label: "Turbo Serial No.", value: record.turbo_serial_no },
     ]);
 
-    // Service Details
-    addSection("Service Details");
+    // Customer Complaint
+    addSection("Customer Complaint");
     addTextAreaField("Customer Complaint", record.customer_complaint);
+
+    // Possible Cause
+    addSection("Possible Cause");
     addTextAreaField("Possible Cause", record.possible_cause);
+
+    // Warranty Coverage
+    addSection("Warranty Coverage");
+    addFieldsGrid([
+      { label: "Within Coverage Period?", value: formatBoolean(record.within_coverage_period) },
+      { label: "Warrantable Failure?", value: formatBoolean(record.warrantable_failure) },
+    ]);
+
+    // Service Report Details
+    addSection("Service Report Details");
+    addTextAreaField("Summary Details", record.summary_details);
+    addTextAreaField("Action Taken", record.action_taken);
     addTextAreaField("Observation", record.observation);
     addTextAreaField("Findings", record.findings);
-    addTextAreaField("Action Taken", record.action_taken);
     addTextAreaField("Recommendations", record.recommendations);
-    addTextAreaField("Summary Details", record.summary_details);
 
     // Fetch and display attachments
     const { data: attachments } = await supabase
@@ -439,16 +457,17 @@ export const GET = withAuth(async (request, { user, params }) => {
               imgHeight
             );
 
-            // Add title background
-            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-            doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
+            // Add title background and text only if there's a title
+            if (attachment.file_title) {
+              doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+              doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
 
-            // Add title text
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            const titleLines = doc.splitTextToSize(attachment.file_title || "Untitled", maxImgWidth - 4);
-            doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+              doc.setFontSize(8);
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(0, 0, 0);
+              const titleLines = doc.splitTextToSize(attachment.file_title, maxImgWidth - 4);
+              doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+            }
 
             return boxHeight;
           } catch (error) {
@@ -484,13 +503,6 @@ export const GET = withAuth(async (request, { user, params }) => {
 
       yPos += 5;
     }
-
-    // Warranty Information
-    addSection("Warranty Information");
-    addFieldsGrid([
-      { label: "Within Coverage Period", value: formatBoolean(record.within_coverage_period) },
-      { label: "Warrantable Failure", value: formatBoolean(record.warrantable_failure) },
-    ]);
 
     // Signatures
     addSection("Signatures");

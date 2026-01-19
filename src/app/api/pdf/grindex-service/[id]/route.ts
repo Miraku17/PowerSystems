@@ -271,11 +271,16 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += boxHeight + 5;
     };
 
+    // Job Reference
+    addSection("Job Reference");
+    addFieldsGrid([
+      { label: "Job Order No.", value: record.job_order },
+      { label: "Date", value: record.report_date },
+    ]);
+
     // General Information
     addSection("General Information");
     addFieldsGrid([
-      { label: "Job Order", value: record.job_order },
-      { label: "Report Date", value: record.report_date },
       { label: "Reporting Person", value: record.reporting_person_name },
       { label: "Customer Name", value: record.customer_name, span: 2 },
       { label: "Contact Person", value: record.contact_person },
@@ -307,15 +312,21 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Date Commissioned", value: record.date_commissioned },
     ]);
 
-    // Service Details
-    addSection("Service Details");
+    // Customer Complaint
+    addSection("Customer Complaint");
     addTextAreaField("Customer Complaint", record.customer_complaint);
+
+    // Possible Cause
+    addSection("Possible Cause");
     addTextAreaField("Possible Cause", record.possible_cause);
+
+    // Service Report Details
+    addSection("Service Report Details");
+    addTextAreaField("Summary Details", record.summary_details);
+    addTextAreaField("Action Taken", record.action_taken);
     addTextAreaField("Observation", record.observation);
     addTextAreaField("Findings", record.findings);
-    addTextAreaField("Action Taken", record.action_taken);
     addTextAreaField("Recommendations", record.recommendations);
-    addTextAreaField("Summary Details", record.summary_details);
 
     // Fetch and display attachments
     const { data: attachments } = await supabase
@@ -393,14 +404,17 @@ export const GET = withAuth(async (request, { user, params }) => {
               imgHeight
             );
 
-            doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-            doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
+            // Add title background and text only if there's a title
+            if (attachment.file_title) {
+              doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+              doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
 
-            doc.setFontSize(8);
-            doc.setFont("helvetica", "bold");
-            doc.setTextColor(0, 0, 0);
-            const titleLines = doc.splitTextToSize(attachment.file_title || "Untitled", maxImgWidth - 4);
-            doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+              doc.setFontSize(8);
+              doc.setFont("helvetica", "bold");
+              doc.setTextColor(0, 0, 0);
+              const titleLines = doc.splitTextToSize(attachment.file_title, maxImgWidth - 4);
+              doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
+            }
 
             return boxHeight;
           } catch (error) {

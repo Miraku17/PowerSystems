@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import DeutzServiceForm from "@/components/DeutzServiceForm";
 import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
 import GrindexServiceForm from "@/components/GrindexServiceForm";
+import GrindexCommissioningReport from "@/components/GrindexCommissioningReport";
 import WedaServiceForm from "@/components/WedaServiceForm";
+import WedaCommissioningReport from "@/components/WedaCommissioningReport";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
@@ -18,8 +20,12 @@ const FillUpFormPage = () => {
         return <DeutzCommissioningReport />;
       case "grindex":
         return <GrindexServiceForm />;
+      case "grindex-commissioning":
+        return <GrindexCommissioningReport />;
       case "weda-service":
         return <WedaServiceForm />;
+      case "weda-commissioning":
+        return <WedaCommissioningReport />;
       default:
         return (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">

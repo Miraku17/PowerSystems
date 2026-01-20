@@ -25,7 +25,6 @@ export default function WedaServiceForm() {
   >([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [pumps, setPumps] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -51,22 +50,8 @@ export default function WedaServiceForm() {
       }
     };
 
-    const fetchPumps = async () => {
-      try {
-        const response = await apiClient.get("/pumps");
-        if (response.data.success) {
-          setPumps(response.data.data);
-        } else if (Array.isArray(response.data)) {
-          setPumps(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pumps", error);
-      }
-    };
-
     fetchUsers();
     fetchCustomers();
-    fetchPumps();
   }, []);
 
   const handleChange = (
@@ -86,16 +71,6 @@ export default function WedaServiceForm() {
       address: customer.address || "",
       email_address: customer.email || "",
       phone_number: customer.phone || "",
-    });
-  };
-
-  const handlePumpSelect = (pump: any) => {
-    setFormData({
-      pump_model: pump.pumpModel || "",
-      pump_serial_no: pump.pumpSerialNumber || "",
-      equipment_model: pump.engineModel || "",
-      equipment_serial_no: pump.engineSerialNumber || "",
-      running_hours: pump.runningHours || formData.running_hours,
     });
   };
 
@@ -317,23 +292,17 @@ export default function WedaServiceForm() {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <PumpAutocomplete
-              label="Pump Model"
+            <Input
+              label="WEDA Pump Model"
               name="pump_model"
               value={formData.pump_model}
               onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="pumpModel"
             />
-            <PumpAutocomplete
+            <Input
               label="Pump Serial No."
               name="pump_serial_no"
               value={formData.pump_serial_no}
               onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="pumpSerialNumber"
             />
             <Input
               label="Commissioning No."
@@ -341,23 +310,17 @@ export default function WedaServiceForm() {
               value={formData.commissioning_no}
               onChange={handleChange}
             />
-            <PumpAutocomplete
+            <Input
               label="Equipment Model"
               name="equipment_model"
               value={formData.equipment_model}
               onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="engineModel"
             />
-            <PumpAutocomplete
+            <Input
               label="Equipment Serial No."
               name="equipment_serial_no"
               value={formData.equipment_serial_no}
               onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="engineSerialNumber"
             />
             <Input
               label="Pump Type"
@@ -1175,91 +1138,3 @@ const CustomerAutocomplete = ({
   );
 };
 
-interface PumpAutocompleteProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => void;
-  onSelect: (pump: any) => void;
-  pumps: any[];
-  searchKey?: string;
-}
-
-const PumpAutocomplete = ({
-  label,
-  name,
-  value,
-  onChange,
-  onSelect,
-  pumps,
-  searchKey = "pumpModel",
-}: PumpAutocompleteProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectPump = (pump: any) => {
-    onSelect(pump);
-    setShowDropdown(false);
-  };
-
-  const filteredPumps = pumps.filter((p) =>
-    (p[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  );
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          onChange={(e) => {
-            onChange(e);
-            setShowDropdown(true);
-          }}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-          placeholder={`Enter ${label.toLowerCase()}`}
-          autoComplete="off"
-        />
-        {showDropdown && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {filteredPumps.map((pump) => (
-              <div
-                key={pump.id}
-                onClick={() => handleSelectPump(pump)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="font-medium">{pump.pumpModel}</div>
-                <div className="text-xs text-gray-500">
-                  S/N: {pump.pumpSerialNumber} • {pump.company?.name}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

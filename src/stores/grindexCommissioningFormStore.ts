@@ -22,7 +22,7 @@ interface GrindexCommissioningFormData {
   commissioning_date: string;
 
   // Pump Details
-  pump_model: string;
+  grindex_pump_model: string;
   pump_serial_no: string;
   commissioning_no: string;
   equipment_manufacturer: string;
@@ -39,13 +39,12 @@ interface GrindexCommissioningFormData {
   maximum_height_m: string;
   maximum_capacity: string;
   pump_weight: string;
-  hmax: string;
-  qmax: string;
 
   // Summary & Inspection
   summary: string;
   inspector: string;
   comments_action: string;
+  recommendation: string;
 
   // Signatures
   attending_technician: string;
@@ -83,7 +82,7 @@ const initialFormData: GrindexCommissioningFormData = {
   commissioning_date: "",
 
   // Pump Details
-  pump_model: "",
+  grindex_pump_model: "",
   pump_serial_no: "",
   commissioning_no: "",
   equipment_manufacturer: "",
@@ -100,13 +99,12 @@ const initialFormData: GrindexCommissioningFormData = {
   maximum_height_m: "",
   maximum_capacity: "",
   pump_weight: "",
-  hmax: "",
-  qmax: "",
 
   // Summary & Inspection
   summary: "",
   inspector: "",
   comments_action: "",
+  recommendation: "",
 
   // Signatures
   attending_technician: "",

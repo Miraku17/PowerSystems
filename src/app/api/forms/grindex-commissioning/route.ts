@@ -138,7 +138,7 @@ export const POST = withAuth(async (request, { user }) => {
     const commissioning_location = getString('commissioning_location');
     const job_order_no = getString('job_order_no');
     const commissioning_date = getString('commissioning_date');
-    const pump_model = getString('pump_model');
+    const grindex_pump_model = getString('grindex_pump_model');
     const pump_serial_no = getString('pump_serial_no');
     const commissioning_no = getString('commissioning_no');
     const equipment_manufacturer = getString('equipment_manufacturer');
@@ -153,11 +153,10 @@ export const POST = withAuth(async (request, { user }) => {
     const maximum_height_m = getString('maximum_height_m');
     const maximum_capacity = getString('maximum_capacity');
     const pump_weight = getString('pump_weight');
-    const hmax = getString('hmax');
-    const qmax = getString('qmax');
     const summary = getString('summary');
     const inspector = getString('inspector');
     const comments_action = getString('comments_action');
+    const recommendation = getString('recommendation');
     const attending_technician = getString('attending_technician');
     const rawAttendingSignature = getString('attending_technician_signature');
     const approved_by = getString('approved_by');
@@ -202,7 +201,7 @@ export const POST = withAuth(async (request, { user }) => {
           commissioning_location,
           job_order_no,
           commissioning_date: commissioning_date || null,
-          pump_model,
+          grindex_pump_model,
           pump_serial_no,
           commissioning_no,
           equipment_manufacturer,
@@ -217,11 +216,10 @@ export const POST = withAuth(async (request, { user }) => {
           maximum_height_m: toNumeric(maximum_height_m),
           maximum_capacity,
           pump_weight,
-          hmax: toNumeric(hmax),
-          qmax: toNumeric(qmax),
           summary,
           inspector,
           comments_action,
+          recommendation,
           attending_technician,
           approved_by,
           acknowledged_by,
@@ -369,7 +367,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       commissioning_location,
       job_order_no,
       commissioning_date,
-      pump_model,
+      grindex_pump_model,
       pump_serial_no,
       commissioning_no,
       equipment_manufacturer,
@@ -384,11 +382,10 @@ export const PATCH = withAuth(async (request, { user }) => {
       maximum_height_m,
       maximum_capacity,
       pump_weight,
-      hmax,
-      qmax,
       summary,
       inspector,
       comments_action,
+      recommendation,
       attending_technician,
       attending_technician_signature: rawAttendingSignature,
       approved_by,
@@ -475,7 +472,7 @@ export const PATCH = withAuth(async (request, { user }) => {
       commissioning_location,
       job_order_no,
       commissioning_date: commissioning_date || null,
-      pump_model,
+      grindex_pump_model,
       pump_serial_no,
       commissioning_no,
       equipment_manufacturer,
@@ -490,11 +487,10 @@ export const PATCH = withAuth(async (request, { user }) => {
       maximum_height_m,
       maximum_capacity,
       pump_weight,
-      hmax,
-      qmax,
       summary,
       inspector,
       comments_action,
+      recommendation,
       attending_technician,
       approved_by,
       acknowledged_by,

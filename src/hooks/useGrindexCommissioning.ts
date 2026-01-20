@@ -14,7 +14,7 @@ export interface GrindexCommissioningReport {
   commissioning_location: string;
   job_order_no: string;
   commissioning_date: string | null;
-  pump_model: string;
+  grindex_pump_model: string;
   pump_serial_no: string;
   commissioning_no: string;
   equipment_manufacturer: string;
@@ -29,11 +29,10 @@ export interface GrindexCommissioningReport {
   maximum_height_m: number | null;
   maximum_capacity: string;
   pump_weight: string;
-  hmax: number | null;
-  qmax: number | null;
   summary: string;
   inspector: string;
   comments_action: string;
+  recommendation: string;
   attending_technician: string;
   attending_technician_signature: string | null;
   approved_by: string;

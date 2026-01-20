@@ -20,7 +20,6 @@ export default function GrindexCommissioningReport() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [pumps, setPumps] = useState<any[]>([]);
 
   const createMutation = useCreateGrindexCommissioning();
 
@@ -48,22 +47,8 @@ export default function GrindexCommissioningReport() {
       }
     };
 
-    const fetchPumps = async () => {
-      try {
-        const response = await apiClient.get('/pumps');
-        if (response.data.success) {
-          setPumps(response.data.data);
-        } else if (Array.isArray(response.data)) {
-          setPumps(response.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch pumps", error);
-      }
-    };
-
     fetchUsers();
     fetchCustomers();
-    fetchPumps();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -80,17 +65,6 @@ export default function GrindexCommissioningReport() {
       email_address: customer.email || "",
       phone_number: customer.phone || "",
       equipment_name: customer.equipment || "",
-    });
-  };
-
-  const handlePumpSelect = (pump: any) => {
-    setFormData({
-      pump_model: pump.pumpModel || "",
-      pump_serial_no: pump.pumpSerialNumber || "",
-      equipment_manufacturer: pump.company?.name || formData.equipment_manufacturer,
-      rated_shaft_power_kw: pump.kw || "",
-      hmax: pump.hmax || "",
-      qmax: pump.qmax || "",
     });
   };
 
@@ -192,7 +166,7 @@ export default function GrindexCommissioningReport() {
             />
             <Input label="Phone/Fax" name="phone_number" value={formData.phone_number} onChange={handleChange} />
             <CustomerAutocomplete
-              label="Equipment Name/Installation"
+              label="Equipment Name"
               name="equipment_name"
               value={formData.equipment_name}
               onChange={handleChange}
@@ -255,24 +229,8 @@ export default function GrindexCommissioningReport() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Grindex Pump Details</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <PumpAutocomplete
-              label="Pump Model"
-              name="pump_model"
-              value={formData.pump_model}
-              onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="pumpModel"
-            />
-            <PumpAutocomplete
-              label="Pump Serial No."
-              name="pump_serial_no"
-              value={formData.pump_serial_no}
-              onChange={handleChange}
-              onSelect={handlePumpSelect}
-              pumps={pumps}
-              searchKey="pumpSerialNumber"
-            />
+            <Input label="Grindex Pump Model" name="grindex_pump_model" value={formData.grindex_pump_model} onChange={handleChange} />
+            <Input label="Pump Serial No." name="pump_serial_no" value={formData.pump_serial_no} onChange={handleChange} />
             <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
             <Input label="Pump No." name="pump_no" value={formData.pump_no} onChange={handleChange} />
             <Input label="Pump Type" name="pump_type" value={formData.pump_type} onChange={handleChange} />
@@ -287,16 +245,15 @@ export default function GrindexCommissioningReport() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Technical Specifications</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Rated Shaft Power (KW)" name="rated_shaft_power_kw" type="number" value={formData.rated_shaft_power_kw} onChange={handleChange} />
+            <Input label="Rated Shaft Power (P2, KW)" name="rated_shaft_power_kw" type="number" value={formData.rated_shaft_power_kw} onChange={handleChange} />
             <Input label="Rated Voltage" name="rated_voltage" value={formData.rated_voltage} onChange={handleChange} />
             <Input label="Rated Current (Amps)" name="rated_current_amps" type="number" value={formData.rated_current_amps} onChange={handleChange} />
+            <Input label="Running Hours" name="running_hours" type="number" value={formData.running_hours} onChange={handleChange} />
             <Input label="Phase" name="phase" value={formData.phase} onChange={handleChange} />
             <Input label="Frequency (Hz)" name="frequency_hz" type="number" value={formData.frequency_hz} onChange={handleChange} />
             <Input label="Oil Type" name="oil_type" value={formData.oil_type} onChange={handleChange} />
             <Input label="Maximum Height (m)" name="maximum_height_m" type="number" value={formData.maximum_height_m} onChange={handleChange} />
             <Input label="Maximum Capacity" name="maximum_capacity" value={formData.maximum_capacity} onChange={handleChange} />
-            <Input label="Hmax" name="hmax" type="number" value={formData.hmax} onChange={handleChange} />
-            <Input label="Qmax" name="qmax" type="number" value={formData.qmax} onChange={handleChange} />
           </div>
         </div>
 
@@ -307,11 +264,12 @@ export default function GrindexCommissioningReport() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Summary & Inspection</h3>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 space-y-6">
-            <TextArea label="Summary (Commissioning of Grindex Pump)" name="summary" value={formData.summary} onChange={handleChange} />
+            <TextArea label="Summary (Commissioning of 1 unit Grindex Pump)" name="summary" value={formData.summary} onChange={handleChange} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
               <Input label="Inspector" name="inspector" value={formData.inspector} onChange={handleChange} />
             </div>
             <TextArea label="Comments / Action" name="comments_action" value={formData.comments_action} onChange={handleChange} />
+            <TextArea label="Recommendation" name="recommendation" value={formData.recommendation} onChange={handleChange} />
           </div>
         </div>
 
@@ -734,91 +692,3 @@ const CustomerAutocomplete = ({
   );
 };
 
-interface PumpAutocompleteProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => void;
-  onSelect: (pump: any) => void;
-  pumps: any[];
-  searchKey?: string;
-}
-
-const PumpAutocomplete = ({
-  label,
-  name,
-  value,
-  onChange,
-  onSelect,
-  pumps,
-  searchKey = "pumpModel",
-}: PumpAutocompleteProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectPump = (pump: any) => {
-    onSelect(pump);
-    setShowDropdown(false);
-  };
-
-  const filteredPumps = pumps.filter((p) =>
-    (p[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  );
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          onChange={(e) => {
-            onChange(e);
-            setShowDropdown(true);
-          }}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-          placeholder={`Enter ${label.toLowerCase()}`}
-          autoComplete="off"
-        />
-        {showDropdown && filteredPumps.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {filteredPumps.map((pump) => (
-              <div
-                key={pump.id}
-                onClick={() => handleSelectPump(pump)}
-                className="px-3 py-2 hover:bg-green-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="font-medium">{pump.pumpModel}</div>
-                <div className="text-xs text-gray-500">
-                  S/N: {pump.pumpSerialNumber} • {pump.company?.name}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

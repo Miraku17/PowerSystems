@@ -166,7 +166,7 @@ export default function WedaCommissioningReport() {
             />
             <Input label="Phone/Fax" name="phone_number" value={formData.phone_number} onChange={handleChange} />
             <CustomerAutocomplete
-              label="Equipment Name/Installation"
+              label="Equipment Name"
               name="equipment_name"
               value={formData.equipment_name}
               onChange={handleChange}

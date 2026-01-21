@@ -88,13 +88,13 @@ export async function verifyAuth(
  * Higher-order function to wrap API route handlers with authentication
  * Usage: export const GET = withAuth(async (request, { user }) => { ... })
  */
-export function withAuth(
+export function withAuth<P extends Record<string, string> = Record<string, string>>(
   handler: (
     request: Request,
-    context: { user: AuthenticatedUser; params?: any }
+    context: { user: AuthenticatedUser; params: Promise<P> }
   ) => Promise<NextResponse>
 ) {
-  return async (request: Request, context?: { params?: any }): Promise<NextResponse> => {
+  return async (request: Request, routeContext: { params: Promise<P> }): Promise<NextResponse> => {
     const { user, error } = await verifyAuth(request);
 
     if (error) {
@@ -109,6 +109,6 @@ export function withAuth(
     }
 
     // Call the original handler with the authenticated user
-    return handler(request, { user, params: context?.params });
+    return handler(request, { user, params: routeContext.params });
   };
 }

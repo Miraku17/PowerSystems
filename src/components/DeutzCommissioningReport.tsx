@@ -8,6 +8,9 @@ import { supabase } from '@/lib/supabase';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormStore";
+import { useOffline } from "@/providers/OfflineProvider";
+import { addToSyncQueue } from "@/lib/offline/syncQueue";
+import { getCachedUsers, getCachedCustomers, getCachedEngines } from "@/lib/offline/referenceDataCache";
 
 interface User {
   id: string;
@@ -20,6 +23,9 @@ export default function DeutzCommissioningReport() {
   // Use Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useDeutzCommissioningFormStore();
 
+  // Offline support
+  const { isOnline } = useOffline();
+
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -27,43 +33,26 @@ export default function DeutzCommissioningReport() {
   const [engines, setEngines] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const loadReferenceData = async () => {
       try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
+        const [usersData, customersData, enginesData] = await Promise.all([
+          getCachedUsers(),
+          getCachedCustomers(),
+          getCachedEngines(),
+        ]);
+
+        setUsers(usersData as User[]);
+        setCustomers(customersData);
+        setEngines(enginesData);
       } catch (error) {
-        console.error("Failed to fetch users", error);
-        toast.error("Failed to load users for signature fields.");
+        console.error("Failed to load reference data", error);
+        if (!navigator.onLine) {
+          toast.error("Some reference data may be unavailable offline.");
+        }
       }
     };
 
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
-    const fetchEngines = async () => {
-      try {
-        const response = await apiClient.get('/engines');
-        if (response.data.success) {
-          setEngines(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch engines", error);
-      }
-    };
-
-    fetchUsers();
-    fetchCustomers();
-    fetchEngines();
+    loadReferenceData();
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -110,6 +99,35 @@ export default function DeutzCommissioningReport() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsLoading(true);
+
+    // If offline, queue for later sync
+    if (!isOnline) {
+      const loadingToastId = toast.loading("Saving form for offline sync...");
+      try {
+        // Add mapped fields to formData before queuing
+        const formDataWithMappedFields = {
+          ...formData,
+          summary: formData.inspection_summary,
+          comments_action: formData.inspection_comments,
+        };
+        await addToSyncQueue('deutz-commissioning', formDataWithMappedFields, attachments);
+        toast.success("Form saved! It will be submitted when you're back online.", {
+          id: loadingToastId,
+        });
+        resetFormData();
+        setAttachments([]);
+      } catch (error) {
+        console.error("Offline save error:", error);
+        toast.error("Failed to save form offline. Please try again.", {
+          id: loadingToastId,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Online submission
     const loadingToastId = toast.loading('Submitting report...');
 
     try {
@@ -144,7 +162,28 @@ export default function DeutzCommissioningReport() {
     } catch (error: any) {
       console.error('Submission error:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
-      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
+
+      // If network error, offer to save offline
+      if (!error.response) {
+        toast.error("Network error. Saving form for offline sync...", {
+          id: loadingToastId,
+        });
+        try {
+          const formDataWithMappedFields = {
+            ...formData,
+            summary: formData.inspection_summary,
+            comments_action: formData.inspection_comments,
+          };
+          await addToSyncQueue('deutz-commissioning', formDataWithMappedFields, attachments);
+          toast.success("Form saved offline! It will be submitted when connection is restored.");
+          resetFormData();
+          setAttachments([]);
+        } catch (offlineError) {
+          toast.error("Failed to save form offline.");
+        }
+      } else {
+        toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -185,6 +224,24 @@ export default function DeutzCommissioningReport() {
             </h2>
         </div>
       </div>
+
+      {/* Offline Indicator */}
+      {!isOnline && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <strong>You are currently offline.</strong> Your form will be saved locally and submitted when you&apos;re back online.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section: Job Reference */}

@@ -10,10 +10,13 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@serwist/next": "^9.5.0",
     "@sparticuz/chromium": "^141.0.0",
     "@sparticuz/chromium-min": "^141.0.0",
     "@supabase/supabase-js": "^2.86.0",
     "axios": "^1.13.2",
+    "dexie": "^4.2.1",
+    "dexie-react-hooks": "^4.2.0",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "next": "16.0.10",
@@ -25,6 +28,8 @@
     "react-hot-toast": "^2.6.0",
     "react-signature-canvas": "^1.1.0-alpha.2",
     "recharts": "^3.4.1",
+    "uuid": "^13.0.0",
+    "workbox-window": "^7.4.0",
     "zustand": "^5.0.10"
   },
   "devDependencies": {

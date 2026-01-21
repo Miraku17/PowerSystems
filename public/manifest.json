@@ -1,0 +1,23 @@
+{
+  "name": "Power Systems Inc.",
+  "short_name": "PSI Forms",
+  "description": "Power Systems Inc Service Forms Application",
+  "start_url": "/dashboard/forms",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2B4C7E",
+  "icons": [
+    {
+      "src": "/images/powersystemslogov1.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/powersystemslogov1.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

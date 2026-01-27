@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import DeutzServiceForm from "@/components/DeutzServiceForm";
 import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
 import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommissioningForm";
+import ElectricSurfacePumpCommissioningForm from "@/components/ElectricSurfacePumpCommissioningForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
@@ -17,6 +18,8 @@ const FillUpFormPage = () => {
         return <DeutzCommissioningReport />;
       case "submersible-pump-commissioning":
         return <SubmersiblePumpCommissioningForm />;
+      case "electric-surface-pump-commissioning":
+        return <ElectricSurfacePumpCommissioningForm />;
       default:
         return <DeutzServiceForm />;
     }
@@ -26,6 +29,7 @@ const FillUpFormPage = () => {
     { value: "service", label: "Deutz Service Form" },
     { value: "commissioning", label: "Deutz Commissioning Report" },
     { value: "submersible-pump-commissioning", label: "Submersible Pump Commissioning Report" },
+    { value: "electric-surface-pump-commissioning", label: "Electric Driven Surface Pump Commissioning Report" },
   ];
 
   return (

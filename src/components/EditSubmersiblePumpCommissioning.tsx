@@ -216,12 +216,31 @@ export default function EditSubmersiblePumpCommissioning({
     const loadingToast = toast.loading("Saving changes...");
 
     try {
+      // 1. Update the main form data
       const response = await apiClient.patch(
         `/forms/submersible-pump-commissioning?id=${recordId}`,
         formData
       );
 
       if (response.status === 200) {
+        // 2. Update attachments (deletions, title updates, new uploads)
+        const attachmentFormData = new FormData();
+        attachmentFormData.append('report_id', recordId);
+        attachmentFormData.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
+        attachmentFormData.append('existing_attachments', JSON.stringify(existingAttachments));
+
+        // Add new attachment files and titles
+        newAttachments.forEach((attachment) => {
+          attachmentFormData.append('attachment_files', attachment.file);
+          attachmentFormData.append('attachment_titles', attachment.title);
+        });
+
+        await apiClient.post('/forms/submersible-pump-commissioning/attachments', attachmentFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
         toast.success("Report updated successfully!", { id: loadingToast });
         onSaved();
         onClose();

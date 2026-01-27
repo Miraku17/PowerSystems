@@ -7,9 +7,9 @@ import {
   CogIcon,
   DocumentTextIcon,
   ArrowTrendingUpIcon,
-  PlusIcon,
   ArrowPathIcon,
   BoltIcon,
+  DocumentPlusIcon,
 } from "@heroicons/react/24/outline";
 import { StatCardSkeleton } from "@/components/Skeletons";
 import {
@@ -53,12 +53,14 @@ interface ApiResponse {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white p-4 border border-gray-100 shadow-xl rounded-xl">
-        <p className="text-sm font-semibold text-gray-900 mb-1">{label}</p>
+      <div className="bg-white p-3 border border-slate-100 shadow-xl rounded-lg ring-1 ring-black/5">
+        <p className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">{label}</p>
         {payload.map((entry: any, index: number) => (
-          <p key={index} className="text-sm" style={{ color: entry.color }}>
-            {entry.name}: <span className="font-bold">{entry.value}</span>
-          </p>
+          <div key={index} className="flex items-center gap-2 text-sm">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-slate-600 font-medium">{entry.name}:</span>
+            <span className="font-bold text-slate-900">{entry.value}</span>
+          </div>
         ))}
       </div>
     );
@@ -109,55 +111,59 @@ export default function OverviewPage() {
       title: "Total Customers",
       value: stats.totalCustomers,
       icon: UsersIcon,
-      color: "blue",
       trend: "+12%",
       link: "/dashboard/customers",
-      bgGradient: "from-blue-500 to-blue-600",
+      iconColor: "text-blue-600",
+      iconBg: "bg-blue-50",
+      trendColor: "text-emerald-600 bg-emerald-50",
     },
     {
       title: "Active Engines",
       value: stats.totalProducts,
       icon: CogIcon,
-      color: "green",
       trend: "+5%",
       link: "/dashboard/products",
-      bgGradient: "from-emerald-500 to-teal-600",
+      iconColor: "text-emerald-600",
+      iconBg: "bg-emerald-50",
+      trendColor: "text-emerald-600 bg-emerald-50",
     },
     {
       title: "Partner Companies",
       value: stats.totalCompanies,
       icon: BuildingOfficeIcon,
-      color: "purple",
       trend: "+2%",
       link: "/dashboard/companies",
-      bgGradient: "from-violet-500 to-purple-600",
+      iconColor: "text-indigo-600",
+      iconBg: "bg-indigo-50",
+      trendColor: "text-emerald-600 bg-emerald-50",
     },
   ];
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto">
+    <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto p-2 sm:p-4">
       {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200/60">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-3xl font-bold text-[#0f172a] tracking-tight">
             Dashboard Overview
           </h1>
-          <p className="text-gray-500 mt-1">
-            Welcome back! Here's what's happening today.
+          <p className="text-slate-500 mt-2 text-sm max-w-2xl leading-relaxed">
+            Monitor key metrics, track performance, and manage your operations efficiently from one central hub.
           </p>
         </div>
-        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100">
-          <div className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50/50 border border-emerald-100 rounded-full">
+            <div className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </div>
+            <span className="text-xs font-semibold text-emerald-700">
+              System Operational
+            </span>
           </div>
-          <span className="text-sm font-medium text-gray-600">
-            System Operational
-          </span>
-          <span className="text-gray-300">|</span>
           <button
             onClick={loadDashboardData}
-            className="text-gray-400 hover:text-[#2B4C7E] transition-colors"
+            className="p-2 text-slate-400 hover:text-[#2B4C7E] hover:bg-slate-50 rounded-lg transition-all duration-200 border border-transparent hover:border-slate-200"
             title="Refresh Data"
           >
             <ArrowPathIcon
@@ -180,33 +186,31 @@ export default function OverviewPage() {
             <Link
               href={stat.link}
               key={index}
-              className="group relative overflow-hidden bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              className="group relative bg-white rounded-2xl p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(6,81,237,0.12)] border border-slate-100 transition-all duration-300 hover:-translate-y-1"
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div
-                className={`absolute top-0 right-0 w-24 h-24 bg-gradient-to-br ${stat.bgGradient} opacity-10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 duration-500`}
-              />
-
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-6">
                 <div
-                  className={`p-3 rounded-xl bg-gradient-to-br ${stat.bgGradient} text-white shadow-lg group-hover:shadow-xl transition-all duration-300`}
+                  className={`p-3.5 rounded-xl ${stat.iconBg} ${stat.iconColor} ring-1 ring-inset ring-black/5`}
                 >
                   <stat.icon className="h-6 w-6" />
                 </div>
-                <div className="flex items-center space-x-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                <div className={`flex items-center space-x-1 text-xs font-bold px-2.5 py-1 rounded-full ${stat.trendColor}`}>
                   <ArrowTrendingUpIcon className="h-3 w-3" />
                   <span>{stat.trend}</span>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-slate-500 mb-1">
                   {stat.title}
                 </p>
-                <h3 className="text-3xl font-bold text-gray-900 tracking-tight">
+                <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
                   {stat.value}
                 </h3>
               </div>
+              
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </Link>
           ))
         )}
@@ -216,38 +220,41 @@ export default function OverviewPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Activity Chart (Takes up 2/3) */}
         <div
-          className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 animate-slideUp"
+          className="lg:col-span-2 bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 p-6 sm:p-8 animate-slideUp"
           style={{ animationDelay: "200ms" }}
         >
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
             <div>
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-slate-900">
                 Activity Trends
               </h2>
-              <p className="text-sm text-gray-500">
-                Forms created vs New customers over time
+              <p className="text-sm text-slate-500 mt-1">
+                Visualizing form creation versus new customer acquisition over time.
               </p>
             </div>
-            <select className="text-sm border-gray-200 rounded-lg text-gray-600 focus:ring-[#2B4C7E] focus:border-[#2B4C7E]">
+            {/* <select className="text-sm border-slate-200 rounded-lg text-slate-600 focus:ring-[#2B4C7E] focus:border-[#2B4C7E] bg-slate-50 py-2 pl-3 pr-8 shadow-sm">
               <option>Last 6 Months</option>
               <option>Last Year</option>
-            </select>
+            </select> */}
           </div>
 
           <div className="h-[350px] w-full">
             {isLoading ? (
-              <div className="h-full w-full bg-gray-50 rounded-xl animate-pulse flex items-center justify-center text-gray-300">
-                Loading Chart...
+              <div className="h-full w-full bg-slate-50 rounded-xl animate-pulse flex items-center justify-center text-slate-400">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                   <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                   Loading Chart Data...
+                </span>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={monthlyData}
-                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="colorForms" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2B4C7E" stopOpacity={0.3} />
+                      <stop offset="5%" stopColor="#2B4C7E" stopOpacity={0.2} />
                       <stop offset="95%" stopColor="#2B4C7E" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient
@@ -257,28 +264,28 @@ export default function OverviewPage() {
                       x2="0"
                       y2="1"
                     >
-                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#4A6FA5" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#4A6FA5" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#f0f0f0"
+                    stroke="#f1f5f9"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="month"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
                     dy={10}
                   />
                   <YAxis
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#9CA3AF", fontSize: 12 }}
+                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
                   <Area
                     type="monotone"
                     dataKey="forms"
@@ -286,16 +293,18 @@ export default function OverviewPage() {
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorForms)"
-                    name="Forms"
+                    name="Forms Created"
+                    activeDot={{ r: 6, strokeWidth: 0, fill: '#2B4C7E' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="customers"
-                    stroke="#3B82F6"
+                    stroke="#4A6FA5"
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorCustomers)"
-                    name="Customers"
+                    name="New Customers"
+                    activeDot={{ r: 6, strokeWidth: 0, fill: '#4A6FA5' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -307,89 +316,114 @@ export default function OverviewPage() {
         <div className="space-y-8">
           {/* Quick Actions Card */}
           <div
-            className="bg-[#2B4C7E] rounded-2xl p-6 shadow-lg text-white animate-slideUp"
+            className="group relative overflow-hidden bg-[#2B4C7E] rounded-2xl p-6 sm:p-8 shadow-xl text-white animate-slideUp ring-1 ring-white/10"
             style={{ animationDelay: "300ms" }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-lg flex items-center">
-                <BoltIcon className="h-5 w-5 mr-2 text-yellow-300" />
-                Quick Actions
-              </h3>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                href="/dashboard/customers"
-                className="bg-white/10 hover:bg-white/20 p-3 rounded-xl text-center transition-all backdrop-blur-sm"
-              >
-                <UsersIcon className="h-6 w-6 mx-auto mb-2 text-blue-200" />
-                <span className="text-xs font-medium block">New Customer</span>
-              </Link>
-              <Link
-                href="/dashboard/fill-up-form"
-                className="bg-white/10 hover:bg-white/20 p-3 rounded-xl text-center transition-all backdrop-blur-sm"
-              >
-                <DocumentTextIcon className="h-6 w-6 mx-auto mb-2 text-purple-200" />
-                <span className="text-xs font-medium block">Fill Up Form</span>
-              </Link>
+             {/* Decorative Background */}
+             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700" />
+             <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-[#4A6FA5]/50 rounded-full blur-2xl" />
+
+            <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                <h3 className="font-bold text-lg flex items-center tracking-tight">
+                    <BoltIcon className="h-5 w-5 mr-2 text-yellow-300" />
+                    Quick Actions
+                </h3>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                <Link
+                    href="/dashboard/customers"
+                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 hover:border-white/20 transition-all duration-300 group/item"
+                >
+                    <div className="p-2 bg-blue-500/20 rounded-lg mb-3 group-hover/item:scale-110 transition-transform duration-300">
+                        <UsersIcon className="h-6 w-6 text-blue-100" />
+                    </div>
+                    <span className="text-xs font-semibold text-blue-50">New Customer</span>
+                </Link>
+                <Link
+                    href="/dashboard/fill-up-form"
+                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 hover:border-white/20 transition-all duration-300 group/item"
+                >
+                    <div className="p-2 bg-purple-500/20 rounded-lg mb-3 group-hover/item:scale-110 transition-transform duration-300">
+                        <DocumentPlusIcon className="h-6 w-6 text-purple-100" />
+                    </div>
+                    <span className="text-xs font-semibold text-purple-50">Fill Form</span>
+                </Link>
+                </div>
             </div>
           </div>
 
           {/* Distribution Chart */}
           <div
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 h-[300px] animate-slideUp"
+            className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 p-6 animate-slideUp flex flex-col h-[320px]"
             style={{ animationDelay: "400ms" }}
           >
-            <h3 className="font-bold text-gray-900 mb-4">Distribution</h3>
-            <div className="h-[220px] w-full">
+            <div className="mb-4">
+                 <h3 className="font-bold text-slate-900">Entity Distribution</h3>
+                 <p className="text-xs text-slate-500">Breakdown of system records</p>
+            </div>
+            
+            <div className="flex-1 w-full min-h-0">
               {isLoading ? (
-                <div className="h-full w-full bg-gray-50 rounded-xl animate-pulse" />
+                <div className="h-full w-full bg-slate-50 rounded-xl animate-pulse" />
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={[
                       {
-                        name: "Cust",
+                        name: "Customers",
                         count: stats.totalCustomers,
-                        fill: "#3B82F6",
+                        fill: "#2B4C7E", // Primary Blue
                       },
                       {
-                        name: "Eng",
+                        name: "Engines",
                         count: stats.totalProducts,
-                        fill: "#10B981",
+                        fill: "#4A6FA5", // Lighter Blue
                       },
                       {
-                        name: "Comp",
+                        name: "Companies",
                         count: stats.totalCompanies,
-                        fill: "#8B5CF6",
+                        fill: "#64748b", // Slate
                       },
                     ]}
-                    barSize={40}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    barSize={45}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"
                       vertical={false}
-                      stroke="#f0f0f0"
+                      stroke="#f1f5f9"
                     />
                     <XAxis
                       dataKey="name"
                       axisLine={false}
                       tickLine={false}
-                      tick={{ fontSize: 12, fill: "#6B7280" }}
+                      tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
+                      dy={10}
+                    />
+                     <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fill: "#64748b", fontSize: 11 }}
                     />
                     <Tooltip
-                      cursor={{ fill: "transparent" }}
+                      cursor={{ fill: "#f8fafc" }}
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 shadow-lg">
-                              {`${payload[0].value} items`}
+                            <div className="bg-slate-800 text-white text-xs font-medium rounded-lg py-1.5 px-3 shadow-xl">
+                              {`${payload[0].value} ${payload[0].payload.name}`}
                             </div>
                           );
                         }
                         return null;
                       }}
                     />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} />
+                    <Bar 
+                        dataKey="count" 
+                        radius={[6, 6, 0, 0]} 
+                        animationDuration={1500}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               )}

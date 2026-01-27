@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FolderIcon } from "@heroicons/react/24/outline";
+import { FolderIcon, FolderOpenIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 export default function RecordsFoldersPage() {
   const router = useRouter();
@@ -11,16 +11,19 @@ export default function RecordsFoldersPage() {
       id: "deutz-commissioning",
       name: "Deutz Commissioning",
       formType: "deutz-commissioning",
+      description: "Commissioning reports and records for Deutz engines.",
     },
     {
       id: "deutz-service",
       name: "Deutz Service",
       formType: "deutz-service",
+      description: "Service maintenance and repair logs for Deutz systems.",
     },
     {
       id: "submersible-pump-commissioning",
       name: "Submersible Pump Commissioning",
       formType: "submersible-pump-commissioning",
+      description: "Commissioning documentation for submersible pumps.",
     },
   ];
 
@@ -30,43 +33,55 @@ export default function RecordsFoldersPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto animate-fadeIn">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-fadeIn p-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Form Records</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Select a form template to view its records.
+          <h1 className="text-3xl font-bold text-[#2B4C7E] tracking-tight">Form Records</h1>
+          <p className="text-gray-500 mt-2 text-sm max-w-2xl">
+            Access and manage digital records for various equipment and service types. Select a category below to view detailed logs.
           </p>
         </div>
       </div>
 
       {/* Folders View */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {formTemplates.map((template, index) => (
           <div
             key={template.id}
             onClick={() => handleFolderClick(template)}
-            className="group bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer relative overflow-hidden"
-            style={{ animationDelay: `${index * 50}ms` }}
+            className="group relative bg-white rounded-2xl p-6 border border-gray-100 hover:border-[#4A6FA5]/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(43,76,126,0.12)] transition-all duration-300 cursor-pointer overflow-hidden"
+            style={{ animationDelay: `${index * 100}ms` }}
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/5 to-purple-500/5 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110" />
-
-            <div className="flex items-start justify-between mb-4">
-              <div className="p-3 bg-blue-50 text-[#2B4C7E] rounded-xl group-hover:bg-[#2B4C7E] group-hover:text-white transition-colors shadow-sm">
-                <FolderIcon className="h-8 w-8" />
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#2B4C7E]/5 to-[#4A6FA5]/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
+            
+            <div className="relative flex flex-col h-full">
+              <div className="flex items-start justify-between mb-6">
+                <div className="relative p-3.5 bg-[#F5F5F0] text-[#2B4C7E] rounded-xl group-hover:bg-[#2B4C7E] group-hover:text-white transition-colors duration-300 shadow-sm ring-1 ring-[#2B4C7E]/5 overflow-hidden">
+                   {/* Icon Container with Stacked Icons */}
+                   <div className="relative w-7 h-7">
+                      <FolderIcon className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:scale-75" />
+                      <FolderOpenIcon className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100" />
+                   </div>
+                </div>
+                {/* Optional Badge or Status could go here */}
               </div>
-              <span className="text-xs font-medium px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full group-hover:bg-blue-50 group-hover:text-[#2B4C7E] transition-colors">
-                {template.formType}
-              </span>
-            </div>
 
-            <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-[#2B4C7E] transition-colors line-clamp-1">
-              {template.name}
-            </h3>
-            <p className="text-sm text-gray-500">
-              View records &rarr;
-            </p>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#2B4C7E] transition-colors">
+                  {template.name}
+                </h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-6 line-clamp-2">
+                  {template.description}
+                </p>
+              </div>
+
+              <div className="flex items-center text-sm font-semibold text-[#4A6FA5] group-hover:text-[#2B4C7E] transition-colors mt-auto pt-4 border-t border-gray-50">
+                <span>Access Records</span>
+                <ChevronRightIcon className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
           </div>
         ))}
       </div>

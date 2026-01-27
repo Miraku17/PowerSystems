@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { supabase, getServiceSupabase } from "@/lib/supabase";
+import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .from("deutz_commissioning_report")
       .select("*")
@@ -121,8 +122,9 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 
 export const POST = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const formData = await request.formData();
-    const serviceSupabase = getServiceSupabase();
+    const serviceSupabase = supabase;
 
     // Helper to safely get string values
     const getString = (key: string) => formData.get(key) as string || '';
@@ -426,6 +428,7 @@ export const POST = withAuth(async (request, { user }) => {
 
 export const PATCH = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -437,7 +440,7 @@ export const PATCH = withAuth(async (request, { user }) => {
     }
 
     const body = await request.json();
-    const serviceSupabase = getServiceSupabase();
+    const serviceSupabase = supabase;
 
     // Fetch the current record to get old signature URLs for deletion and permission check
     const { data: currentRecord, error: fetchError } = await supabase

@@ -1,8 +1,7 @@
-import { supabase } from "@/lib/supabase";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission, isUserAdmin } from "@/lib/permissions";
+import { isUserAdmin } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -44,6 +43,7 @@ const deleteSignature = async (serviceSupabase: any, url: string | null) => {
 
 export const DELETE = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     if (!id) {
@@ -53,7 +53,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    const serviceSupabase = getServiceSupabase();
+    const serviceSupabase = supabase;
 
     // First, fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
 
@@ -22,7 +21,8 @@ const getFilePathFromUrl = (url: string | null): string | null => {
 
 export const POST = withAuth(async (request, { user }) => {
   try {
-    const serviceSupabase = getServiceSupabase();
+    const supabase = getServiceSupabase();
+    const serviceSupabase = supabase;
     const formData = await request.formData();
 
     const reportId = formData.get('report_id') as string;

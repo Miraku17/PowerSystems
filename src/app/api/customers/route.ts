@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     // Fetch all customers from Supabase
     const { data, error } = await supabase
       .from("customers")
@@ -44,6 +45,7 @@ export const GET = withAuth(async (request, { user }) => {
 
 export const POST = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const body = await request.json();
     
     // Extract data from request body

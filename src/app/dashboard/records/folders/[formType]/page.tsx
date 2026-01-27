@@ -212,12 +212,12 @@ export default function FormRecordsPage() {
 
   const getCustomer = (record: FormRecord): string => {
     const data = record.data;
-    return data?.customer_name || data?.basicInformation?.customer || data?.basicInformation?.customerName || "N/A";
+    return data?.customer_name || data?.customer || data?.basicInformation?.customer || data?.basicInformation?.customerName || "N/A";
   };
 
   const getSerialNo = (record: FormRecord): string => {
     const data = record.data;
-    return data?.engine_serial_no || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
+    return data?.engine_serial_no || data?.pump_serial_number || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
   };
 
   const filteredRecords = records.filter((record) => {

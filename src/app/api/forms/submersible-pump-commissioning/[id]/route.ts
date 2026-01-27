@@ -1,4 +1,3 @@
-import { supabase } from "@/lib/supabase";
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
@@ -41,6 +40,7 @@ const deleteSignature = async (serviceSupabase: any, url: string | null) => {
 
 export const DELETE = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     if (!id) {
@@ -50,7 +50,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    const serviceSupabase = getServiceSupabase();
+    const serviceSupabase = supabase;
 
     // Fetch the record to check if it exists and is not already deleted
     const { data: record, error: fetchError } = await supabase
@@ -81,8 +81,8 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Soft delete: Update the record with deleted_at
-    const { data, error } = await supabase
+    // Soft delete: Update the record with deleted_at (using serviceSupabase to bypass RLS)
+    const { data, error } = await serviceSupabase
       .from("submersible_pump_commissioning_report")
       .update({
         deleted_at: new Date().toISOString(),
@@ -96,7 +96,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Log to audit_logs
-    await supabase.from('audit_logs').insert({
+    await serviceSupabase.from('audit_logs').insert({
       table_name: 'submersible_pump_commissioning_report',
       record_id: id,
       action: 'DELETE',

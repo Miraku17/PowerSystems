@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .from('deutz_service_report')
       .select('*')
@@ -347,6 +347,7 @@ export const POST = withAuth(async (request, { user }) => {
 
 export const PATCH = withAuth(async (request, { user }) => {
   try {
+    const supabase = getServiceSupabase();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -358,7 +359,7 @@ export const PATCH = withAuth(async (request, { user }) => {
     }
 
     const body = await request.json();
-    const serviceSupabase = getServiceSupabase();
+    const serviceSupabase = supabase;
 
     console.log('[API] PATCH deutz-service - Received signatures:', {
       attending_technician_signature: body.attending_technician_signature,

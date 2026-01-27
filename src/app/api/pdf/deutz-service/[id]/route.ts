@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     if (!id) {

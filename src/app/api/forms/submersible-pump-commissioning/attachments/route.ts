@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
-import { supabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
 
@@ -22,10 +21,11 @@ const getFilePathFromUrl = (url: string | null): string | null => {
 
 export const POST = withAuth(async (request, { user }) => {
   try {
-    const serviceSupabase = getServiceSupabase();
+    const supabase = getServiceSupabase();
+    const serviceSupabase = supabase;
     const formData = await request.formData();
 
-    const formId = formData.get('form_id') as string;
+    const reportId = formData.get('report_id') as string;
     const attachmentsToDelete = JSON.parse(formData.get('attachments_to_delete') as string || '[]');
     const existingAttachments = JSON.parse(formData.get('existing_attachments') as string || '[]');
     const attachmentFiles = formData.getAll('attachment_files') as File[];
@@ -36,7 +36,7 @@ export const POST = withAuth(async (request, { user }) => {
       for (const attachmentId of attachmentsToDelete) {
         // Fetch attachment to get file URL
         const { data: attachment } = await supabase
-          .from('weda_service_attachments')
+          .from('submersible_pump_commissioning_attachments')
           .select('file_url')
           .eq('id', attachmentId)
           .single();
@@ -57,7 +57,7 @@ export const POST = withAuth(async (request, { user }) => {
 
           // Delete record from database
           await supabase
-            .from('weda_service_attachments')
+            .from('submersible_pump_commissioning_attachments')
             .delete()
             .eq('id', attachmentId);
         }
@@ -67,8 +67,8 @@ export const POST = withAuth(async (request, { user }) => {
     // 2. Update titles for existing attachments
     for (const attachment of existingAttachments) {
       await supabase
-        .from('weda_service_attachments')
-        .update({ file_title: attachment.file_title })
+        .from('submersible_pump_commissioning_attachments')
+        .update({ file_name: attachment.file_name })
         .eq('id', attachment.id);
     }
 
@@ -79,8 +79,8 @@ export const POST = withAuth(async (request, { user }) => {
         const title = attachmentTitles[i] || '';
 
         if (file && file.size > 0) {
-          // Upload to service-reports/weda/service bucket
-          const filename = `weda/service/${Date.now()}-${sanitizeFilename(file.name)}`;
+          // Upload to service-reports/submersible/commission bucket
+          const filename = `submersible/commission/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await serviceSupabase.storage
             .from('service-reports')
@@ -100,14 +100,16 @@ export const POST = withAuth(async (request, { user }) => {
 
           const fileUrl = publicUrlData.publicUrl;
 
-          // Insert into weda_service_attachments table
+          // Insert into submersible_pump_commissioning_attachments table
           const { error: attachmentError } = await supabase
-            .from('weda_service_attachments')
+            .from('submersible_pump_commissioning_attachments')
             .insert([
               {
-                form_id: formId,
+                report_id: reportId,
                 file_url: fileUrl,
-                file_title: title,
+                file_name: title || file.name,
+                file_type: file.type,
+                file_size: file.size,
               },
             ]);
 

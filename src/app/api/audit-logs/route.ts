@@ -86,11 +86,11 @@ export const GET = withAuth(async (request, { user }) => {
     if (tableRecordIds['deutz_service_report']) {
         promises.push(fetchJobOrders('deutz_service_report', 'id', 'job_order'));
     }
-    if (tableRecordIds['grindex_service_forms']) {
-        promises.push(fetchJobOrders('grindex_service_forms', 'id', 'job_order'));
-    }
     if (tableRecordIds['deutz_commissioning_report']) {
         promises.push(fetchJobOrders('deutz_commissioning_report', 'id', 'job_order_no'));
+    }
+    if (tableRecordIds['submersible_pump_commissioning_report']) {
+        promises.push(fetchJobOrders('submersible_pump_commissioning_report', 'id', 'job_order'));
     }
 
     await Promise.all(promises);
@@ -98,11 +98,10 @@ export const GET = withAuth(async (request, { user }) => {
     // Readable Table Names
     const readableTableNames: Record<string, string> = {
         'deutz_service_report': 'Deutz Service',
-        'grindex_service_forms': 'Grindex Service',
         'deutz_commissioning_report': 'Deutz Commissioning',
+        'submersible_pump_commissioning_report': 'Submersible Pump Commissioning',
         'users': 'User Management',
         'companies': 'Company Management',
-        // Add others as needed
     };
 
     // Enrich logs

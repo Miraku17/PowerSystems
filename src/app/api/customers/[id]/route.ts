@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
 export const PUT = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
     const body = await request.json();
 
@@ -52,6 +53,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
 export const DELETE = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     const { error } = await supabase.from("customers").delete().eq("id", id);

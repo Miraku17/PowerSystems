@@ -4,22 +4,21 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 
-interface Attachment {
-  id: string;
-  file_url: string;
-  file_title: string;
-  created_at: string;
-}
-
-interface ViewWedaServiceProps {
+interface ViewSubmersiblePumpCommissioningProps {
   data: Record<string, any>;
   onClose: () => void;
   onExportPDF?: () => void;
 }
 
-export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWedaServiceProps) {
+interface Attachment {
+  id: string;
+  file_url: string;
+  file_name: string;
+  created_at: string;
+}
+
+export default function ViewSubmersiblePumpCommissioning({ data, onClose, onExportPDF }: ViewSubmersiblePumpCommissioningProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [loadingAttachments, setLoadingAttachments] = useState(true);
   const [auditInfo, setAuditInfo] = useState<{
     createdBy?: string;
     updatedBy?: string;
@@ -28,13 +27,11 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
 
   useEffect(() => {
     const fetchAttachments = async () => {
-      if (!data.id) return;
-
       try {
         const { data: attachmentsData, error } = await supabase
-          .from('weda_service_attachments')
+          .from('submersible_pump_commissioning_attachments')
           .select('*')
-          .eq('form_id', data.id)
+          .eq('report_id', data.id)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -44,12 +41,12 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
         }
       } catch (error) {
         console.error('Error fetching attachments:', error);
-      } finally {
-        setLoadingAttachments(false);
       }
     };
 
-    fetchAttachments();
+    if (data.id) {
+      fetchAttachments();
+    }
   }, [data.id]);
 
   useEffect(() => {
@@ -86,8 +83,8 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
     fetchAuditInfo();
   }, [data.created_by, data.updated_by, data.deleted_by]);
 
-  const Field = ({ label, value, className = "" }: { label: string; value: any; className?: string }) => (
-    <div className={className}>
+  const Field = ({ label, value }: { label: string; value: any }) => (
+    <div>
       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
         {label}
       </label>
@@ -97,8 +94,8 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
     </div>
   );
 
-  const TextField = ({ label, value, className = "" }: { label: string; value: any; className?: string }) => (
-    <div className={className}>
+  const TextField = ({ label, value }: { label: string; value: any }) => (
+    <div>
       <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
         {label}
       </label>
@@ -126,6 +123,7 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
         return 'Invalid Date';
       }
 
+      // Add 8 hours for Philippine Time (UTC+8)
       const phDate = new Date(date.getTime() + (8 * 60 * 60 * 1000));
 
       const month = String(phDate.getUTCMonth() + 1).padStart(2, '0');
@@ -148,6 +146,15 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
     }
   };
 
+  const formatDate = (dateString: any) => {
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch {
+      return 'N/A';
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
@@ -156,7 +163,7 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
         <div className="px-6 py-4 border-b border-gray-100 bg-white z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">WEDA Service Report</h3>
+              <h3 className="text-xl font-bold text-gray-900">Submersible Pump Commissioning Report</h3>
               {/* Audit Log */}
               {(data.created_at || data.updated_at || data.deleted_at) && (
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
@@ -214,7 +221,7 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
               </div>
               <div className="mt-6">
                 <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-                  WEDA Service Report
+                  Submersible Pump Commissioning Report
                 </h2>
               </div>
             </div>
@@ -227,143 +234,141 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Job Reference</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Field label="Job Order No." value={data.job_order} />
-                  <Field label="Date" value={data.report_date} />
+                  <Field label="Job Order" value={data.job_order} />
+                  <Field label="J.O Date" value={formatDate(data.jo_date)} />
                 </div>
               </div>
 
-              {/* Section 1: General Information */}
+              {/* Section: Basic Information */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">General Information</h4>
+                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Basic Information</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                   <Field label="Reporting Person" value={data.reporting_person_name} />
-                  <Field label="Telephone/Fax" value={data.telephone_fax} />
+                  <Field label="Contact Number" value={data.reporting_person_contact} />
                   <Field label="Equipment Manufacturer" value={data.equipment_manufacturer} />
-                  <Field label="Customer Name" value={data.customer_name} className="lg:col-span-2" />
+                  <div className="lg:col-span-2">
+                    <Field label="Customer" value={data.customer} />
+                  </div>
                   <Field label="Contact Person" value={data.contact_person} />
-                  <Field label="Address" value={data.address} className="lg:col-span-3" />
-                  <Field label="Email Address" value={data.email_address} />
-                  <Field label="Phone Number" value={data.phone_number} />
+                  <Field label="Email/Contact" value={data.email_or_contact} />
+                  <div className="lg:col-span-4">
+                    <Field label="Address" value={data.address} />
+                  </div>
                 </div>
               </div>
 
-              {/* Section 2: Pump Details */}
+              {/* Section: Pump Details */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                   <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Pump Details</h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   <Field label="Pump Model" value={data.pump_model} />
-                  <Field label="Pump Serial No." value={data.pump_serial_no} />
-                  <Field label="Commissioning No." value={data.commissioning_no} />
-                  <Field label="Equipment Model" value={data.equipment_model} />
-                  <Field label="Equipment Serial No." value={data.equipment_serial_no} />
+                  <Field label="Pump Serial Number" value={data.pump_serial_number} />
                   <Field label="Pump Type" value={data.pump_type} />
-                  <Field label="Pump Weight (kg)" value={data.pump_weight} />
+                  <Field label="KW Rating P1" value={data.kw_rating_p1} />
+                  <Field label="KW Rating P2" value={data.kw_rating_p2} />
+                  <Field label="Voltage" value={data.voltage} />
+                  <Field label="Frequency" value={data.frequency} />
+                  <Field label="Max Head" value={data.max_head} />
+                  <Field label="Max Flow" value={data.max_flow} />
+                  <Field label="Max Submerged Depth" value={data.max_submerged_depth} />
+                  <Field label="No. of Leads" value={data.no_of_leads} />
+                  <Field label="Configuration" value={data.configuration} />
+                  <div className="md:col-span-2">
+                    <Field label="Discharge Size/Type" value={data.discharge_size_type} />
+                  </div>
                 </div>
               </div>
 
-              {/* Section 3: Technical Specifications */}
+              {/* Section: Installation Details */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Technical Specifications</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                  <Field label="Rating" value={data.rating} />
-                  <Field label="Revolution" value={data.revolution} />
-                  <Field label="Related Current (Amps)" value={data.related_current_amps} />
-                  <Field label="Running Hours" value={data.running_hours} />
-                  <Field label="Phase" value={data.phase} />
-                  <Field label="Frequency (Hz)" value={data.frequency_hz} />
-                  <Field label="Oil Type" value={data.oil_type} />
-                  <Field label="Maximum Height (m)" value={data.maximum_height_m} />
-                  <Field label="Maximum Capacity" value={data.maximum_capacity} />
-                </div>
-              </div>
-
-              {/* Section 4: Operational Data */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Operational Data</h4>
+                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Installation Details</h4>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Field label="Location" value={data.location} />
-                  <Field label="Date In Service" value={data.date_in_service} />
-                  <Field label="Date Failed" value={data.date_failed} />
+                  <Field label="Submerge Depth" value={data.submerge_depth} />
+                  <Field label="Length of Wire/Size" value={data.length_of_wire_size} />
+                  <Field label="Pipe Size/Type" value={data.pipe_size_type} />
+                  <Field label="Pipe Length" value={data.pipe_length} />
+                  <Field label="Static Head" value={data.static_head} />
+                  <Field label="Check Valve Size/Type" value={data.check_valve_size_type} />
+                  <Field label="No. of Elbows/Size" value={data.no_of_elbows_size} />
+                  <Field label="Media" value={data.media} />
                 </div>
               </div>
 
-              {/* Section 5: Customer Complaint */}
+              {/* Section: Other Details */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Customer Complaint</h4>
+                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Other Details</h4>
                 </div>
-                <TextField label="Customer Complaint" value={data.customer_complaint} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Field label="Commissioning Date" value={formatDate(data.commissioning_date)} />
+                  <Field label="Power Source" value={data.power_source} />
+                  <Field label="Controller Type" value={data.controller_type} />
+                  <Field label="Sump Type" value={data.sump_type} />
+                  <Field label="Controller Brand" value={data.controller_brand} />
+                  <Field label="Pumping Arrangement" value={data.pumping_arrangement} />
+                  <Field label="Controller Rating" value={data.controller_rating} />
+                  <Field label="Others" value={data.others} />
+                </div>
               </div>
 
-              {/* Section 6: Possible Cause */}
+              {/* Section: Actual Operational Details */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Possible Cause</h4>
+                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Actual Operational Details</h4>
                 </div>
-                <TextField label="Possible Cause" value={data.possible_cause} />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Field label="Voltage" value={data.actual_voltage} />
+                  <Field label="Frequency" value={data.actual_frequency} />
+                  <Field label="Amps" value={data.actual_amps} />
+                  <Field label="Discharge Pressure" value={data.discharge_pressure} />
+                  <Field label="Discharge Flow" value={data.discharge_flow} />
+                  <Field label="Quality of Water" value={data.quality_of_water} />
+                  <Field label="Water Temp" value={data.water_temp} />
+                  <Field label="Duration" value={data.duration} />
+                </div>
               </div>
 
-              {/* Section 7: Warranty Information */}
+              {/* Section: Comments */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Warranty Information</h4>
+                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Comments</h4>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Field label="Within Coverage Period" value={data.within_coverage_period ? "Yes" : "No"} />
-                  <Field label="Warrantable Failure" value={data.warrantable_failure ? "Yes" : "No"} />
-                </div>
+                <TextField label="Comments" value={data.comments} />
               </div>
 
-              {/* Section 8: Service Report Details */}
-              <div>
-                <div className="flex items-center mb-4">
-                  <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-                  <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Service Report Details</h4>
-                </div>
-                <div className="space-y-4">
-                  <TextField label="Summary Details" value={data.summary_details} />
-                  <TextField label="Action Taken" value={data.action_taken} />
-                  <TextField label="Observation" value={data.observation} />
-                  <TextField label="Findings" value={data.findings} />
-                  <TextField label="Recommendations" value={data.recommendations} />
-                </div>
-              </div>
-
-              {/* Section: Attachments */}
-              {!loadingAttachments && attachments.length > 0 && (
+              {/* Image Attachments */}
+              {attachments.length > 0 && (
                 <div>
                   <div className="flex items-center mb-4">
                     <div className="w-1 h-6 bg-blue-600 mr-2"></div>
                     <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Image Attachments</h4>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {attachments.map((attachment) => (
-                      <div key={attachment.id} className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-                        <div className="relative aspect-video bg-gray-100">
+                      <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                        <div className="aspect-video bg-gray-100 relative">
                           <img
                             src={attachment.file_url}
-                            alt={attachment.file_title || 'Attachment'}
-                            className="w-full h-full object-contain"
+                            alt={attachment.file_name || 'Attachment'}
+                            className="w-full h-full object-cover"
                           />
                         </div>
-                        {attachment.file_title && (
-                          <div className="p-4 bg-gray-50 border-t border-gray-200">
-                            <p className="text-sm font-semibold text-gray-900">{attachment.file_title}</p>
+                        {attachment.file_name && (
+                          <div className="p-3 bg-white">
+                            <p className="text-sm font-medium text-gray-900">{attachment.file_name}</p>
                           </div>
                         )}
                       </div>
@@ -372,7 +377,7 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
                 </div>
               )}
 
-              {/* Section 9: Signatures */}
+              {/* Section: Signatures */}
               <div>
                 <div className="flex items-center mb-4">
                   <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -380,48 +385,48 @@ export default function ViewWedaService({ data, onClose, onExportPDF }: ViewWeda
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.attending_technician_signature ? (
-                             <img src={data.attending_technician_signature} alt="Technician Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                      {data.commissioned_by_signature ? (
+                        <img src={data.commissioned_by_signature} alt="Commissioned By Signature" className="max-h-20 max-w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                      )}
                     </div>
-                    <Field label="Attending Technician" value={data.attending_technician} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Signed by Technician</p>
+                    <Field label="Commissioned By" value={data.commissioned_by_name} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Svc Engineer/Technician</p>
                   </div>
                   <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.noted_by_signature ? (
-                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                      {data.checked_approved_by_signature ? (
+                        <img src={data.checked_approved_by_signature} alt="Checked & Approved By Signature" className="max-h-20 max-w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                      )}
                     </div>
-                    <Field label="Noted By" value={data.noted_by} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
+                    <Field label="Checked & Approved By" value={data.checked_approved_by_name} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Svc. Supvr. / Supt.</p>
                   </div>
                   <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.approved_by_signature ? (
-                             <img src={data.approved_by_signature} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                      {data.noted_by_signature ? (
+                        <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                      )}
                     </div>
-                    <Field label="Approved By" value={data.approved_by} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Authorized Signature</p>
+                    <Field label="Noted By" value={data.noted_by_name} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Svc. Manager</p>
                   </div>
                   <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.acknowledged_by_signature ? (
-                             <img src={data.acknowledged_by_signature} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
+                    <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                      {data.acknowledged_by_signature ? (
+                        <img src={data.acknowledged_by_signature} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                      )}
                     </div>
-                    <Field label="Acknowledged By" value={data.acknowledged_by} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Customer Signature</p>
+                    <Field label="Acknowledged By" value={data.acknowledged_by_name} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Customer Representative</p>
                   </div>
                 </div>
               </div>

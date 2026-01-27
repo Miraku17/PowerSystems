@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
+    const supabase = getServiceSupabase();
     const { id } = await params;
 
     if (!id) {
@@ -16,7 +17,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Fetch the record from Supabase
     const { data: record, error } = await supabase
-      .from("weda_service_report")
+      .from("submersible_pump_commissioning_report")
       .select("*")
       .eq("id", id)
       .single();
@@ -27,10 +28,20 @@ export const GET = withAuth(async (request, { user, params }) => {
     }
 
     // Helper function to get value or dash
-    const getValue = (value: any) => {
-      if (value === null || value === undefined || value === "") return "-";
-      if (typeof value === "boolean") return value ? "Yes" : "No";
-      return String(value);
+    const getValue = (value: any) => value || "-";
+
+    // Helper function to format date
+    const formatDate = (dateString: any) => {
+      if (!dateString) return "-";
+      try {
+        return new Date(dateString).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+      } catch {
+        return "-";
+      }
     };
 
     // Create PDF using jsPDF
@@ -76,7 +87,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.line(leftMargin + 10, yPos + 41, pageWidth - rightMargin - 10, yPos + 41);
 
     doc.setFontSize(7);
-    doc.text("NAVOTAS • BACOLOD • CEBU • CAGAYAN • DAVAO • GEN SAN • ZAMBOANGA • ILO-ILO • SURIGAO", pageWidth / 2, yPos + 47, { align: "center" });
+    doc.text("NAVOTAS * BACOLOD * CEBU * CAGAYAN * DAVAO * GEN SAN * ZAMBOANGA * ILO-ILO * SURIGAO", pageWidth / 2, yPos + 47, { align: "center" });
 
     yPos = 60;
 
@@ -84,16 +95,15 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setTextColor(0, 0, 0);
     doc.setDrawColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.setLineWidth(1);
-    doc.rect(pageWidth / 2 - 60, yPos, 120, 12);
+    doc.rect(pageWidth / 2 - 65, yPos, 130, 12);
 
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
-    doc.text("WEDA SERVICE REPORT", pageWidth / 2, yPos + 8, { align: "center" });
+    doc.text("SUBMERSIBLE PUMP COMMISSIONING REPORT", pageWidth / 2, yPos + 8, { align: "center" });
 
     yPos += 20;
 
-    // Helper function to add section header
     const addSection = (title: string) => {
       if (yPos > 20) {
         yPos += 5;
@@ -122,7 +132,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     const renderGridBox = (gridFields: any[], startY: number) => {
       let rows = 0;
       let currentColumn = 0;
-      gridFields.forEach(field => {
+      gridFields.forEach((field) => {
         if (field.span === 2) {
           if (currentColumn > 0) {
             rows++;
@@ -198,7 +208,6 @@ export const GET = withAuth(async (request, { user, params }) => {
           }
           fieldRows.push(currentRowCount);
           currentRowCount++;
-          currentColumn = 0;
         } else {
           fieldRows.push(currentRowCount);
           currentColumn++;
@@ -209,17 +218,27 @@ export const GET = withAuth(async (request, { user, params }) => {
         }
       });
 
-      const totalRows = currentRowCount + (currentColumn > 0 ? 1 : 0);
-      const estimatedBoxHeight = totalRows * 14 + 4;
+      const totalRows = currentColumn > 0 ? currentRowCount + 1 : currentRowCount;
+      const rowHeight = 14;
+      const boxPadding = 4;
+      const totalHeight = totalRows * rowHeight + boxPadding;
 
-      if (yPos + estimatedBoxHeight <= pageHeight - 20) {
-        const boxHeight = renderGridBox(fields, yPos);
-        yPos += boxHeight + 5;
+      if (yPos + totalHeight <= pageHeight - 20) {
+        const actualHeight = renderGridBox(fields, yPos);
+        yPos += actualHeight + 5;
         return;
       }
 
-      const availableSpace = pageHeight - yPos - 20;
-      const maxFitRows = Math.max(1, Math.floor((availableSpace - 4) / 14));
+      const availableHeight = (pageHeight - 20) - yPos;
+      const maxFitRows = Math.floor((availableHeight - boxPadding) / rowHeight);
+
+      if (maxFitRows < 1) {
+        doc.addPage();
+        yPos = 15;
+        const actualHeight = renderGridBox(fields, yPos);
+        yPos += actualHeight + 5;
+        return;
+      }
 
       let splitIndex = 0;
       for (let i = 0; i < fields.length; i++) {
@@ -240,12 +259,13 @@ export const GET = withAuth(async (request, { user, params }) => {
       const secondPageFields = fields.slice(splitIndex);
 
       renderGridBox(firstPageFields, yPos);
+
       doc.addPage();
       yPos = 15;
+
       addFieldsGrid(secondPageFields);
     };
 
-    // Helper function to add text area fields
     const addTextAreaField = (label: string, value: any) => {
       const valueText = getValue(value);
       const lines = doc.splitTextToSize(valueText, contentWidth - 6);
@@ -278,86 +298,90 @@ export const GET = withAuth(async (request, { user, params }) => {
     // Job Reference
     addSection("Job Reference");
     addFieldsGrid([
-      { label: "Job Order No.", value: record.job_order },
-      { label: "Date", value: record.report_date },
+      { label: "Job Order", value: record.job_order },
+      { label: "J.O Date", value: formatDate(record.jo_date) },
     ]);
 
-    // General Information
-    addSection("General Information");
+    // Basic Information
+    addSection("Basic Information");
     addFieldsGrid([
       { label: "Reporting Person", value: record.reporting_person_name },
-      { label: "Telephone/Fax", value: record.telephone_fax },
+      { label: "Contact Number", value: record.reporting_person_contact },
       { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
-      { label: "Customer Name", value: record.customer_name, span: 2 },
+      { label: "Customer", value: record.customer, span: 2 },
       { label: "Contact Person", value: record.contact_person },
+      { label: "Email/Contact", value: record.email_or_contact },
       { label: "Address", value: record.address, span: 2 },
-      { label: "Email Address", value: record.email_address },
-      { label: "Phone Number", value: record.phone_number },
     ]);
 
     // Pump Details
     addSection("Pump Details");
     addFieldsGrid([
       { label: "Pump Model", value: record.pump_model },
-      { label: "Pump Serial No.", value: record.pump_serial_no },
-      { label: "Commissioning No.", value: record.commissioning_no },
-      { label: "Equipment Model", value: record.equipment_model },
-      { label: "Equipment Serial No.", value: record.equipment_serial_no },
+      { label: "Pump Serial Number", value: record.pump_serial_number },
       { label: "Pump Type", value: record.pump_type },
-      { label: "Pump Weight (kg)", value: record.pump_weight },
+      { label: "KW Rating P1", value: record.kw_rating_p1 },
+      { label: "KW Rating P2", value: record.kw_rating_p2 },
+      { label: "Voltage", value: record.voltage },
+      { label: "Frequency", value: record.frequency },
+      { label: "Max Head", value: record.max_head },
+      { label: "Max Flow", value: record.max_flow },
+      { label: "Max Submerged Depth", value: record.max_submerged_depth },
+      { label: "No. of Leads", value: record.no_of_leads },
+      { label: "Configuration", value: record.configuration },
+      { label: "Discharge Size/Type", value: record.discharge_size_type, span: 2 },
     ]);
 
-    // Technical Specifications
-    addSection("Technical Specifications");
-    addFieldsGrid([
-      { label: "Rating", value: record.rating },
-      { label: "Revolution", value: record.revolution },
-      { label: "Related Current (Amps)", value: record.related_current_amps },
-      { label: "Running Hours", value: record.running_hours },
-      { label: "Phase", value: record.phase },
-      { label: "Frequency (Hz)", value: record.frequency_hz },
-      { label: "Oil Type", value: record.oil_type },
-      { label: "Maximum Height (m)", value: record.maximum_height_m },
-      { label: "Maximum Capacity", value: record.maximum_capacity },
-    ]);
-
-    // Operational Data
-    addSection("Operational Data");
+    // Installation Details
+    addSection("Installation Details");
     addFieldsGrid([
       { label: "Location", value: record.location },
-      { label: "Date In Service", value: record.date_in_service },
-      { label: "Date Failed", value: record.date_failed },
+      { label: "Submerge Depth", value: record.submerge_depth },
+      { label: "Length of Wire/Size", value: record.length_of_wire_size },
+      { label: "Pipe Size/Type", value: record.pipe_size_type },
+      { label: "Pipe Length", value: record.pipe_length },
+      { label: "Static Head", value: record.static_head },
+      { label: "Check Valve Size/Type", value: record.check_valve_size_type },
+      { label: "No. of Elbows/Size", value: record.no_of_elbows_size },
+      { label: "Media", value: record.media },
     ]);
 
-    // Customer Complaint
-    addSection("Customer Complaint");
-    addTextAreaField("Customer Complaint", record.customer_complaint);
-
-    // Possible Cause
-    addSection("Possible Cause");
-    addTextAreaField("Possible Cause", record.possible_cause);
-
-    // Warranty Information
-    addSection("Warranty Information");
+    // Other Details
+    addSection("Other Details");
     addFieldsGrid([
-      { label: "Within Coverage Period", value: record.within_coverage_period },
-      { label: "Warrantable Failure", value: record.warrantable_failure },
+      { label: "Commissioning Date", value: formatDate(record.commissioning_date) },
+      { label: "Power Source", value: record.power_source },
+      { label: "Controller Type", value: record.controller_type },
+      { label: "Sump Type", value: record.sump_type },
+      { label: "Controller Brand", value: record.controller_brand },
+      { label: "Pumping Arrangement", value: record.pumping_arrangement },
+      { label: "Controller Rating", value: record.controller_rating },
+      { label: "Others", value: record.others },
     ]);
 
-    // Service Report Details
-    addSection("Service Report Details");
-    addTextAreaField("Summary Details", record.summary_details);
-    addTextAreaField("Action Taken", record.action_taken);
-    addTextAreaField("Observation", record.observation);
-    addTextAreaField("Findings", record.findings);
-    addTextAreaField("Recommendations", record.recommendations);
+    // Actual Operational Details
+    addSection("Actual Operational Details");
+    addFieldsGrid([
+      { label: "Voltage", value: record.actual_voltage },
+      { label: "Frequency", value: record.actual_frequency },
+      { label: "Amps", value: record.actual_amps },
+      { label: "Discharge Pressure", value: record.discharge_pressure },
+      { label: "Discharge Flow", value: record.discharge_flow },
+      { label: "Quality of Water", value: record.quality_of_water },
+      { label: "Water Temp", value: record.water_temp },
+      { label: "Duration", value: record.duration },
+    ]);
+
+    // Comments
+    addSection("Comments");
+    addTextAreaField("Comments", record.comments);
 
     // Fetch and display attachments
     const { data: attachments } = await supabase
-      .from('weda_service_attachments')
-      .select('*')
-      .eq('form_id', id)
-      .order('created_at', { ascending: true });
+      .from("submersible_pump_commissioning_attachments")
+      .select("*")
+      .eq("report_id", id)
+      .order("created_at", { ascending: true });
 
     if (attachments && attachments.length > 0) {
       addSection("Image Attachments");
@@ -373,52 +397,46 @@ export const GET = withAuth(async (request, { user, params }) => {
         const renderAttachment = async (attachment: any, xStart: number) => {
           try {
             const imgResponse = await fetch(attachment.file_url);
-            let contentType = imgResponse.headers.get('content-type') || '';
+            let contentType = imgResponse.headers.get("content-type") || "";
             const arrayBuffer = await imgResponse.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
-            const imgBase64 = buffer.toString('base64');
+            const imgBase64 = buffer.toString("base64");
 
-            // Detect image format from file extension if content-type is not an image type
             const fileUrl = attachment.file_url.toLowerCase();
-            let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'JPEG';
+            let imageFormat: "JPEG" | "PNG" | "GIF" | "WEBP" = "JPEG";
 
-            if (fileUrl.includes('.png')) {
-              imageFormat = 'PNG';
-              contentType = 'image/png';
-            } else if (fileUrl.includes('.gif')) {
-              imageFormat = 'GIF';
-              contentType = 'image/gif';
-            } else if (fileUrl.includes('.webp')) {
-              imageFormat = 'WEBP';
-              contentType = 'image/webp';
-            } else if (fileUrl.includes('.jpg') || fileUrl.includes('.jpeg')) {
-              imageFormat = 'JPEG';
-              contentType = 'image/jpeg';
-            } else if (contentType.includes('png')) {
-              imageFormat = 'PNG';
-            } else if (contentType.includes('gif')) {
-              imageFormat = 'GIF';
-            } else if (contentType.includes('webp')) {
-              imageFormat = 'WEBP';
+            if (fileUrl.includes(".png")) {
+              imageFormat = "PNG";
+              contentType = "image/png";
+            } else if (fileUrl.includes(".gif")) {
+              imageFormat = "GIF";
+              contentType = "image/gif";
+            } else if (fileUrl.includes(".webp")) {
+              imageFormat = "WEBP";
+              contentType = "image/webp";
+            } else if (fileUrl.includes(".jpg") || fileUrl.includes(".jpeg")) {
+              imageFormat = "JPEG";
+              contentType = "image/jpeg";
+            } else if (contentType.includes("png")) {
+              imageFormat = "PNG";
+            } else if (contentType.includes("gif")) {
+              imageFormat = "GIF";
+            } else if (contentType.includes("webp")) {
+              imageFormat = "WEBP";
             } else {
-              // Default to JPEG
-              contentType = 'image/jpeg';
+              contentType = "image/jpeg";
             }
 
-            // Use fixed dimensions for images (will be scaled to fit)
             const imgWidth = maxImgWidth - 4;
             const imgHeight = maxImgHeight - 4;
             const boxHeight = maxImgHeight + 12;
 
-            // Draw border around image box
             doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
             doc.setLineWidth(0.3);
             doc.rect(xStart, yPos, maxImgWidth, boxHeight);
 
-            // Center the image horizontally in the box
             const imgXOffset = xStart + 2;
 
-            // Add image using raw base64 with explicit format
             doc.addImage(
               `data:${contentType};base64,${imgBase64}`,
               imageFormat,
@@ -428,15 +446,14 @@ export const GET = withAuth(async (request, { user, params }) => {
               imgHeight
             );
 
-            // Add title background and text only if there's a title
-            if (attachment.file_title) {
+            if (attachment.file_name) {
               doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
               doc.rect(xStart, yPos + imgHeight + 2, maxImgWidth, 10, "F");
 
               doc.setFontSize(8);
               doc.setFont("helvetica", "bold");
               doc.setTextColor(0, 0, 0);
-              const titleLines = doc.splitTextToSize(attachment.file_title, maxImgWidth - 4);
+              const titleLines = doc.splitTextToSize(attachment.file_name, maxImgWidth - 4);
               doc.text(titleLines, xStart + 2, yPos + imgHeight + 8);
             }
 
@@ -477,28 +494,32 @@ export const GET = withAuth(async (request, { user, params }) => {
     const addSignatures = async () => {
       const signatures = [
         {
-          label: "Attending Technician",
-          name: record.attending_technician,
-          imageUrl: record.attending_technician_signature,
+          label: "Svc Engineer/Technician",
+          title: "Commissioned By",
+          name: record.commissioned_by_name,
+          imageUrl: record.commissioned_by_signature,
         },
         {
-          label: "Noted By",
-          name: record.noted_by,
+          label: "Svc. Supvr. / Supt.",
+          title: "Checked & Approved By",
+          name: record.checked_approved_by_name,
+          imageUrl: record.checked_approved_by_signature,
+        },
+        {
+          label: "Svc. Manager",
+          title: "Noted By",
+          name: record.noted_by_name,
           imageUrl: record.noted_by_signature,
         },
         {
-          label: "Approved By",
-          name: record.approved_by,
-          imageUrl: record.approved_by_signature,
-        },
-        {
-          label: "Acknowledged By",
-          name: record.acknowledged_by,
+          label: "Customer Representative",
+          title: "Acknowledged By",
+          name: record.acknowledged_by_name,
           imageUrl: record.acknowledged_by_signature,
         },
       ];
 
-      const sigBoxHeight = 42;
+      const sigBoxHeight = 48;
       const sigBoxWidth = (contentWidth - 6) / 4;
 
       if (yPos + sigBoxHeight > pageHeight - 15) {
@@ -515,16 +536,18 @@ export const GET = withAuth(async (request, { user, params }) => {
         const sig = signatures[i];
         const xOffset = leftMargin + 3 + i * (sigBoxWidth + 3);
 
+        // Signature box with border
         doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
         doc.setLineWidth(0.3);
         doc.rect(xOffset, yPos + 2, sigBoxWidth - 3, 25);
 
+        // Add signature image if available
         if (sig.imageUrl) {
           try {
             const imgResponse = await fetch(sig.imageUrl);
             const arrayBuffer = await imgResponse.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
-            const imgBase64 = buffer.toString('base64');
+            const imgBase64 = buffer.toString("base64");
 
             doc.addImage(
               imgBase64,
@@ -541,17 +564,25 @@ export const GET = withAuth(async (request, { user, params }) => {
           }
         }
 
+        // Title above name
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+        doc.text(sig.title, xOffset + sigBoxWidth / 2, yPos + 32, { align: "center" });
+
+        // Name below signature
         doc.setFontSize(9);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
         const nameText = getValue(sig.name);
         const nameLines = doc.splitTextToSize(nameText, sigBoxWidth - 6);
-        doc.text(nameLines, xOffset + sigBoxWidth / 2, yPos + 32, { align: "center" });
+        doc.text(nameLines, xOffset + sigBoxWidth / 2, yPos + 38, { align: "center" });
 
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
+        // Label below Name
+        doc.setFontSize(6);
+        doc.setFont("helvetica", "italic");
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(sig.label, xOffset + sigBoxWidth / 2, yPos + 38, { align: "center" });
+        doc.text(sig.label, xOffset + sigBoxWidth / 2, yPos + 44, { align: "center" });
       }
 
       yPos += sigBoxHeight + 11;
@@ -561,10 +592,11 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
 
+    // Return PDF as response
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="WEDA-Service-Report-${
+        "Content-Disposition": `attachment; filename="Submersible-Pump-Commissioning-Report-${
           record.job_order || id
         }.pdf"`,
       },
@@ -577,9 +609,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       stack: error?.stack,
       name: error?.name,
     });
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 });

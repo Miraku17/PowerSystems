@@ -20,6 +20,7 @@ export interface FormRecord {
 const formTypeEndpoints: Record<string, string> = {
   "deutz-commissioning": "/forms/deutz-commissioning",
   "deutz-service": "/forms/deutz-service",
+  "submersible-pump-commissioning": "/forms/submersible-pump-commissioning",
 };
 
 export const formRecordService = {

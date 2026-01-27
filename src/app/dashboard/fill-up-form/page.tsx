@@ -3,8 +3,7 @@
 import React, { useState } from "react";
 import DeutzServiceForm from "@/components/DeutzServiceForm";
 import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
-import GrindexServiceForm from "@/components/GrindexServiceForm";
-import WedaServiceForm from "@/components/WedaServiceForm";
+import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommissioningForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
@@ -16,73 +15,17 @@ const FillUpFormPage = () => {
         return <DeutzServiceForm />;
       case "commissioning":
         return <DeutzCommissioningReport />;
-      case "grindex":
-        return <GrindexServiceForm />;
-      case "weda-service":
-        return <WedaServiceForm />;
+      case "submersible-pump-commissioning":
+        return <SubmersiblePumpCommissioningForm />;
       default:
-        return (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 mb-4">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8 text-blue-600"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                />
-              </svg>
-            </div>
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
-              Coming Soon
-            </h3>
-            <p className="text-gray-500 max-w-sm mx-auto">
-              The{" "}
-              <span className="font-semibold text-gray-700">
-                {options.find((opt) => opt.value === activeForm)?.label}
-              </span>{" "}
-              is currently under development and will be available shortly.
-            </p>
-          </div>
-        );
+        return <DeutzServiceForm />;
     }
   };
 
   const options = [
     { value: "service", label: "Deutz Service Form" },
     { value: "commissioning", label: "Deutz Commissioning Report" },
-    { value: "grindex", label: "Grindex Service Form" },
-    { value: "grindex-commissioning", label: "Grindex Commissioning Report" },
-    { value: "weda-service", label: "WEDA Service Report" },
-    { value: "weda-commissioning", label: "WEDA Commissioning Report" },
-    {
-      value: "electric-pump-commissioning",
-      label: "Electric Driven Pump Commissioning Report",
-    },
-    {
-      value: "electric-pump-service",
-      label: "Electric Driven Pump Service Report",
-    },
-    {
-      value: "electric-pump-teardown",
-      label: "Electric Driven Pump Teardown Report",
-    },
-    {
-      value: "engine-pump-commissioning",
-      label: "Engine Driven Pump Commissioning Report",
-    },
-    {
-      value: "engine-pump-service",
-      label: "Engine Driven Pump Service Report",
-    },
-    { value: "inspection-report", label: "Inspection Report" },
-    { value: "technical-report", label: "Technical Report" },
+    { value: "submersible-pump-commissioning", label: "Submersible Pump Commissioning Report" },
   ];
 
   return (

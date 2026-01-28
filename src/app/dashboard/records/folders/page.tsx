@@ -25,6 +25,12 @@ export default function RecordsFoldersPage() {
       formType: "submersible-pump-commissioning",
       description: "Commissioning documentation for submersible pumps.",
     },
+    {
+      id: "electric-surface-pump-commissioning",
+      name: "Electric Surface Pump Commissioning",
+      formType: "electric-surface-pump-commissioning",
+      description: "Commissioning documentation for electric driven surface pumps.",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

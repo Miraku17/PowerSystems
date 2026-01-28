@@ -20,9 +20,11 @@ import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
 import ViewSubmersiblePumpCommissioning from "@/components/ViewSubmersiblePumpCommissioning";
+import ViewElectricSurfacePumpCommissioning from "@/components/ViewElectricSurfacePumpCommissioning";
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
 import EditSubmersiblePumpCommissioning from "@/components/EditSubmersiblePumpCommissioning";
+import EditElectricSurfacePumpCommissioning from "@/components/EditElectricSurfacePumpCommissioning";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -69,6 +71,7 @@ export default function FormRecordsPage() {
     "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
     "submersible-pump-commissioning": { endpoint: "/forms/submersible-pump-commissioning", name: "Submersible Pump Commissioning Report" },
+    "electric-surface-pump-commissioning": { endpoint: "/forms/electric-surface-pump-commissioning", name: "Electric Driven Surface Pump Commissioning Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -154,6 +157,7 @@ export default function FormRecordsPage() {
         "deutz-service": "deutz-service",
         "service": "deutz-service",
         "submersible-pump-commissioning": "submersible-pump-commissioning",
+        "electric-surface-pump-commissioning": "electric-surface-pump-commissioning",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -626,6 +630,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "submersible-pump-commissioning" && (
         <EditSubmersiblePumpCommissioning
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "electric-surface-pump-commissioning" && (
+        <ViewElectricSurfacePumpCommissioning
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "electric-surface-pump-commissioning" && (
+        <EditElectricSurfacePumpCommissioning
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

@@ -295,6 +295,7 @@ export default function EditElectricSurfacePumpCommissioning({
                 <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
                 <Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} />
                 <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
+                <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date?.split("T")[0] || ""} onChange={handleChange} />
                 <div className="lg:col-span-2">
                   <Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} />
                 </div>
@@ -367,7 +368,6 @@ export default function EditElectricSurfacePumpCommissioning({
               <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
                 <Input label="Static Head" name="static_head" value={formData.static_head} onChange={handleChange} />
-                <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date?.split("T")[0] || ""} onChange={handleChange} />
                 <Input label="Suction Pipe Size" name="suction_pipe_size" value={formData.suction_pipe_size} onChange={handleChange} />
                 <Input label="Suction Pipe Length" name="suction_pipe_length" value={formData.suction_pipe_length} onChange={handleChange} />
                 <Input label="Suction Pipe Type" name="suction_pipe_type" value={formData.suction_pipe_type} onChange={handleChange} />

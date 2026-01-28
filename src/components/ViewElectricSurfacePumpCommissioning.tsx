@@ -239,6 +239,7 @@ export default function ViewElectricSurfacePumpCommissioning({ data, onClose, on
                   <Field label="Reporting Person" value={data.reporting_person_name} />
                   <Field label="Contact Number" value={data.reporting_person_contact} />
                   <Field label="Equipment Manufacturer" value={data.equipment_manufacturer} />
+                  <Field label="Commissioning Date" value={formatDate(data.commissioning_date)} />
                   <div className="lg:col-span-2">
                     <Field label="Customer" value={data.customer} />
                   </div>
@@ -305,7 +306,6 @@ export default function ViewElectricSurfacePumpCommissioning({ data, onClose, on
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                   <Field label="Location" value={data.location} />
                   <Field label="Static Head" value={data.static_head} />
-                  <Field label="Commissioning Date" value={formatDate(data.commissioning_date)} />
                   <Field label="Suction Pipe Size" value={data.suction_pipe_size} />
                   <Field label="Suction Pipe Length" value={data.suction_pipe_length} />
                   <Field label="Suction Pipe Type" value={data.suction_pipe_type} />

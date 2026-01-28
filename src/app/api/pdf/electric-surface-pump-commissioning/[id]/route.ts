@@ -282,6 +282,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Reporting Person", value: record.reporting_person_name },
       { label: "Contact Number", value: record.reporting_person_contact },
       { label: "Equipment Manufacturer", value: record.equipment_manufacturer },
+      { label: "Commissioning Date", value: formatDate(record.commissioning_date) },
       { label: "Customer", value: record.customer, span: 2 },
       { label: "Contact Person", value: record.contact_person },
       { label: "Email/Contact", value: record.email_or_contact },
@@ -329,7 +330,6 @@ export const GET = withAuth(async (request, { user, params }) => {
     addFieldsGrid([
       { label: "Location", value: record.location },
       { label: "Static Head", value: record.static_head },
-      { label: "Commissioning Date", value: formatDate(record.commissioning_date) },
       { label: "Suction Pipe Size", value: record.suction_pipe_size },
       { label: "Suction Pipe Length", value: record.suction_pipe_length },
       { label: "Suction Pipe Type", value: record.suction_pipe_type },

@@ -21,10 +21,14 @@ import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
 import ViewSubmersiblePumpCommissioning from "@/components/ViewSubmersiblePumpCommissioning";
 import ViewElectricSurfacePumpCommissioning from "@/components/ViewElectricSurfacePumpCommissioning";
+import ViewElectricSurfacePumpService from "@/components/ViewElectricSurfacePumpService";
+import ViewEngineSurfacePumpService from "@/components/ViewEngineSurfacePumpService";
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
 import EditSubmersiblePumpCommissioning from "@/components/EditSubmersiblePumpCommissioning";
 import EditElectricSurfacePumpCommissioning from "@/components/EditElectricSurfacePumpCommissioning";
+import EditElectricSurfacePumpService from "@/components/EditElectricSurfacePumpService";
+import EditEngineSurfacePumpService from "@/components/EditEngineSurfacePumpService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -72,6 +76,8 @@ export default function FormRecordsPage() {
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
     "submersible-pump-commissioning": { endpoint: "/forms/submersible-pump-commissioning", name: "Submersible Pump Commissioning Report" },
     "electric-surface-pump-commissioning": { endpoint: "/forms/electric-surface-pump-commissioning", name: "Electric Driven Surface Pump Commissioning Report" },
+    "electric-surface-pump-service": { endpoint: "/forms/electric-surface-pump-service", name: "Electric Driven Surface Pump Service Report" },
+    "engine-surface-pump-service": { endpoint: "/forms/engine-surface-pump-service", name: "Engine Driven Surface Pump Service Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -158,6 +164,8 @@ export default function FormRecordsPage() {
         "service": "deutz-service",
         "submersible-pump-commissioning": "submersible-pump-commissioning",
         "electric-surface-pump-commissioning": "electric-surface-pump-commissioning",
+        "electric-surface-pump-service": "electric-surface-pump-service",
+        "engine-surface-pump-service": "engine-surface-pump-service",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -647,6 +655,40 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "electric-surface-pump-commissioning" && (
         <EditElectricSurfacePumpCommissioning
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "electric-surface-pump-service" && (
+        <ViewElectricSurfacePumpService
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "electric-surface-pump-service" && (
+        <EditElectricSurfacePumpService
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "engine-surface-pump-service" && (
+        <ViewEngineSurfacePumpService
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "engine-surface-pump-service" && (
+        <EditEngineSurfacePumpService
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

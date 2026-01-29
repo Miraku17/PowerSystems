@@ -43,6 +43,12 @@ export default function RecordsFoldersPage() {
       formType: "engine-surface-pump-service",
       description: "Service and maintenance reports for engine driven surface pumps.",
     },
+    {
+      id: "engine-surface-pump-commissioning",
+      name: "Engine Surface Pump Commissioning",
+      formType: "engine-surface-pump-commissioning",
+      description: "Commissioning documentation for engine driven surface pumps.",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

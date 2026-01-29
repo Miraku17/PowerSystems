@@ -7,6 +7,7 @@ import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommis
 import ElectricSurfacePumpCommissioningForm from "@/components/ElectricSurfacePumpCommissioningForm";
 import ElectricSurfacePumpServiceForm from "@/components/ElectricSurfacePumpServiceForm";
 import EngineSurfacePumpServiceForm from "@/components/EngineSurfacePumpServiceForm";
+import EngineSurfacePumpCommissioningForm from "@/components/EngineSurfacePumpCommissioningForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
@@ -26,6 +27,8 @@ const FillUpFormPage = () => {
         return <ElectricSurfacePumpServiceForm />;
       case "engine-surface-pump-service":
         return <EngineSurfacePumpServiceForm />;
+      case "engine-surface-pump-commissioning":
+        return <EngineSurfacePumpCommissioningForm />;
       default:
         return <DeutzServiceForm />;
     }
@@ -38,6 +41,7 @@ const FillUpFormPage = () => {
     { value: "electric-surface-pump-commissioning", label: "Electric Driven Surface Pump Commissioning Report" },
     { value: "electric-surface-pump-service", label: "Electric Driven Surface Pump Service Report" },
     { value: "engine-surface-pump-service", label: "Engine Driven Surface Pump Service Report" },
+    { value: "engine-surface-pump-commissioning", label: "Engine Driven Surface Pump Commissioning Report" },
   ];
 
   return (

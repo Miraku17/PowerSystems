@@ -49,6 +49,12 @@ export default function RecordsFoldersPage() {
       formType: "engine-surface-pump-commissioning",
       description: "Commissioning documentation for engine driven surface pumps.",
     },
+    {
+      id: "engine-teardown",
+      name: "Engine Teardown Report",
+      formType: "engine-teardown",
+      description: "Comprehensive engine teardown inspection and component analysis reports.",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

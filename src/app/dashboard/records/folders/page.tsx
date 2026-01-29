@@ -26,6 +26,12 @@ export default function RecordsFoldersPage() {
       description: "Commissioning documentation for submersible pumps.",
     },
     {
+      id: "submersible-pump-teardown",
+      name: "Submersible Pump Teardown",
+      formType: "submersible-pump-teardown",
+      description: "Teardown reports and analysis for submersible pumps.",
+    },
+    {
       id: "electric-surface-pump-commissioning",
       name: "Electric Surface Pump Commissioning",
       formType: "electric-surface-pump-commissioning",

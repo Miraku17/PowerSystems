@@ -61,6 +61,12 @@ export default function RecordsFoldersPage() {
       formType: "engine-teardown",
       description: "Comprehensive engine teardown inspection and component analysis reports.",
     },
+    {
+      id: "electric-surface-pump-teardown",
+      name: "Electric Surface Pump Teardown",
+      formType: "electric-surface-pump-teardown",
+      description: "Teardown reports and analysis for electric driven surface pumps.",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

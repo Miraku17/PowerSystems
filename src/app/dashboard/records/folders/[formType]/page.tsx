@@ -33,6 +33,8 @@ import EditElectricSurfacePumpCommissioning from "@/components/EditElectricSurfa
 import EditElectricSurfacePumpService from "@/components/EditElectricSurfacePumpService";
 import EditEngineSurfacePumpService from "@/components/EditEngineSurfacePumpService";
 import EditEngineSurfacePumpCommissioning from "@/components/EditEngineSurfacePumpCommissioning";
+import ViewEngineTeardown from "@/components/ViewEngineTeardown";
+import EditEngineTeardown from "@/components/EditEngineTeardown";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -84,6 +86,7 @@ export default function FormRecordsPage() {
     "electric-surface-pump-service": { endpoint: "/forms/electric-surface-pump-service", name: "Electric Driven Surface Pump Service Report" },
     "engine-surface-pump-service": { endpoint: "/forms/engine-surface-pump-service", name: "Engine Driven Surface Pump Service Report" },
     "engine-surface-pump-commissioning": { endpoint: "/forms/engine-surface-pump-commissioning", name: "Engine Driven Surface Pump Commissioning Report" },
+    "engine-teardown": { endpoint: "/forms/engine-teardown", name: "Engine Teardown Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -174,6 +177,7 @@ export default function FormRecordsPage() {
         "electric-surface-pump-service": "electric-surface-pump-service",
         "engine-surface-pump-service": "engine-surface-pump-service",
         "engine-surface-pump-commissioning": "engine-surface-pump-commissioning",
+        "engine-teardown": "engine-teardown",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -731,6 +735,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "engine-surface-pump-commissioning" && (
         <EditEngineSurfacePumpCommissioning
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "engine-teardown" && (
+        <ViewEngineTeardown
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "engine-teardown" && (
+        <EditEngineTeardown
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

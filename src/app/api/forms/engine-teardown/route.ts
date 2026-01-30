@@ -2,6 +2,79 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
+// Helper to extract file path from Supabase storage URL
+const getFilePathFromUrl = (url: string | null): string | null => {
+  if (!url) return null;
+  try {
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/');
+    // URL format: /storage/v1/object/public/signatures/filename.png
+    const bucketIndex = pathParts.indexOf('public');
+    if (bucketIndex !== -1 && pathParts.length > bucketIndex + 2) {
+      return pathParts.slice(bucketIndex + 2).join('/');
+    }
+  } catch (e) {
+    console.error('Error parsing URL:', e);
+  }
+  return null;
+};
+
+// Helper to delete signature from storage
+const deleteSignature = async (serviceSupabase: any, url: string | null) => {
+  if (!url) return;
+  const filePath = getFilePathFromUrl(url);
+  if (!filePath) return;
+
+  try {
+    const { error } = await serviceSupabase.storage
+      .from('signatures')
+      .remove([filePath]);
+
+    if (error) {
+      console.error(`Error deleting signature ${filePath}:`, error);
+    } else {
+      console.log(`Successfully deleted signature: ${filePath}`);
+    }
+  } catch (e) {
+    console.error(`Exception deleting signature ${filePath}:`, e);
+  }
+};
+
+// Helper to upload signature server-side
+const uploadSignature = async (serviceSupabase: any, base64Data: string, fileName: string) => {
+  if (!base64Data) return '';
+  if (base64Data.startsWith('http')) return base64Data;
+  if (!base64Data.startsWith('data:image')) return '';
+
+  try {
+    const base64Image = base64Data.split(';base64,').pop();
+    if (!base64Image) return '';
+
+    const buffer = Buffer.from(base64Image, 'base64');
+
+    const { data, error } = await serviceSupabase.storage
+      .from('signatures')
+      .upload(fileName, buffer, {
+        contentType: 'image/png',
+        upsert: true
+      });
+
+    if (error) {
+      console.error(`Error uploading ${fileName}:`, error);
+      return '';
+    }
+
+    const { data: { publicUrl } } = serviceSupabase.storage
+      .from('signatures')
+      .getPublicUrl(data.path);
+
+    return publicUrl;
+  } catch (e) {
+    console.error(`Exception uploading ${fileName}:`, e);
+    return '';
+  }
+};
+
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -75,9 +148,21 @@ export const POST = withAuth(async (request, { user }) => {
     const attending_technician = getString('attending_technician');
     const service_supervisor = getString('service_supervisor');
 
-    // Signatures
-    const attending_technician_signature = getString('attending_technician_signature');
-    const service_supervisor_signature = getString('service_supervisor_signature');
+    // Signatures - upload to Supabase Storage
+    const timestamp = Date.now();
+    const rawAttendingTechSignature = getString('attending_technician_signature');
+    const rawServiceSupervisorSignature = getString('service_supervisor_signature');
+
+    const attending_technician_signature = await uploadSignature(
+      supabase,
+      rawAttendingTechSignature,
+      `engine-teardown/attending-technician-${timestamp}.png`
+    );
+    const service_supervisor_signature = await uploadSignature(
+      supabase,
+      rawServiceSupervisorSignature,
+      `engine-teardown/service-supervisor-${timestamp}.png`
+    );
 
     // 1. Insert main report first
     const { data: reportData, error: reportError } = await supabase

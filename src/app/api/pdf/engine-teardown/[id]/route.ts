@@ -133,15 +133,10 @@ export const GET = withAuth(async (request, { user, params }) => {
     const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>, cols: number = 2) => {
       checkPageBreak(30);
 
-      const filteredFields = fields.filter(f => f.value && f.value !== '-');
-      if (filteredFields.length === 0) {
-        yPos += 2;
-        return;
-      }
-
+      // Show all fields (don't filter out empty ones)
       let rows = 0;
       let currentColumn = 0;
-      filteredFields.forEach((field) => {
+      fields.forEach((field) => {
         const fieldSpan = field.span || 1;
         if (fieldSpan >= cols) {
           if (currentColumn > 0) {
@@ -171,7 +166,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       const columnWidth = (contentWidth - 6) / cols;
       let column = 0;
 
-      filteredFields.forEach((field) => {
+      fields.forEach((field) => {
         const fieldSpan = field.span || 1;
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
@@ -182,7 +177,9 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
         const maxWidth = fieldSpan >= cols ? contentWidth - 6 : columnWidth * fieldSpan - 3;
-        const lines = doc.splitTextToSize(getValue(field.value), maxWidth);
+        // Show value or underline for empty fields
+        const displayValue = field.value && field.value !== '-' ? String(field.value) : '________________________';
+        const lines = doc.splitTextToSize(displayValue, maxWidth);
         doc.text(lines, xOffset, yOffset + 7);
 
         if (fieldSpan >= cols) {
@@ -204,11 +201,15 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += boxHeight + 3;
     };
 
-    // Helper to draw a checkbox with checkmark
-    const drawCheckbox = (x: number, y: number, checked: boolean = true) => {
+    // Helper to draw a checkbox (empty or with checkmark)
+    const drawCheckbox = (x: number, y: number, checked: boolean = false) => {
       const boxSize = 3;
-      // Draw box
-      doc.setDrawColor(greenColor[0], greenColor[1], greenColor[2]);
+      // Draw box - use gray border for unchecked, green for checked
+      if (checked) {
+        doc.setDrawColor(greenColor[0], greenColor[1], greenColor[2]);
+      } else {
+        doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      }
       doc.setFillColor(255, 255, 255);
       doc.setLineWidth(0.3);
       doc.rect(x, y - boxSize + 0.5, boxSize, boxSize, "FD");
@@ -223,16 +224,11 @@ export const GET = withAuth(async (request, { user, params }) => {
       }
     };
 
+    // Show ALL checkboxes (empty or checked) for printable form
     const addCheckboxGrid = (checkboxes: Array<{ label: string; checked: boolean }>, cols: number = 3) => {
-      const checkedItems = checkboxes.filter(c => c.checked);
-      if (checkedItems.length === 0) {
-        yPos += 2;
-        return;
-      }
-
       checkPageBreak(30);
 
-      const rows = Math.ceil(checkedItems.length / cols);
+      const rows = Math.ceil(checkboxes.length / cols);
       const boxHeight = rows * 7 + 4;
 
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
@@ -244,7 +240,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       let yOffset = yPos + 5;
       const columnWidth = (contentWidth - 6) / cols;
 
-      checkedItems.forEach((checkbox, index) => {
+      checkboxes.forEach((checkbox, index) => {
         const col = index % cols;
 
         if (col === 0 && index > 0) {
@@ -254,8 +250,8 @@ export const GET = withAuth(async (request, { user, params }) => {
           xOffset = leftMargin + 3 + col * columnWidth;
         }
 
-        // Draw checkbox with checkmark
-        drawCheckbox(xOffset, yOffset, true);
+        // Draw checkbox (checked or empty)
+        drawCheckbox(xOffset, yOffset, checkbox.checked);
 
         // Draw label
         doc.setFontSize(8);
@@ -270,49 +266,65 @@ export const GET = withAuth(async (request, { user, params }) => {
     };
 
     const addCylinderStatus = (leftLabel: string, leftData: any, rightLabel: string, rightData: any) => {
-      checkPageBreak(20);
+      checkPageBreak(25);
 
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.rect(leftMargin, yPos, contentWidth, 16, "FD");
+      doc.rect(leftMargin, yPos, contentWidth, 20, "FD");
 
       const halfWidth = contentWidth / 2;
 
-      // Left Bank
+      // Left Bank Header
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(textGray[0], textGray[1], textGray[2]);
       doc.text(leftLabel, leftMargin + 3, yPos + 5);
 
-      const leftCylinders = [1,2,3,4,5,6,7,8].filter(n => leftData[`cylinder_${n}_serviceable`]).map(n => `#${n}`).join(", ") || "None";
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(leftCylinders, leftMargin + 3, yPos + 11);
+      // Left Bank Cylinder Checkboxes (1-8)
+      const cylinderBoxStartX = leftMargin + 3;
+      const cylinderBoxY = yPos + 12;
+      const cylinderBoxSpacing = 10;
 
-      // Right Bank
+      for (let i = 1; i <= 8; i++) {
+        const xPos = cylinderBoxStartX + (i - 1) * cylinderBoxSpacing;
+        const isChecked = leftData[`cylinder_${i}_serviceable`];
+        drawCheckbox(xPos, cylinderBoxY, isChecked);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(`#${i}`, xPos + 4, cylinderBoxY);
+      }
+
+      // Right Bank Header
       doc.setFontSize(8);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(textGray[0], textGray[1], textGray[2]);
       doc.text(rightLabel, leftMargin + halfWidth + 3, yPos + 5);
 
-      const rightCylinders = [1,2,3,4,5,6,7,8].filter(n => rightData[`cylinder_${n}_serviceable`]).map(n => `#${n}`).join(", ") || "None";
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(rightCylinders, leftMargin + halfWidth + 3, yPos + 11);
+      // Right Bank Cylinder Checkboxes (1-8)
+      const rightCylinderBoxStartX = leftMargin + halfWidth + 3;
 
-      yPos += 19;
+      for (let i = 1; i <= 8; i++) {
+        const xPos = rightCylinderBoxStartX + (i - 1) * cylinderBoxSpacing;
+        const isChecked = rightData[`cylinder_${i}_serviceable`];
+        drawCheckbox(xPos, cylinderBoxY, isChecked);
+        doc.setFontSize(7);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(`#${i}`, xPos + 4, cylinderBoxY);
+      }
+
+      yPos += 23;
     };
 
+    // Show ALL checkboxes for both banks (empty or checked) for printable form
     const addBankCheckboxes = (leftLabel: string, leftData: any, rightLabel: string, rightData: any, checkboxFields: string[]) => {
       checkPageBreak(30);
 
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
       const halfWidth = contentWidth / 2;
-      const rows = Math.ceil(checkboxFields.length / 2);
-      const boxHeight = rows * 6 + 10;
+      const boxHeight = checkboxFields.length * 6 + 10;
       doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
 
       // Left Bank header
@@ -326,26 +338,22 @@ export const GET = withAuth(async (request, { user, params }) => {
 
       let yOffset = yPos + 10;
 
-      checkboxFields.forEach((field, index) => {
+      checkboxFields.forEach((field) => {
         const label = field.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 
-        // Left
-        if (leftData[field]) {
-          drawCheckbox(leftMargin + 3, yOffset, true);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          doc.text(label, leftMargin + 8, yOffset);
-        }
+        // Left - show checkbox (checked or empty)
+        drawCheckbox(leftMargin + 3, yOffset, leftData[field]);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(label, leftMargin + 8, yOffset);
 
-        // Right
-        if (rightData[field]) {
-          drawCheckbox(leftMargin + halfWidth + 3, yOffset, true);
-          doc.setFontSize(8);
-          doc.setFont("helvetica", "normal");
-          doc.setTextColor(0, 0, 0);
-          doc.text(label, leftMargin + halfWidth + 8, yOffset);
-        }
+        // Right - show checkbox (checked or empty)
+        drawCheckbox(leftMargin + halfWidth + 3, yOffset, rightData[field]);
+        doc.setFontSize(8);
+        doc.setFont("helvetica", "normal");
+        doc.setTextColor(0, 0, 0);
+        doc.text(label, leftMargin + halfWidth + 8, yOffset);
 
         yOffset += 6;
       });
@@ -374,9 +382,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Upper Liner Bore", value: cylinderBlock.upper_liner_bore },
       { label: "Top Deck", value: cylinderBlock.top_deck },
     ], 3);
-    if (cylinderBlock.comments) {
-      addFieldsGrid([{ label: "Comments", value: cylinderBlock.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: cylinderBlock.comments, span: 2 }]);
 
     // 2. Main Bearings
     addSection("2. Main Bearings - Cause");
@@ -397,9 +403,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Installation Technique", checked: mainBearing.installation_technique },
       { label: "Dislocation of Bearing", checked: mainBearing.dislocation_of_bearing },
     ]);
-    if (mainBearing.comments) {
-      addFieldsGrid([{ label: "Comments", value: mainBearing.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: mainBearing.comments, span: 2 }]);
 
     // 3. Con Rod Bearings
     addSection("3. Con Rod Bearings - Cause");
@@ -420,9 +424,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Installation Technique", checked: conRodBearing.installation_technique },
       { label: "Dislocation of Bearing", checked: conRodBearing.dislocation_of_bearing },
     ]);
-    if (conRodBearing.comments) {
-      addFieldsGrid([{ label: "Comments", value: conRodBearing.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: conRodBearing.comments, span: 2 }]);
 
     // 4. Connecting Rod Arms
     addSection("4. Connecting Rod Arms");
@@ -438,9 +440,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Others", checked: connectingRodLeft.others },
       { label: "Bearing Failure", checked: connectingRodLeft.bearing_failure },
     ]);
-    if (connectingRodLeft.comments) {
-      addFieldsGrid([{ label: "Comments", value: connectingRodLeft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: connectingRodLeft.comments, span: 2 }]);
 
     // 5. Conrod Bushes
     addSection("5. Conrod Bushes");
@@ -455,9 +455,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Thermal Fatigue", checked: conrodBushLeft.thermal_fatigue },
       { label: "Others", checked: conrodBushLeft.others },
     ]);
-    if (conrodBushLeft.comments) {
-      addFieldsGrid([{ label: "Comments", value: conrodBushLeft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: conrodBushLeft.comments, span: 2 }]);
 
     // 6. Crankshaft
     addSection("6. Crankshaft");
@@ -471,17 +469,13 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Others", checked: crankshaft.others },
       { label: "Contamination", checked: crankshaft.contamination },
     ]);
-    if (crankshaft.comments) {
-      addFieldsGrid([{ label: "Comments", value: crankshaft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: crankshaft.comments, span: 2 }]);
 
     // 7. Camshaft
     addSection("7. Camshaft");
     addBankCheckboxes("Left Bank:", camshaftLeft, "Right Bank:", camshaftRight,
       ['serviceable', 'bushing_failure', 'lobe_follower_failure', 'overhead_adjustment', 'others']);
-    if (camshaftLeft.comments) {
-      addFieldsGrid([{ label: "Comments", value: camshaftLeft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: camshaftLeft.comments, span: 2 }]);
 
     // 8. Vibration Damper
     addSection("8. Vibration Damper");
@@ -490,9 +484,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Running Hours", checked: vibrationDamper.running_hours },
       { label: "Others", checked: vibrationDamper.others },
     ]);
-    if (vibrationDamper.comments) {
-      addFieldsGrid([{ label: "Comments", value: vibrationDamper.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: vibrationDamper.comments, span: 2 }]);
 
     // 9. Cylinder Heads
     addSection("9. Cylinder Heads");
@@ -505,9 +497,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Cracked Head Core", checked: cylinderHead.cracked_head_core },
       { label: "Others/Scratches/Pinholes", checked: cylinderHead.others_scratches_pinholes },
     ]);
-    if (cylinderHead.comments) {
-      addFieldsGrid([{ label: "Comments", value: cylinderHead.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: cylinderHead.comments, span: 2 }]);
 
     // 10. Engine Valves
     addSection("10. Engine Valves");
@@ -521,32 +511,24 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Others", checked: engineValve.others },
       { label: "Mechanical Fatigue", checked: engineValve.mechanical_fatigue },
     ]);
-    if (engineValve.comments) {
-      addFieldsGrid([{ label: "Comments", value: engineValve.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: engineValve.comments, span: 2 }]);
 
     // 11. Valve Crossheads
     addSection("11. Valve Crossheads");
     addCheckboxGrid([{ label: "Serviceable", checked: valveCrosshead.serviceable }]);
-    if (valveCrosshead.comments) {
-      addFieldsGrid([{ label: "Comments", value: valveCrosshead.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: valveCrosshead.comments, span: 2 }]);
 
     // 12. Pistons
     addSection("12. Pistons");
     addBankCheckboxes("Left Bank:", pistonLeft, "Right Bank:", pistonRight,
       ['serviceable', 'scored', 'crown_damage', 'burning', 'piston_fracture', 'thrust_anti_thrust_scoring', 'ring_groove_wear', 'pin_bore_wear']);
-    if (pistonLeft.comments) {
-      addFieldsGrid([{ label: "Comments", value: pistonLeft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: pistonLeft.comments, span: 2 }]);
 
     // 13. Cylinder Liners
     addSection("13. Cylinder Liners");
     addBankCheckboxes("Left Bank:", cylinderLinerLeft, "Right Bank:", cylinderLinerRight,
       ['serviceable', 'scoring', 'corrosion', 'cracking', 'fretting', 'cavitation', 'pin_holes']);
-    if (cylinderLinerLeft.comments) {
-      addFieldsGrid([{ label: "Comments", value: cylinderLinerLeft.comments, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Comments", value: cylinderLinerLeft.comments, span: 2 }]);
 
     // Components 14-21
     const componentsList = [
@@ -564,30 +546,12 @@ export const GET = withAuth(async (request, { user, params }) => {
       const data = getComponent(comp.type);
       addSection(`${comp.num}. ${comp.title}`);
       addCheckboxGrid([{ label: "Serviceable", checked: data.serviceable }]);
-      if (data.comments) {
-        addFieldsGrid([{ label: "Comments", value: data.comments, span: 2 }]);
-      }
+      addFieldsGrid([{ label: "Comments", value: data.comments, span: 2 }]);
     });
 
     // 22. Missing Components
     addSection("22. Missing Components");
-    if (missingComponents.component_description) {
-      checkPageBreak(30);
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-
-      const lines = doc.splitTextToSize(missingComponents.component_description, contentWidth - 6);
-      const boxHeight = lines.length * 5 + 6;
-      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(lines, leftMargin + 3, yPos + 5);
-      yPos += boxHeight + 3;
-    } else {
-      addFieldsGrid([{ label: "No missing components listed", value: "-", span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Component Description", value: missingComponents.component_description, span: 2 }]);
 
     // 23. Major Components Summary
     addSection("23. Major Components Summary");
@@ -617,9 +581,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Air Compressor", value: majorComponents.air_compressor },
       { label: "Injection Pump", value: majorComponents.injection_pump },
     ], 3);
-    if (majorComponents.others) {
-      addFieldsGrid([{ label: "Others", value: majorComponents.others, span: 2 }]);
-    }
+    addFieldsGrid([{ label: "Others", value: majorComponents.others, span: 2 }]);
 
     // Signatures Section
     addSection("Signatures");

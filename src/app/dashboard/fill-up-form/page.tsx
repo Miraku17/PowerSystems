@@ -10,6 +10,7 @@ import ElectricSurfacePumpServiceForm from "@/components/ElectricSurfacePumpServ
 import EngineSurfacePumpServiceForm from "@/components/EngineSurfacePumpServiceForm";
 import EngineSurfacePumpCommissioningForm from "@/components/EngineSurfacePumpCommissioningForm";
 import EngineTeardownForm from "@/components/EngineTeardownForm";
+import ElectricSurfacePumpTeardownForm from "@/components/ElectricSurfacePumpTeardownForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
@@ -35,6 +36,8 @@ const FillUpFormPage = () => {
         return <EngineSurfacePumpCommissioningForm />;
       case "engine-teardown":
         return <EngineTeardownForm />;
+      case "electric-surface-pump-teardown":
+        return <ElectricSurfacePumpTeardownForm />;
       default:
         return <DeutzServiceForm />;
     }
@@ -50,6 +53,7 @@ const FillUpFormPage = () => {
     { value: "engine-surface-pump-service", label: "Engine Driven Surface Pump Service Report" },
     { value: "engine-surface-pump-commissioning", label: "Engine Driven Surface Pump Commissioning Report" },
     { value: "engine-teardown", label: "Engine Teardown Report" },
+    { value: "electric-surface-pump-teardown", label: "Electric Driven Surface Pump Teardown Report" },
   ];
 
   return (

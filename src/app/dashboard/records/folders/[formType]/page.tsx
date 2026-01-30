@@ -35,6 +35,8 @@ import EditEngineSurfacePumpService from "@/components/EditEngineSurfacePumpServ
 import EditEngineSurfacePumpCommissioning from "@/components/EditEngineSurfacePumpCommissioning";
 import ViewEngineTeardown from "@/components/ViewEngineTeardown";
 import EditEngineTeardown from "@/components/EditEngineTeardown";
+import ViewElectricSurfacePumpTeardown from "@/components/ViewElectricSurfacePumpTeardown";
+import EditElectricSurfacePumpTeardown from "@/components/EditElectricSurfacePumpTeardown";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -87,6 +89,7 @@ export default function FormRecordsPage() {
     "engine-surface-pump-service": { endpoint: "/forms/engine-surface-pump-service", name: "Engine Driven Surface Pump Service Report" },
     "engine-surface-pump-commissioning": { endpoint: "/forms/engine-surface-pump-commissioning", name: "Engine Driven Surface Pump Commissioning Report" },
     "engine-teardown": { endpoint: "/forms/engine-teardown", name: "Engine Teardown Report" },
+    "electric-surface-pump-teardown": { endpoint: "/forms/electric-surface-pump-teardown", name: "Electric Driven Surface Pump Teardown Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -752,6 +755,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "engine-teardown" && (
         <EditEngineTeardown
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "electric-surface-pump-teardown" && (
+        <ViewElectricSurfacePumpTeardown
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "electric-surface-pump-teardown" && (
+        <EditElectricSurfacePumpTeardown
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

@@ -12,7 +12,8 @@
       "Bash(lsof:*)",
       "Bash(curl:*)",
       "Bash(echo \"Checking env file exists...\" ls -la /Users/ukayko/Documents/zian_sideJobs/powersystems/powersystemsinc/.env*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(file:*)"
     ]
   }
 }

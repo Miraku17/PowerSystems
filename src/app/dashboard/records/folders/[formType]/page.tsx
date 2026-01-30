@@ -181,6 +181,7 @@ export default function FormRecordsPage() {
         "engine-surface-pump-service": "engine-surface-pump-service",
         "engine-surface-pump-commissioning": "engine-surface-pump-commissioning",
         "engine-teardown": "engine-teardown",
+        "electric-surface-pump-teardown": "electric-surface-pump-teardown",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];

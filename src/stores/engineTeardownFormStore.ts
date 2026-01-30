@@ -10,6 +10,10 @@ interface EngineTeardownFormData {
   attending_technician: string;
   service_supervisor: string;
 
+  // Signatures
+  attending_technician_signature: string;
+  service_supervisor_signature: string;
+
   // 1. Cylinder Block
   cam_shaft_bushing_bore: string;
   cylinder_liner_counter_bore: string;
@@ -292,6 +296,10 @@ const initialFormData: EngineTeardownFormData = {
   serial_no: "",
   attending_technician: "",
   service_supervisor: "",
+
+  // Signatures
+  attending_technician_signature: "",
+  service_supervisor_signature: "",
 
   // 1. Cylinder Block
   cam_shaft_bushing_bore: "",

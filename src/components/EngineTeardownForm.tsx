@@ -65,6 +65,10 @@ export default function EngineTeardownForm() {
     });
   };
 
+  const handleSignatureChange = (name: string, signature: string) => {
+    setFormData({ [name]: signature });
+  };
+
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
     setIsLoading(true);
@@ -188,26 +192,6 @@ export default function EngineTeardownForm() {
                 type="text"
                 name="serial_no"
                 value={formData.serial_no}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Attending Technician</label>
-              <input
-                type="text"
-                name="attending_technician"
-                value={formData.attending_technician}
-                onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Service Supervisor</label>
-              <input
-                type="text"
-                name="service_supervisor"
-                value={formData.service_supervisor}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
@@ -844,6 +828,46 @@ export default function EngineTeardownForm() {
           </div>
         </div>
 
+        {/* Signatures Section */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <div className="flex flex-col space-y-4">
+              <Select
+                label="Attending Technician"
+                name="attending_technician"
+                value={formData.attending_technician}
+                onChange={handleChange}
+                options={users.map(user => user.fullName)}
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.attending_technician_signature}
+                onChange={(signature: string) => handleSignatureChange('attending_technician_signature', signature)}
+                subtitle="Attending Technician"
+              />
+            </div>
+            <div className="flex flex-col space-y-4">
+              <Select
+                label="Service Supervisor"
+                name="service_supervisor"
+                value={formData.service_supervisor}
+                onChange={handleChange}
+                options={users.map(user => user.fullName)}
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.service_supervisor_signature}
+                onChange={(signature: string) => handleSignatureChange('service_supervisor_signature', signature)}
+                subtitle="Service Supervisor"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Submit Button */}
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
           <button
@@ -873,3 +897,66 @@ export default function EngineTeardownForm() {
     </div>
   );
 }
+
+interface SelectProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  options: string[];
+}
+
+const Select = ({ label, name, value, onChange, options }: SelectProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectOption = (option: string) => {
+    const syntheticEvent = { target: { name, value: option } } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+    setShowDropdown(false);
+  };
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
+          placeholder="Select or type a name"
+        />
+        <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
+          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+        </button>
+        {showDropdown && options.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+            {options.map((opt: string) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => handleSelectOption(opt)}
+                className={`w-full px-4 py-2 text-left transition-colors ${opt === value ? "bg-[#2B4C7E] text-white font-medium" : "text-gray-900 hover:bg-[#2B4C7E] hover:text-white"}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

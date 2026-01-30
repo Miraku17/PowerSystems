@@ -7,7 +7,11 @@
       "Bash(grep:*)",
       "Bash(git rm:*)",
       "Bash(tree:*)",
-      "Bash(tail:*)"
+      "Bash(tail:*)",
+      "Bash(lsof:*)",
+      "Bash(curl:*)",
+      "Bash(echo \"Checking env file exists...\" ls -la /Users/ukayko/Documents/zian_sideJobs/powersystems/powersystemsinc/.env*)",
+      "Bash(python3:*)"
     ]
   }
 }

@@ -37,6 +37,8 @@ import ViewEngineTeardown from "@/components/ViewEngineTeardown";
 import EditEngineTeardown from "@/components/EditEngineTeardown";
 import ViewElectricSurfacePumpTeardown from "@/components/ViewElectricSurfacePumpTeardown";
 import EditElectricSurfacePumpTeardown from "@/components/EditElectricSurfacePumpTeardown";
+import ViewEngineInspectionReceiving from "@/components/ViewEngineInspectionReceiving";
+import EditEngineInspectionReceiving from "@/components/EditEngineInspectionReceiving";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -90,6 +92,7 @@ export default function FormRecordsPage() {
     "engine-surface-pump-commissioning": { endpoint: "/forms/engine-surface-pump-commissioning", name: "Engine Driven Surface Pump Commissioning Report" },
     "engine-teardown": { endpoint: "/forms/engine-teardown", name: "Engine Teardown Report" },
     "electric-surface-pump-teardown": { endpoint: "/forms/electric-surface-pump-teardown", name: "Electric Driven Surface Pump Teardown Report" },
+    "engine-inspection-receiving": { endpoint: "/forms/engine-inspection-receiving", name: "Engine Inspection / Receiving Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -182,6 +185,7 @@ export default function FormRecordsPage() {
         "engine-surface-pump-commissioning": "engine-surface-pump-commissioning",
         "engine-teardown": "engine-teardown",
         "electric-surface-pump-teardown": "electric-surface-pump-teardown",
+        "engine-inspection-receiving": "engine-inspection-receiving",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -245,7 +249,7 @@ export default function FormRecordsPage() {
 
   const getSerialNo = (record: FormRecord): string => {
     const data = record.data;
-    return data?.engine_serial_no || data?.pump_serial_number || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
+    return data?.engine_serial_no || data?.engine_serial_number || data?.pump_serial_number || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
   };
 
   const filteredRecords = records.filter((record) => {
@@ -773,6 +777,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "electric-surface-pump-teardown" && (
         <EditElectricSurfacePumpTeardown
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "engine-inspection-receiving" && (
+        <ViewEngineInspectionReceiving
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "engine-inspection-receiving" && (
+        <EditEngineInspectionReceiving
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

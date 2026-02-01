@@ -26,6 +26,7 @@ const formTypeEndpoints: Record<string, string> = {
   "engine-surface-pump-commissioning": "/forms/engine-surface-pump-commissioning",
   "engine-surface-pump-service": "/forms/engine-surface-pump-service",
   "engine-teardown": "/forms/engine-teardown",
+  "components-teardown-measuring": "/forms/components-teardown-measuring",
 };
 
 export const formRecordService = {

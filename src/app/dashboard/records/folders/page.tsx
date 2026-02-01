@@ -73,6 +73,12 @@ export default function RecordsFoldersPage() {
       formType: "engine-inspection-receiving",
       description: "Engine inspection and receiving reports with detailed inspection checklists.",
     },
+    {
+      id: "components-teardown-measuring",
+      name: "Components Teardown Measuring",
+      formType: "components-teardown-measuring",
+      description: "Comprehensive component measurement reports for teardown analysis and quality control.",
+    },
   ];
 
   const handleFolderClick = (template: { formType: string }) => {

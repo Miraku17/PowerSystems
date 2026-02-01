@@ -39,6 +39,8 @@ import ViewElectricSurfacePumpTeardown from "@/components/ViewElectricSurfacePum
 import EditElectricSurfacePumpTeardown from "@/components/EditElectricSurfacePumpTeardown";
 import ViewEngineInspectionReceiving from "@/components/ViewEngineInspectionReceiving";
 import EditEngineInspectionReceiving from "@/components/EditEngineInspectionReceiving";
+import ViewComponentsTeardownMeasuring from "@/components/ViewComponentsTeardownMeasuring";
+import EditComponentsTeardownMeasuring from "@/components/EditComponentsTeardownMeasuring";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -93,6 +95,7 @@ export default function FormRecordsPage() {
     "engine-teardown": { endpoint: "/forms/engine-teardown", name: "Engine Teardown Report" },
     "electric-surface-pump-teardown": { endpoint: "/forms/electric-surface-pump-teardown", name: "Electric Driven Surface Pump Teardown Report" },
     "engine-inspection-receiving": { endpoint: "/forms/engine-inspection-receiving", name: "Engine Inspection / Receiving Report" },
+    "components-teardown-measuring": { endpoint: "/forms/components-teardown-measuring", name: "Components Teardown Measuring Report" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -186,6 +189,7 @@ export default function FormRecordsPage() {
         "engine-teardown": "engine-teardown",
         "electric-surface-pump-teardown": "electric-surface-pump-teardown",
         "engine-inspection-receiving": "engine-inspection-receiving",
+        "components-teardown-measuring": "components-teardown-measuring",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -794,6 +798,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "engine-inspection-receiving" && (
         <EditEngineInspectionReceiving
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "components-teardown-measuring" && (
+        <ViewComponentsTeardownMeasuring
+          data={selectedRecord.data}
+          recordId={selectedRecord.id}
+          onClose={() => setSelectedRecord(null)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "components-teardown-measuring" && (
+        <EditComponentsTeardownMeasuring
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

@@ -23,6 +23,8 @@ import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
+import OfflineProvider from "@/components/OfflineProvider";
+import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -200,6 +202,11 @@ export default function DashboardLayout({
       href: "/dashboard/records",
     },
     {
+      name: "Pending Forms",
+      icon: CloudArrowUpIcon,
+      href: "/dashboard/pending-forms",
+    },
+    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
@@ -211,7 +218,8 @@ export default function DashboardLayout({
       ? allNavigation.filter(
           (item) =>
             item.href === "/dashboard/fill-up-form" ||
-            item.href === "/dashboard/records"
+            item.href === "/dashboard/records" ||
+            item.href === "/dashboard/pending-forms"
         )
       : allNavigation;
 
@@ -220,7 +228,8 @@ export default function DashboardLayout({
     if (!userLoading && userRole === "user") {
       const isAllowed =
         pathname.startsWith("/dashboard/fill-up-form") ||
-        pathname.startsWith("/dashboard/records");
+        pathname.startsWith("/dashboard/records") ||
+        pathname.startsWith("/dashboard/pending-forms");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }
@@ -228,6 +237,7 @@ export default function DashboardLayout({
   }, [pathname, userRole, userLoading, router]);
 
   return (
+    <OfflineProvider>
     <div className="min-h-screen bg-[#F8F9FA] flex font-sans">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -550,6 +560,7 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+    </OfflineProvider>
   );
 }
 

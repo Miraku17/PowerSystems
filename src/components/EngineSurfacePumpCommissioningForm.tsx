@@ -7,6 +7,7 @@ import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useEngineSurfacePumpCommissioningFormStore } from "@/stores/engineSurfacePumpCommissioningFormStore";
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
   id: string;
@@ -16,7 +17,10 @@ interface User {
 export default function EngineSurfacePumpCommissioningForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { formData, setFormData, resetFormData } = useEngineSurfacePumpCommissioningFormStore();
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Offline-aware submission
+  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -69,39 +73,16 @@ export default function EngineSurfacePumpCommissioningForm() {
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
-    setIsLoading(true);
-    const loadingToastId = toast.loading('Submitting report...');
 
-    try {
-      const formDataToSubmit = new FormData();
-
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formDataToSubmit.append(key, value.toString());
-        }
-      });
-
-      attachments.forEach((attachment) => {
-        formDataToSubmit.append('attachment_files', attachment.file);
-        formDataToSubmit.append('attachment_titles', attachment.title);
-      });
-
-      const response = await apiClient.post('/forms/engine-surface-pump-commissioning', formDataToSubmit, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      toast.success('Commissioning Report submitted successfully!', { id: loadingToastId });
-      setAttachments([]);
-      resetFormData();
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
-      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
-    } finally {
-      setIsLoading(false);
-    }
+    await submit({
+      formType: 'engine-surface-pump-commissioning',
+      formData: formData as unknown as Record<string, unknown>,
+      attachments,
+      onSuccess: () => {
+        setAttachments([]);
+        resetFormData();
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -367,9 +348,9 @@ export default function EngineSurfacePumpCommissioningForm() {
           <button type="button" onClick={resetFormData} className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base">
             Clear Form
           </button>
-          <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isLoading}>
+          <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isSubmitting}>
             <span className="mr-2">Submit Commissioning Report</span>
-            {isLoading ? (
+            {isSubmitting ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

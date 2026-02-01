@@ -37,10 +37,17 @@ export const metadata: Metadata = {
     shortcut: "/images/powersystemslogov1.jpg",
     apple: "/images/powersystemslogov1.jpg",
   },
+  manifest: "/manifest.json",
   openGraph: {
     title: "Power Systems Inc - Energy Solutions & Management",
     description: "Comprehensive energy solutions and management services",
     type: "website",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-title": "PSI Forms",
   },
 };
 

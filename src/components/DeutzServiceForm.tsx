@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
   id: string;
@@ -20,7 +21,9 @@ export default function DeutzServiceForm() {
   // Use Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useDeutzServiceFormStore();
 
-  const [isLoading, setIsLoading] = useState(false);
+  // Offline-aware submission
+  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -117,38 +120,16 @@ export default function DeutzServiceForm() {
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
-    setIsLoading(true);
-    const loadingToastId = toast.loading("Submitting Service Report...");
 
-    try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
-      });
-
-      // Append multiple attachments with titles
-      attachments.forEach((attachment, index) => {
-        data.append(`attachment_files`, attachment.file);
-        data.append(`attachment_titles`, attachment.title);
-      });
-
-      const response = await apiClient.post("/forms/deutz-service", data);
-
-      console.log("Success:", response.data);
-      toast.success("Service Report submitted successfully!", {
-        id: loadingToastId,
-      });
-      resetFormData();
-      setAttachments([]);
-    } catch (error: any) {
-      console.error("Submission error:", error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || "A network error occurred. Please try again.";
-      toast.error(`Failed to submit report: ${errorMessage}`, {
-        id: loadingToastId,
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    await submit({
+      formType: 'deutz-service',
+      formData: formData as unknown as Record<string, unknown>,
+      attachments,
+      onSuccess: () => {
+        resetFormData();
+        setAttachments([]);
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -790,17 +771,17 @@ export default function DeutzServiceForm() {
           <button
             type="button"
             className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base"
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
             Cancel
           </button>
           <button
             type="submit"
             className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base"
-            disabled={isLoading}
+            disabled={isSubmitting}
           >
             <span className="mr-2">Submit Service Report</span>
-            {isLoading ? (
+            {isSubmitting ? (
               <svg
                 className="animate-spin h-5 w-5 text-white"
                 xmlns="http://www.w3.org/2000/svg"

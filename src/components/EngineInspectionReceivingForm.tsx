@@ -11,6 +11,7 @@ import {
   type SectionDefinition,
   type SectionItem,
 } from '@/stores/engineInspectionReceivingFormStore';
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
   id: string;
@@ -20,7 +21,9 @@ interface User {
 export default function EngineInspectionReceivingForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { formData, setFormData, setInspectionItem, resetFormData } = useEngineInspectionReceivingFormStore();
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Offline-aware submission
+  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
@@ -62,47 +65,18 @@ export default function EngineInspectionReceivingForm() {
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
-    setIsLoading(true);
-    const loadingToastId = toast.loading('Submitting Engine Inspection / Receiving Report...');
 
-    try {
-      const formDataToSubmit = new FormData();
+    // Prepare form data with inspection items as JSON string
+    const submissionData: Record<string, unknown> = { ...formData };
+    submissionData.inspectionItems = JSON.stringify(formData.inspectionItems);
 
-      // Append scalar fields
-      const scalarFields = [
-        'customer', 'jo_date', 'jo_number', 'address', 'err_no',
-        'engine_maker', 'application', 'engine_model', 'engine_serial_number',
-        'date_received', 'date_inspected', 'engine_rpm', 'engine_kw',
-        'modification_of_engine', 'missing_parts',
-        'inspected_by_technician_name', 'inspected_by_technician_signature',
-        'inspected_by_supervisor_name', 'inspected_by_supervisor_signature',
-      ];
-
-      for (const key of scalarFields) {
-        const value = formData[key as keyof typeof formData];
-        if (value !== null && value !== undefined && typeof value !== 'object') {
-          formDataToSubmit.append(key, value.toString());
-        }
-      }
-
-      // Append inspection items as JSON
-      formDataToSubmit.append('inspectionItems', JSON.stringify(formData.inspectionItems));
-
-      const response = await apiClient.post('/forms/engine-inspection-receiving', formDataToSubmit, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      toast.success('Engine Inspection / Receiving Report submitted successfully!', { id: loadingToastId });
-      resetFormData();
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
-      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
-    } finally {
-      setIsLoading(false);
-    }
+    await submit({
+      formType: 'engine-inspection-receiving',
+      formData: submissionData,
+      onSuccess: () => {
+        resetFormData();
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -529,10 +503,10 @@ export default function EngineInspectionReceivingForm() {
         <div className="flex justify-end pt-6 border-t border-gray-200">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
           >
-            {isLoading ? 'Submitting...' : 'Submit Report'}
+            {isSubmitting ? 'Submitting...' : 'Submit Report'}
           </button>
         </div>
       </form>

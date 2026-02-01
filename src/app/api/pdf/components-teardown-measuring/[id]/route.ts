@@ -593,6 +593,21 @@ export const GET = withAuth(async (request, { user, params }) => {
       ]);
     }
 
+    // Page 23: Piston to Cylinder Head Distance
+    if (pistonCylinderHeadDistance.meta || pistonCylinderHeadDistance.data.length > 0) {
+      checkPageBreak(20);
+      addSpecsRow(pistonCylinderHeadDistance.meta, [
+        { label: "Spec Min", key: "spec_min" },
+        { label: "Spec Max", key: "spec_max" },
+      ]);
+      if (pistonCylinderHeadDistance.data.length > 0) {
+        const headers = ["Cyl", "Measurement A", "Measurement B"];
+        const rows = pistonCylinderHeadDistance.data.map((d: any) => [String(d.cylinder_no), d.measurement_a, d.measurement_b]);
+        addSimpleTable(headers, rows);
+      }
+      addFooterRow(pistonCylinderHeadDistance.meta);
+    }
+
     if (injPump) {
       addFieldsRow([
         { label: "Injection Pump - Timing", value: injPump.timing },
@@ -617,16 +632,6 @@ export const GET = withAuth(async (request, { user, params }) => {
         { label: "Mechanical Blower", value: airCooling.is_mechanical_blower ? "Yes" : "No" },
         { label: "Hydraulic Blower", value: airCooling.is_hydraulic_blower ? "Yes" : "No" },
       ]);
-    }
-
-    // Piston Cylinder Head Distance
-    if (pistonCylinderHeadDistance.data.length > 0) {
-      checkPageBreak(30);
-      addSection("Piston to Cylinder Head Distance", "Page 23");
-      const headers = ["Cyl", "Measurement A", "Measurement B"];
-      const rows = pistonCylinderHeadDistance.data.map((d: any) => [String(d.cylinder_no), d.measurement_a, d.measurement_b]);
-      addSimpleTable(headers, rows);
-      addFooterRow(pistonCylinderHeadDistance.meta);
     }
 
     // Footer

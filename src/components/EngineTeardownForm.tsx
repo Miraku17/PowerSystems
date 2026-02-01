@@ -7,6 +7,7 @@ import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useEngineTeardownFormStore } from "@/stores/engineTeardownFormStore";
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
   id: string;
@@ -16,7 +17,10 @@ interface User {
 export default function EngineTeardownForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { formData, setFormData, resetFormData } = useEngineTeardownFormStore();
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Offline-aware submission
+  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -71,39 +75,16 @@ export default function EngineTeardownForm() {
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
-    setIsLoading(true);
-    const loadingToastId = toast.loading('Submitting Engine Teardown Report...');
 
-    try {
-      const formDataToSubmit = new FormData();
-
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formDataToSubmit.append(key, value.toString());
-        }
-      });
-
-      attachments.forEach((attachment) => {
-        formDataToSubmit.append('attachment_files', attachment.file);
-        formDataToSubmit.append('attachment_titles', attachment.title);
-      });
-
-      const response = await apiClient.post('/forms/engine-teardown', formDataToSubmit, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      toast.success('Engine Teardown Report submitted successfully!', { id: loadingToastId });
-      setAttachments([]);
-      resetFormData();
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
-      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
-    } finally {
-      setIsLoading(false);
-    }
+    await submit({
+      formType: 'engine-teardown',
+      formData: formData as unknown as Record<string, unknown>,
+      attachments,
+      onSuccess: () => {
+        setAttachments([]);
+        resetFormData();
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -879,10 +860,10 @@ export default function EngineTeardownForm() {
           </button>
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Submitting...' : 'Submit Report'}
+            {isSubmitting ? 'Submitting...' : 'Submit Report'}
           </button>
         </div>
       </form>

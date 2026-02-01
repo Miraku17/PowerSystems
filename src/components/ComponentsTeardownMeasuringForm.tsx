@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
@@ -16,6 +16,7 @@ import {
   type ValveRecessMeta,
   type PistonCylinderHeadDistanceMeta,
 } from '@/stores/componentsTeardownMeasuringFormStore';
+import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
   id: string;
@@ -31,7 +32,9 @@ interface Customer {
 export default function ComponentsTeardownMeasuringForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { formData, setFormData, updateMeasurementRow, resetFormData } = useComponentsTeardownMeasuringFormStore();
-  const [isLoading, setIsLoading] = useState(false);
+
+  // Offline-aware submission
+  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
 
@@ -106,23 +109,27 @@ export default function ComponentsTeardownMeasuringForm() {
     setFormData({ customer: customer.name || customer.customer || '' });
   };
 
+  // Stable meta update function to prevent input focus loss
+  // Using getState() ensures we always get the latest data without causing re-renders
+  const updateMeta = useCallback((metaKey: string, field: string, value: string | boolean) => {
+    const currentFormData = useComponentsTeardownMeasuringFormStore.getState().formData;
+    const currentMeta = (currentFormData as any)[metaKey];
+    setFormData({
+      [metaKey]: { ...currentMeta, [field]: value }
+    } as any);
+  }, [setFormData]);
+
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
-    setIsLoading(true);
-    const loadingToastId = toast.loading('Submitting Components Teardown Measuring Report...');
 
-    try {
-      const formDataToSubmit = new FormData();
-
-      // Append header fields
-      formDataToSubmit.append('customer', formData.customer);
-      formDataToSubmit.append('report_date', formData.report_date);
-      formDataToSubmit.append('engine_model', formData.engine_model);
-      formDataToSubmit.append('serial_no', formData.serial_no);
-      formDataToSubmit.append('job_order_no', formData.job_order_no);
-
-      // Append all measurement data as JSON
-      formDataToSubmit.append('measurementData', JSON.stringify({
+    // Prepare form data with measurement data as JSON string
+    const submissionData: Record<string, unknown> = {
+      customer: formData.customer,
+      report_date: formData.report_date,
+      engine_model: formData.engine_model,
+      serial_no: formData.serial_no,
+      job_order_no: formData.job_order_no,
+      measurementData: JSON.stringify({
         cylinderBoreMeta: formData.cylinderBoreMeta,
         cylinderBoreData: formData.cylinderBoreData,
         cylinderLinerMeta: formData.cylinderLinerMeta,
@@ -173,23 +180,16 @@ export default function ComponentsTeardownMeasuringForm() {
         injectionPump: formData.injectionPump,
         injectors: formData.injectors,
         airCoolingBlower: formData.airCoolingBlower,
-      }));
+      }),
+    };
 
-      const response = await apiClient.post('/forms/components-teardown-measuring', formDataToSubmit, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      toast.success('Components Teardown Measuring Report submitted successfully!', { id: loadingToastId });
-      resetFormData();
-    } catch (error: any) {
-      console.error('Submission error:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'A network error occurred. Please try again.';
-      toast.error(`Failed to submit report: ${errorMessage}`, { id: loadingToastId });
-    } finally {
-      setIsLoading(false);
-    }
+    await submit({
+      formType: 'components-teardown-measuring',
+      formData: submissionData,
+      onSuccess: () => {
+        resetFormData();
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -225,91 +225,87 @@ export default function ComponentsTeardownMeasuringForm() {
   );
 
   // Standard specs input row
-  const SpecsRow = ({
-    meta,
-    metaKey,
-    showWearLimit = true,
-    showOversizeLimit = false,
-    showMaxOvality = false,
-  }: {
-    meta: MeasurementSectionMeta;
-    metaKey: string;
-    showWearLimit?: boolean;
-    showOversizeLimit?: boolean;
-    showMaxOvality?: boolean;
-  }) => (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Min</label>
-        <input
-          type="text"
-          value={meta.spec_min}
-          onChange={(e) => setFormData({ [metaKey]: { ...meta, spec_min: e.target.value } } as any)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
+  // Standard specs input row - render function pattern
+  const renderSpecsRow = (
+    meta: MeasurementSectionMeta,
+    metaKey: string,
+    options: { showWearLimit?: boolean; showOversizeLimit?: boolean; showMaxOvality?: boolean } = {}
+  ) => {
+    const { showWearLimit = true, showOversizeLimit = false, showMaxOvality = false } = options;
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Min</label>
+          <input
+            type="text"
+            value={meta.spec_min}
+            onChange={(e) => updateMeta(metaKey, 'spec_min', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Max</label>
+          <input
+            type="text"
+            value={meta.spec_max}
+            onChange={(e) => updateMeta(metaKey, 'spec_max', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+        {showWearLimit && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Wear Limit</label>
+            <input
+              type="text"
+              value={meta.spec_wear_limit || ''}
+              onChange={(e) => updateMeta(metaKey, 'spec_wear_limit', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
+        {showOversizeLimit && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Oversize Limit</label>
+            <input
+              type="text"
+              value={meta.spec_oversize_limit || ''}
+              onChange={(e) => updateMeta(metaKey, 'spec_oversize_limit', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
+        {showMaxOvality && (
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Max Ovality</label>
+            <input
+              type="text"
+              value={meta.spec_max_ovality || ''}
+              onChange={(e) => updateMeta(metaKey, 'spec_max_ovality', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
       </div>
-      <div>
-        <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Max</label>
-        <input
-          type="text"
-          value={meta.spec_max}
-          onChange={(e) => setFormData({ [metaKey]: { ...meta, spec_max: e.target.value } } as any)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-        />
-      </div>
-      {showWearLimit && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Wear Limit</label>
-          <input
-            type="text"
-            value={meta.spec_wear_limit || ''}
-            onChange={(e) => setFormData({ [metaKey]: { ...meta, spec_wear_limit: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      )}
-      {showOversizeLimit && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Oversize Limit</label>
-          <input
-            type="text"
-            value={meta.spec_oversize_limit || ''}
-            onChange={(e) => setFormData({ [metaKey]: { ...meta, spec_oversize_limit: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      )}
-      {showMaxOvality && (
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Max Ovality</label>
-          <input
-            type="text"
-            value={meta.spec_max_ovality || ''}
-            onChange={(e) => setFormData({ [metaKey]: { ...meta, spec_max_ovality: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
-  // Standard footer row (remarks, technician, tool_no, checked_by)
-  const FooterRow = ({ meta, metaKey }: { meta: any; metaKey: string }) => (
+  // Standard footer row (remarks, technician, tool_no, checked_by) - render function pattern
+  const renderFooterRow = (meta: any, metaKey: string) => (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 bg-gray-50 p-4 rounded-lg">
       <div className="md:col-span-2">
         <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
         <input
           type="text"
           value={meta.remarks}
-          onChange={(e) => setFormData({ [metaKey]: { ...meta, remarks: e.target.value } } as any)}
+          onChange={(e) => updateMeta(metaKey, 'remarks', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
       <UserAutocomplete
         label="Technician"
         value={meta.technician}
-        onChange={(value) => setFormData({ [metaKey]: { ...meta, technician: value } } as any)}
-        onSelect={(user) => setFormData({ [metaKey]: { ...meta, technician: user.fullName } } as any)}
+        onChange={(value) => updateMeta(metaKey, 'technician', value)}
+        onSelect={(user) => updateMeta(metaKey, 'technician', user.fullName)}
         users={users}
       />
       <div>
@@ -317,15 +313,15 @@ export default function ComponentsTeardownMeasuringForm() {
         <input
           type="text"
           value={meta.tool_no}
-          onChange={(e) => setFormData({ [metaKey]: { ...meta, tool_no: e.target.value } } as any)}
+          onChange={(e) => updateMeta(metaKey, 'tool_no', e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
       <UserAutocomplete
         label="Checked By"
         value={meta.checked_by}
-        onChange={(value) => setFormData({ [metaKey]: { ...meta, checked_by: value } } as any)}
-        onSelect={(user) => setFormData({ [metaKey]: { ...meta, checked_by: user.fullName } } as any)}
+        onChange={(value) => updateMeta(metaKey, 'checked_by', value)}
+        onSelect={(user) => updateMeta(metaKey, 'checked_by', user.fullName)}
         users={users}
       />
     </div>
@@ -393,7 +389,15 @@ export default function ComponentsTeardownMeasuringForm() {
   };
 
   // Page 2: Cylinder Liner Table
-  const renderCylinderLinerTable = () => (
+  const renderCylinderLinerTable = () => {
+    const handleLinerMetaChange = (field: string, value: string) => {
+      const scrollY = window.scrollY;
+      setFormData({ cylinderLinerMeta: { ...formData.cylinderLinerMeta, [field]: value } });
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    };
+    return (
     <>
       {/* Specs for Liner */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
@@ -402,7 +406,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.cylinderLinerMeta.liner_seating_min}
-            onChange={(e) => setFormData({ cylinderLinerMeta: { ...formData.cylinderLinerMeta, liner_seating_min: e.target.value } })}
+            onChange={(e) => handleLinerMetaChange('liner_seating_min', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -411,7 +415,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.cylinderLinerMeta.liner_seating_max}
-            onChange={(e) => setFormData({ cylinderLinerMeta: { ...formData.cylinderLinerMeta, liner_seating_max: e.target.value } })}
+            onChange={(e) => handleLinerMetaChange('liner_seating_max', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -420,7 +424,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.cylinderLinerMeta.liner_collar_min}
-            onChange={(e) => setFormData({ cylinderLinerMeta: { ...formData.cylinderLinerMeta, liner_collar_min: e.target.value } })}
+            onChange={(e) => handleLinerMetaChange('liner_collar_min', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -429,7 +433,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.cylinderLinerMeta.liner_collar_max}
-            onChange={(e) => setFormData({ cylinderLinerMeta: { ...formData.cylinderLinerMeta, liner_collar_max: e.target.value } })}
+            onChange={(e) => handleLinerMetaChange('liner_collar_max', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -489,7 +493,8 @@ export default function ComponentsTeardownMeasuringForm() {
         </table>
       </div>
     </>
-  );
+    );
+  };
 
   // Generic table for Bore/Journal with Axis X/Y and 3 columns (A, B, C)
   const renderAxisTable3Col = (
@@ -646,7 +651,15 @@ export default function ComponentsTeardownMeasuringForm() {
   );
 
   // Page 8: Crankshaft True Running Table (single value)
-  const renderCrankshaftTrueRunningTable = () => (
+  const renderCrankshaftTrueRunningTable = () => {
+    const handleMetaChange = (field: string, value: string) => {
+      const scrollY = window.scrollY;
+      setFormData({ crankshaftTrueRunningMeta: { ...formData.crankshaftTrueRunningMeta, [field]: value } });
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    };
+    return (
     <>
       <div className="grid grid-cols-2 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
         <div>
@@ -654,7 +667,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.crankshaftTrueRunningMeta.wear_limit_4_cylinder}
-            onChange={(e) => setFormData({ crankshaftTrueRunningMeta: { ...formData.crankshaftTrueRunningMeta, wear_limit_4_cylinder: e.target.value } })}
+            onChange={(e) => handleMetaChange('wear_limit_4_cylinder', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -663,7 +676,7 @@ export default function ComponentsTeardownMeasuringForm() {
           <input
             type="text"
             value={formData.crankshaftTrueRunningMeta.wear_limit_6_cylinder}
-            onChange={(e) => setFormData({ crankshaftTrueRunningMeta: { ...formData.crankshaftTrueRunningMeta, wear_limit_6_cylinder: e.target.value } })}
+            onChange={(e) => handleMetaChange('wear_limit_6_cylinder', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -694,7 +707,8 @@ export default function ComponentsTeardownMeasuringForm() {
         </table>
       </div>
     </>
-  );
+    );
+  };
 
   // Page 11: Connecting Rod Arm Table (Bank A/B, single measurement)
   const renderConnectingRodArmTable = () => (
@@ -844,31 +858,38 @@ export default function ComponentsTeardownMeasuringForm() {
     metaKey: 'pistonRingGapMeta' | 'pistonRingAxialClearanceMeta'
   ) => {
     const meta = formData[metaKey] as PistonRingMeta;
+    const handleMetaChange = (field: string, value: string) => {
+      const scrollY = window.scrollY;
+      setFormData({ [metaKey]: { ...meta, [field]: value } } as any);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    };
     return (
       <>
         <div className="grid grid-cols-3 md:grid-cols-9 gap-2 mb-4 bg-blue-50 p-4 rounded-lg text-xs">
           <div className="md:col-span-3">
             <div className="font-semibold text-gray-700 mb-1">1st Ring</div>
             <div className="grid grid-cols-3 gap-1">
-              <input placeholder="Min" value={meta.ring_1_min} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_1_min: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Max" value={meta.ring_1_max} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_1_max: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Wear" value={meta.ring_1_wear_limit} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_1_wear_limit: e.target.value } } as any)} className="px-2 py-1 border rounded" />
+              <input placeholder="Min" value={meta.ring_1_min} onChange={(e) => handleMetaChange('ring_1_min', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Max" value={meta.ring_1_max} onChange={(e) => handleMetaChange('ring_1_max', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Wear" value={meta.ring_1_wear_limit} onChange={(e) => handleMetaChange('ring_1_wear_limit', e.target.value)} className="px-2 py-1 border rounded" />
             </div>
           </div>
           <div className="md:col-span-3">
             <div className="font-semibold text-gray-700 mb-1">2nd Ring</div>
             <div className="grid grid-cols-3 gap-1">
-              <input placeholder="Min" value={meta.ring_2_min} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_2_min: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Max" value={meta.ring_2_max} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_2_max: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Wear" value={meta.ring_2_wear_limit} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_2_wear_limit: e.target.value } } as any)} className="px-2 py-1 border rounded" />
+              <input placeholder="Min" value={meta.ring_2_min} onChange={(e) => handleMetaChange('ring_2_min', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Max" value={meta.ring_2_max} onChange={(e) => handleMetaChange('ring_2_max', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Wear" value={meta.ring_2_wear_limit} onChange={(e) => handleMetaChange('ring_2_wear_limit', e.target.value)} className="px-2 py-1 border rounded" />
             </div>
           </div>
           <div className="md:col-span-3">
             <div className="font-semibold text-gray-700 mb-1">3rd Ring</div>
             <div className="grid grid-cols-3 gap-1">
-              <input placeholder="Min" value={meta.ring_3_min} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_3_min: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Max" value={meta.ring_3_max} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_3_max: e.target.value } } as any)} className="px-2 py-1 border rounded" />
-              <input placeholder="Wear" value={meta.ring_3_wear_limit} onChange={(e) => setFormData({ [metaKey]: { ...meta, ring_3_wear_limit: e.target.value } } as any)} className="px-2 py-1 border rounded" />
+              <input placeholder="Min" value={meta.ring_3_min} onChange={(e) => handleMetaChange('ring_3_min', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Max" value={meta.ring_3_max} onChange={(e) => handleMetaChange('ring_3_max', e.target.value)} className="px-2 py-1 border rounded" />
+              <input placeholder="Wear" value={meta.ring_3_wear_limit} onChange={(e) => handleMetaChange('ring_3_wear_limit', e.target.value)} className="px-2 py-1 border rounded" />
             </div>
           </div>
         </div>
@@ -1002,65 +1023,75 @@ export default function ComponentsTeardownMeasuringForm() {
     title: string,
     data: any,
     dataKey: string
-  ) => (
-    <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
-      <h4 className="font-semibold text-gray-700 mb-3">{title}</h4>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Min</label>
-          <input
-            type="text"
-            value={data.spec_min}
-            onChange={(e) => setFormData({ [dataKey]: { ...data, spec_min: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
+  ) => {
+    const handleChange = (field: string, value: string | boolean) => {
+      const scrollY = window.scrollY;
+      setFormData({ [dataKey]: { ...data, [field]: value } } as any);
+      requestAnimationFrame(() => {
+        window.scrollTo(0, scrollY);
+      });
+    };
+
+    return (
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border">
+        <h4 className="font-semibold text-gray-700 mb-3">{title}</h4>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Min</label>
+            <input
+              type="text"
+              value={data.spec_min}
+              onChange={(e) => handleChange('spec_min', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Max</label>
+            <input
+              type="text"
+              value={data.spec_max}
+              onChange={(e) => handleChange('spec_max', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Reading Taken</label>
+            <input
+              type="text"
+              value={data.reading_taken}
+              onChange={(e) => handleChange('reading_taken', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Spec Max</label>
-          <input
-            type="text"
-            value={data.spec_max}
-            onChange={(e) => setFormData({ [dataKey]: { ...data, spec_max: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
+            <input
+              type="text"
+              value={data.remarks}
+              onChange={(e) => handleChange('remarks', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+            />
+          </div>
+          <UserAutocomplete
+            label="Technician"
+            value={data.technician}
+            onChange={(value) => handleChange('technician', value)}
+            onSelect={(user) => handleChange('technician', user.fullName)}
+            users={users}
           />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Reading Taken</label>
-          <input
-            type="text"
-            value={data.reading_taken}
-            onChange={(e) => setFormData({ [dataKey]: { ...data, reading_taken: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          <UserAutocomplete
+            label="Checked By"
+            value={data.checked_by}
+            onChange={(value) => handleChange('checked_by', value)}
+            onSelect={(user) => handleChange('checked_by', user.fullName)}
+            users={users}
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
-        <div className="md:col-span-2">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">Remarks</label>
-          <input
-            type="text"
-            value={data.remarks}
-            onChange={(e) => setFormData({ [dataKey]: { ...data, remarks: e.target.value } } as any)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          />
-        </div>
-        <UserAutocomplete
-          label="Technician"
-          value={data.technician}
-          onChange={(value) => setFormData({ [dataKey]: { ...data, technician: value } } as any)}
-          onSelect={(user) => setFormData({ [dataKey]: { ...data, technician: user.fullName } } as any)}
-          users={users}
-        />
-        <UserAutocomplete
-          label="Checked By"
-          value={data.checked_by}
-          onChange={(value) => setFormData({ [dataKey]: { ...data, checked_by: value } } as any)}
-          onSelect={(user) => setFormData({ [dataKey]: { ...data, checked_by: user.fullName } } as any)}
-          users={users}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
@@ -1150,9 +1181,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.cylinderBore && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.cylinderBoreMeta} metaKey="cylinderBoreMeta" />
+                {renderSpecsRow(formData.cylinderBoreMeta, "cylinderBoreMeta")}
                 {renderCylinderBoreTable()}
-                <FooterRow meta={formData.cylinderBoreMeta} metaKey="cylinderBoreMeta" />
+                {renderFooterRow(formData.cylinderBoreMeta, "cylinderBoreMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1170,7 +1201,7 @@ export default function ComponentsTeardownMeasuringForm() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 {renderCylinderLinerTable()}
-                <FooterRow meta={formData.cylinderLinerMeta} metaKey="cylinderLinerMeta" />
+                {renderFooterRow(formData.cylinderLinerMeta, "cylinderLinerMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-200 rounded-lg p-2 border border-gray-300 shadow-sm">
@@ -1187,9 +1218,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.mainBearingBore && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.mainBearingBoreMeta} metaKey="mainBearingBoreMeta" />
+                {renderSpecsRow(formData.mainBearingBoreMeta, "mainBearingBoreMeta")}
                 {renderAxisTable3Col('mainBearingBoreData', 'bore_no', 'Bore')}
-                <FooterRow meta={formData.mainBearingBoreMeta} metaKey="mainBearingBoreMeta" />
+                {renderFooterRow(formData.mainBearingBoreMeta, "mainBearingBoreMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1206,9 +1237,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.camshaftBushing && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.camshaftBushingMeta} metaKey="camshaftBushingMeta" />
+                {renderSpecsRow(formData.camshaftBushingMeta, "camshaftBushingMeta")}
                 {renderMeasuringPointTable2Col('camshaftBushingData', 'bush_no', 'Bush')}
-                <FooterRow meta={formData.camshaftBushingMeta} metaKey="camshaftBushingMeta" />
+                {renderFooterRow(formData.camshaftBushingMeta, "camshaftBushingMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1225,9 +1256,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.mainJournal && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.mainJournalMeta} metaKey="mainJournalMeta" showWearLimit={false} showMaxOvality />
+                {renderSpecsRow(formData.mainJournalMeta, "mainJournalMeta", { showWearLimit: false, showMaxOvality: true })}
                 {renderMeasuringPointTable2Col('mainJournalData', 'journal_no', 'Journal')}
-                <FooterRow meta={formData.mainJournalMeta} metaKey="mainJournalMeta" />
+                {renderFooterRow(formData.mainJournalMeta, "mainJournalMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1244,9 +1275,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.mainJournalWidth && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.mainJournalWidthMeta} metaKey="mainJournalWidthMeta" showWearLimit={false} showOversizeLimit />
+                {renderSpecsRow(formData.mainJournalWidthMeta, "mainJournalWidthMeta", { showWearLimit: false, showOversizeLimit: true })}
                 {renderMainJournalWidthTable()}
-                <FooterRow meta={formData.mainJournalWidthMeta} metaKey="mainJournalWidthMeta" />
+                {renderFooterRow(formData.mainJournalWidthMeta, "mainJournalWidthMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1263,9 +1294,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.conRodJournal && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.conRodJournalMeta} metaKey="conRodJournalMeta" showWearLimit={false} showOversizeLimit />
+                {renderSpecsRow(formData.conRodJournalMeta, "conRodJournalMeta", { showWearLimit: false, showOversizeLimit: true })}
                 {renderAxisTable3Col('conRodJournalData', 'journal_no', 'Journal')}
-                <FooterRow meta={formData.conRodJournalMeta} metaKey="conRodJournalMeta" />
+                {renderFooterRow(formData.conRodJournalMeta, "conRodJournalMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1283,7 +1314,7 @@ export default function ComponentsTeardownMeasuringForm() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 {renderCrankshaftTrueRunningTable()}
-                <FooterRow meta={formData.crankshaftTrueRunningMeta} metaKey="crankshaftTrueRunningMeta" />
+                {renderFooterRow(formData.crankshaftTrueRunningMeta, "crankshaftTrueRunningMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1300,9 +1331,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.smallEndBush && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.smallEndBushMeta} metaKey="smallEndBushMeta" />
+                {renderSpecsRow(formData.smallEndBushMeta, "smallEndBushMeta")}
                 {renderMeasuringPointTable2Col('smallEndBushData', 'con_rod_arm_no', 'Con Rod Arm', 'datum')}
-                <FooterRow meta={formData.smallEndBushMeta} metaKey="smallEndBushMeta" />
+                {renderFooterRow(formData.smallEndBushMeta, "smallEndBushMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1319,9 +1350,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.bigEndBearing && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.bigEndBearingMeta} metaKey="bigEndBearingMeta" />
+                {renderSpecsRow(formData.bigEndBearingMeta, "bigEndBearingMeta")}
                 {renderMeasuringPointTable2Col('bigEndBearingData', 'con_rod_arm_no', 'Con Rod Arm')}
-                <FooterRow meta={formData.bigEndBearingMeta} metaKey="bigEndBearingMeta" />
+                {renderFooterRow(formData.bigEndBearingMeta, "bigEndBearingMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1338,9 +1369,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.connectingRodArm && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.connectingRodArmMeta} metaKey="connectingRodArmMeta" />
+                {renderSpecsRow(formData.connectingRodArmMeta, "connectingRodArmMeta")}
                 {renderConnectingRodArmTable()}
-                <FooterRow meta={formData.connectingRodArmMeta} metaKey="connectingRodArmMeta" />
+                {renderFooterRow(formData.connectingRodArmMeta, "connectingRodArmMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1357,9 +1388,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.pistonPinBushClearance && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.pistonPinBushClearanceMeta} metaKey="pistonPinBushClearanceMeta" />
+                {renderSpecsRow(formData.pistonPinBushClearanceMeta, "pistonPinBushClearanceMeta")}
                 {renderXYTable3Col('pistonPinBushClearanceData', 'conrod_arm_no', 'Conrod Arm')}
-                <FooterRow meta={formData.pistonPinBushClearanceMeta} metaKey="pistonPinBushClearanceMeta" />
+                {renderFooterRow(formData.pistonPinBushClearanceMeta, "pistonPinBushClearanceMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1376,9 +1407,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.camshaftJournalDiameter && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.camshaftJournalDiameterMeta} metaKey="camshaftJournalDiameterMeta" />
+                {renderSpecsRow(formData.camshaftJournalDiameterMeta, "camshaftJournalDiameterMeta")}
                 {renderXYTable3Col('camshaftJournalDiameterData', 'journal_no', 'Journal')}
-                <FooterRow meta={formData.camshaftJournalDiameterMeta} metaKey="camshaftJournalDiameterMeta" />
+                {renderFooterRow(formData.camshaftJournalDiameterMeta, "camshaftJournalDiameterMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1395,9 +1426,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.camshaftBushClearance && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.camshaftBushClearanceMeta} metaKey="camshaftBushClearanceMeta" />
+                {renderSpecsRow(formData.camshaftBushClearanceMeta, "camshaftBushClearanceMeta")}
                 {renderXYTable3Col('camshaftBushClearanceData', 'journal_no', 'Journal')}
-                <FooterRow meta={formData.camshaftBushClearanceMeta} metaKey="camshaftBushClearanceMeta" />
+                {renderFooterRow(formData.camshaftBushClearanceMeta, "camshaftBushClearanceMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1413,9 +1444,9 @@ export default function ComponentsTeardownMeasuringForm() {
           <SectionHeader title="Camlobe Height" sectionKey="camlobeHeight" pageNum="Page 15" />
           {expandedSections.camlobeHeight && (
             <>
-              <SpecsRow meta={formData.camlobeHeightMeta} metaKey="camlobeHeightMeta" />
+              {renderSpecsRow(formData.camlobeHeightMeta, "camlobeHeightMeta")}
               {renderXYTable3Col('camlobeHeightData', 'journal_no', 'Journal')}
-              <FooterRow meta={formData.camlobeHeightMeta} metaKey="camlobeHeightMeta" />
+              {renderFooterRow(formData.camlobeHeightMeta, "camlobeHeightMeta")}
             </>
           )}
         </div>
@@ -1426,9 +1457,9 @@ export default function ComponentsTeardownMeasuringForm() {
           {expandedSections.cylinderLinerBore && (
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <SpecsRow meta={formData.cylinderLinerBoreMeta} metaKey="cylinderLinerBoreMeta" />
+                {renderSpecsRow(formData.cylinderLinerBoreMeta, "cylinderLinerBoreMeta")}
                 {renderCylinderLinerBoreTable()}
-                <FooterRow meta={formData.cylinderLinerBoreMeta} metaKey="cylinderLinerBoreMeta" />
+                {renderFooterRow(formData.cylinderLinerBoreMeta, "cylinderLinerBoreMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1446,7 +1477,7 @@ export default function ComponentsTeardownMeasuringForm() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 {renderPistonRingTable('pistonRingGapData', 'pistonRingGapMeta')}
-                <FooterRow meta={formData.pistonRingGapMeta} metaKey="pistonRingGapMeta" />
+                {renderFooterRow(formData.pistonRingGapMeta, "pistonRingGapMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1464,7 +1495,7 @@ export default function ComponentsTeardownMeasuringForm() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 {renderPistonRingTable('pistonRingAxialClearanceData', 'pistonRingAxialClearanceMeta')}
-                <FooterRow meta={formData.pistonRingAxialClearanceMeta} metaKey="pistonRingAxialClearanceMeta" />
+                {renderFooterRow(formData.pistonRingAxialClearanceMeta, "pistonRingAxialClearanceMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1520,7 +1551,7 @@ export default function ComponentsTeardownMeasuringForm() {
                 </div>
               </div>
               {renderValveTable('valveUnloadedLengthData')}
-              <FooterRow meta={formData.valveUnloadedLengthMeta} metaKey="valveUnloadedLengthMeta" />
+              {renderFooterRow(formData.valveUnloadedLengthMeta, "valveUnloadedLengthMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1576,7 +1607,7 @@ export default function ComponentsTeardownMeasuringForm() {
                 </div>
               </div>
               {renderValveTable('valveRecessData')}
-              <FooterRow meta={formData.valveRecessMeta} metaKey="valveRecessMeta" />
+              {renderFooterRow(formData.valveRecessMeta, "valveRecessMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
@@ -1669,7 +1700,7 @@ export default function ComponentsTeardownMeasuringForm() {
                     />
                   </div>
                 </div>
-                <FooterRow meta={formData.cylinderHeadCapScrew} metaKey="cylinderHeadCapScrew" />
+                {renderFooterRow(formData.cylinderHeadCapScrew, "cylinderHeadCapScrew")}
               </div>
 
               {/* Page 22-23: Valve Clearance Setting */}
@@ -1713,7 +1744,7 @@ export default function ComponentsTeardownMeasuringForm() {
                     />
                   </div>
                 </div>
-                <FooterRow meta={formData.valveClearanceSetting} metaKey="valveClearanceSetting" />
+                {renderFooterRow(formData.valveClearanceSetting, "valveClearanceSetting")}
               </div>
 
               {/* Page 23: Piston Cylinder Head Distance */}
@@ -1740,7 +1771,7 @@ export default function ComponentsTeardownMeasuringForm() {
                   </div>
                 </div>
                 {renderPistonCylinderHeadDistanceTable()}
-                <FooterRow meta={formData.pistonCylinderHeadDistanceMeta} metaKey="pistonCylinderHeadDistanceMeta" />
+                {renderFooterRow(formData.pistonCylinderHeadDistanceMeta, "pistonCylinderHeadDistanceMeta")}
               </div>
 
               {/* Page 24: Injection Pump */}
@@ -1777,7 +1808,7 @@ export default function ComponentsTeardownMeasuringForm() {
                     </label>
                   </div>
                 </div>
-                <FooterRow meta={formData.injectionPump} metaKey="injectionPump" />
+                {renderFooterRow(formData.injectionPump, "injectionPump")}
               </div>
 
               {/* Page 24: Injectors */}
@@ -1823,7 +1854,7 @@ export default function ComponentsTeardownMeasuringForm() {
                     </label>
                   </div>
                 </div>
-                <FooterRow meta={formData.injectors} metaKey="injectors" />
+                {renderFooterRow(formData.injectors, "injectors")}
               </div>
 
               {/* Page 24: Air Cooling Blower */}
@@ -1867,7 +1898,7 @@ export default function ComponentsTeardownMeasuringForm() {
                     <span className="text-sm text-gray-700">Hydraulic Blower</span>
                   </label>
                 </div>
-                <FooterRow meta={formData.airCoolingBlower} metaKey="airCoolingBlower" />
+                {renderFooterRow(formData.airCoolingBlower, "airCoolingBlower")}
               </div>
             </>
           )}
@@ -1877,10 +1908,10 @@ export default function ComponentsTeardownMeasuringForm() {
         <div className="flex justify-end pt-6 border-t border-gray-200">
           <button
             type="submit"
-            disabled={isLoading}
+            disabled={isSubmitting}
             className="px-8 py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
           >
-            {isLoading ? 'Submitting...' : 'Submit Report'}
+            {isSubmitting ? 'Submitting...' : 'Submit Report'}
           </button>
         </div>
       </form>

@@ -21,11 +21,14 @@ const formTypeEndpoints: Record<string, string> = {
   "deutz-commissioning": "/forms/deutz-commissioning",
   "deutz-service": "/forms/deutz-service",
   "submersible-pump-commissioning": "/forms/submersible-pump-commissioning",
+  "submersible-pump-teardown": "/forms/submersible-pump-teardown",
   "electric-surface-pump-commissioning": "/forms/electric-surface-pump-commissioning",
   "electric-surface-pump-service": "/forms/electric-surface-pump-service",
+  "electric-surface-pump-teardown": "/forms/electric-surface-pump-teardown",
   "engine-surface-pump-commissioning": "/forms/engine-surface-pump-commissioning",
   "engine-surface-pump-service": "/forms/engine-surface-pump-service",
   "engine-teardown": "/forms/engine-teardown",
+  "engine-inspection-receiving": "/forms/engine-inspection-receiving",
   "components-teardown-measuring": "/forms/components-teardown-measuring",
 };
 

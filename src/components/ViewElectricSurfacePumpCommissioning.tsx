@@ -375,12 +375,12 @@ export default function ViewElectricSurfacePumpCommissioning({ data, onClose, on
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
                       {data.commissioned_by_signature ? (
-                        <img src={data.commissioned_by_signature} alt="Commissioned By Signature" className="max-h-20 max-w-full object-contain" />
+                        <img src={data.commissioned_by_signature} alt="Service Technician Signature" className="max-h-20 max-w-full object-contain" />
                       ) : (
                         <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                       )}
                     </div>
-                    <Field label="Commissioned By" value={data.commissioned_by_name} />
+                    <Field label="Service Technician" value={data.commissioned_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc Engineer/Technician</p>
                   </div>
                   <div className="text-center flex flex-col items-center">

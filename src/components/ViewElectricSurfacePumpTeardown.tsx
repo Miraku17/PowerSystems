@@ -418,9 +418,9 @@ export default function ViewElectricSurfacePumpTeardown({ data, onClose, onExpor
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                      {data.teardowned_by_signature ? (<img src={data.teardowned_by_signature} alt="Teardowned By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
+                      {data.teardowned_by_signature ? (<img src={data.teardowned_by_signature} alt="Service Technician Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
                     </div>
-                    <Field label="Tear downed By" value={data.teardowned_by_name} />
+                    <Field label="Service Technician" value={data.teardowned_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc Engineer/Technician</p>
                   </div>
                   <div className="text-center flex flex-col items-center">

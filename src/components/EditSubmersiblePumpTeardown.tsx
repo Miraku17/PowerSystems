@@ -618,7 +618,7 @@ export default function EditSubmersiblePumpTeardown({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
-                  <Select label="Tear downed By" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+                  <Select label="Service Technician" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
                   <SignaturePad
                     label="Draw Signature"
                     value={formData.teardowned_by_signature}

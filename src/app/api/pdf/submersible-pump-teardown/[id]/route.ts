@@ -771,7 +771,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       const signatures = [
         {
           label: "Svc Engineer/Technician",
-          title: "Teardowned By",
+          title: "Service Technician",
           name: record.teardowned_by_name,
           imageUrl: record.teardowned_by_signature,
         },

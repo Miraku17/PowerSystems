@@ -194,7 +194,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     // Signatures
     addSection("Signatures");
     const addSignatures = async () => {
-      const signatures = [{ label: "Svc Engineer/Technician", title: "Commissioned By", name: record.commissioned_by_name, imageUrl: record.commissioned_by_signature }, { label: "Svc. Supvr. / Supt.", title: "Checked & Approved By", name: record.checked_approved_by_name, imageUrl: record.checked_approved_by_signature }, { label: "Svc. Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature }, { label: "Customer Representative", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature }];
+      const signatures = [{ label: "Svc Engineer/Technician", title: "Service Technician", name: record.commissioned_by_name, imageUrl: record.commissioned_by_signature }, { label: "Svc. Supvr. / Supt.", title: "Checked & Approved By", name: record.checked_approved_by_name, imageUrl: record.checked_approved_by_signature }, { label: "Svc. Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature }, { label: "Customer Representative", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature }];
       const sigBoxHeight = 48, sigBoxWidth = (contentWidth - 6) / 4;
       if (yPos + sigBoxHeight > pageHeight - 15) { doc.addPage(); yPos = 15; }
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);

@@ -445,49 +445,77 @@ export default function EngineInspectionReceivingForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            {/* Inspected By - Technician */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
+            {/* Service Technician */}
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-gray-700 uppercase">Inspected By (Technician)</h4>
-              <div>
-                <UserSelect
-                  label="Name"
-                  name="inspected_by_technician_name"
-                  value={formData.inspected_by_technician_name}
-                  onChange={handleChange}
-                  options={users.map((user) => user.fullName)}
-                  placeholder="Select or type technician name"
-                />
-              </div>
-              <div>
-                <SignaturePad
-                  label="Signature"
-                  value={formData.inspected_by_technician_signature}
-                  onChange={(sig) => handleSignatureChange('inspected_by_technician_signature', sig)}
-                />
-              </div>
+              <UserSelect
+                label="Service Technician"
+                name="service_technician_name"
+                value={formData.service_technician_name}
+                onChange={handleChange}
+                options={users.map((user) => user.fullName)}
+                placeholder="Select technician"
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.service_technician_signature}
+                onChange={(sig) => handleSignatureChange('service_technician_signature', sig)}
+                subtitle="Signed by Technician"
+              />
             </div>
 
-            {/* Inspected By - Supervisor */}
+            {/* Noted By */}
             <div className="space-y-4">
-              <h4 className="text-sm font-bold text-gray-700 uppercase">Inspected By (Supervisor)</h4>
-              <div>
-                <UserSelect
-                  label="Name"
-                  name="inspected_by_supervisor_name"
-                  value={formData.inspected_by_supervisor_name}
-                  onChange={handleChange}
-                  options={users.map((user) => user.fullName)}
-                  placeholder="Select or type supervisor name"
-                />
-              </div>
-              <div>
-                <SignaturePad
-                  label="Signature"
-                  value={formData.inspected_by_supervisor_signature}
-                  onChange={(sig) => handleSignatureChange('inspected_by_supervisor_signature', sig)}
-                />
-              </div>
+              <UserSelect
+                label="Noted By"
+                name="noted_by_name"
+                value={formData.noted_by_name}
+                onChange={handleChange}
+                options={users.map((user) => user.fullName)}
+                placeholder="Select manager"
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.noted_by_signature}
+                onChange={(sig) => handleSignatureChange('noted_by_signature', sig)}
+                subtitle="Service Manager"
+              />
+            </div>
+
+            {/* Approved By */}
+            <div className="space-y-4">
+              <UserSelect
+                label="Approved By"
+                name="approved_by_name"
+                value={formData.approved_by_name}
+                onChange={handleChange}
+                options={users.map((user) => user.fullName)}
+                placeholder="Select approver"
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.approved_by_signature}
+                onChange={(sig) => handleSignatureChange('approved_by_signature', sig)}
+                subtitle="Authorized Signature"
+              />
+            </div>
+
+            {/* Acknowledged By */}
+            <div className="space-y-4">
+              <UserSelect
+                label="Acknowledged By"
+                name="acknowledged_by_name"
+                value={formData.acknowledged_by_name}
+                onChange={handleChange}
+                options={users.map((user) => user.fullName)}
+                placeholder="Select customer rep"
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.acknowledged_by_signature}
+                onChange={(sig) => handleSignatureChange('acknowledged_by_signature', sig)}
+                subtitle="Customer Signature"
+              />
             </div>
           </div>
         </div>
@@ -556,7 +584,7 @@ function UserSelect({ label, name, value, onChange, options, placeholder = "Sele
 
   // Filter options based on current input
   const filteredOptions = options.filter(opt =>
-    opt.toLowerCase().includes(value.toLowerCase())
+    opt.toLowerCase().includes((value || '').toLowerCase())
   );
 
   return (

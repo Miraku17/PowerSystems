@@ -54,11 +54,15 @@ export interface EngineInspectionReceivingFormData {
   modification_of_engine: string;
   missing_parts: string;
 
-  // Signatures
-  inspected_by_technician_name: string;
-  inspected_by_technician_signature: string;
-  inspected_by_supervisor_name: string;
-  inspected_by_supervisor_signature: string;
+  // Signatures (matching Deutz Service Form)
+  service_technician_name: string;
+  service_technician_signature: string;
+  noted_by_name: string;
+  noted_by_signature: string;
+  approved_by_name: string;
+  approved_by_signature: string;
+  acknowledged_by_name: string;
+  acknowledged_by_signature: string;
 }
 
 // --- Section Definitions (all 149 inspection items across 11 sections) ---
@@ -364,10 +368,14 @@ const initialFormData: EngineInspectionReceivingFormData = {
   inspectionItems: buildInitialInspectionItems(),
   modification_of_engine: '',
   missing_parts: '',
-  inspected_by_technician_name: '',
-  inspected_by_technician_signature: '',
-  inspected_by_supervisor_name: '',
-  inspected_by_supervisor_signature: '',
+  service_technician_name: '',
+  service_technician_signature: '',
+  noted_by_name: '',
+  noted_by_signature: '',
+  approved_by_name: '',
+  approved_by_signature: '',
+  acknowledged_by_name: '',
+  acknowledged_by_signature: '',
 };
 
 export const useEngineInspectionReceivingFormStore = create<EngineInspectionReceivingFormStore>()(

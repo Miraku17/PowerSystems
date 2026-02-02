@@ -108,10 +108,14 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
       engine_kw: data.engine_kw || '',
       modification_of_engine: data.modification_of_engine || '',
       missing_parts: data.missing_parts || '',
-      inspected_by_technician_name: data.inspected_by_technician_name || '',
-      inspected_by_technician_signature: data.inspected_by_technician_signature || '',
-      inspected_by_supervisor_name: data.inspected_by_supervisor_name || '',
-      inspected_by_supervisor_signature: data.inspected_by_supervisor_signature || '',
+      service_technician_name: data.service_technician_name || '',
+      service_technician_signature: data.service_technician_signature || '',
+      noted_by_name: data.noted_by_name || '',
+      noted_by_signature: data.noted_by_signature || '',
+      approved_by_name: data.approved_by_name || '',
+      approved_by_signature: data.approved_by_signature || '',
+      acknowledged_by_name: data.acknowledged_by_name || '',
+      acknowledged_by_signature: data.acknowledged_by_signature || '',
       inspectionItems: items,
     };
   });
@@ -361,45 +365,69 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
 
             {/* Signatures */}
             <SectionHeader title="Signatures">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="space-y-4">
-                  <h5 className="text-xs font-bold text-gray-500 uppercase">Inspected By (Technician)</h5>
-                  <div>
-                    <UserSelect
-                      label="Name"
-                      value={formState.inspected_by_technician_name}
-                      onChange={(value) => handleFieldChange('inspected_by_technician_name', value)}
-                      options={users.map((user) => user.fullName)}
-                      placeholder="Select or type technician name"
-                    />
-                  </div>
-                  <div>
-                    <SignaturePad
-                      label="Signature"
-                      value={formState.inspected_by_technician_signature}
-                      onChange={(sig) => handleFieldChange('inspected_by_technician_signature', sig)}
-                    />
-                  </div>
+                  <UserSelect
+                    label="Service Technician"
+                    value={formState.service_technician_name}
+                    onChange={(value) => handleFieldChange('service_technician_name', value)}
+                    options={users.map((user) => user.fullName)}
+                    placeholder="Select technician"
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formState.service_technician_signature}
+                    onChange={(sig) => handleFieldChange('service_technician_signature', sig)}
+                    subtitle="Signed by Technician"
+                  />
                 </div>
 
                 <div className="space-y-4">
-                  <h5 className="text-xs font-bold text-gray-500 uppercase">Inspected By (Supervisor)</h5>
-                  <div>
-                    <UserSelect
-                      label="Name"
-                      value={formState.inspected_by_supervisor_name}
-                      onChange={(value) => handleFieldChange('inspected_by_supervisor_name', value)}
-                      options={users.map((user) => user.fullName)}
-                      placeholder="Select or type supervisor name"
-                    />
-                  </div>
-                  <div>
-                    <SignaturePad
-                      label="Signature"
-                      value={formState.inspected_by_supervisor_signature}
-                      onChange={(sig) => handleFieldChange('inspected_by_supervisor_signature', sig)}
-                    />
-                  </div>
+                  <UserSelect
+                    label="Noted By"
+                    value={formState.noted_by_name}
+                    onChange={(value) => handleFieldChange('noted_by_name', value)}
+                    options={users.map((user) => user.fullName)}
+                    placeholder="Select manager"
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formState.noted_by_signature}
+                    onChange={(sig) => handleFieldChange('noted_by_signature', sig)}
+                    subtitle="Service Manager"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <UserSelect
+                    label="Approved By"
+                    value={formState.approved_by_name}
+                    onChange={(value) => handleFieldChange('approved_by_name', value)}
+                    options={users.map((user) => user.fullName)}
+                    placeholder="Select approver"
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formState.approved_by_signature}
+                    onChange={(sig) => handleFieldChange('approved_by_signature', sig)}
+                    subtitle="Authorized Signature"
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <UserSelect
+                    label="Acknowledged By"
+                    value={formState.acknowledged_by_name}
+                    onChange={(value) => handleFieldChange('acknowledged_by_name', value)}
+                    options={users.map((user) => user.fullName)}
+                    placeholder="Select customer rep"
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formState.acknowledged_by_signature}
+                    onChange={(sig) => handleFieldChange('acknowledged_by_signature', sig)}
+                    subtitle="Customer Signature"
+                  />
                 </div>
               </div>
             </SectionHeader>

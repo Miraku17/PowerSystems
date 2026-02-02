@@ -179,8 +179,6 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF }: ViewE
                   <Field label="Job Number" value={data.job_number} />
                   <Field label="Engine Model" value={data.engine_model} />
                   <Field label="Serial No." value={data.serial_no} />
-                  <Field label="Attending Technician" value={data.attending_technician} />
-                  <Field label="Service Supervisor" value={data.service_supervisor} />
                 </div>
               </Section>
 
@@ -529,14 +527,14 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF }: ViewE
 
               {/* Signatures */}
               <Section title="Signatures">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="flex flex-col items-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Attending Technician</p>
-                    {data.attending_technician_signature ? (
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Service Technician</p>
+                    {data.service_technician_signature ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.attending_technician_signature}
-                          alt="Attending Technician Signature"
+                          src={data.service_technician_signature}
+                          alt="Service Technician Signature"
                           className="h-24 w-auto object-contain"
                         />
                       </div>
@@ -546,17 +544,17 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF }: ViewE
                       </div>
                     )}
                     <div className="border-t border-gray-400 w-48 pt-2 text-center">
-                      <p className="text-sm font-medium text-gray-900">{data.attending_technician || "________________________"}</p>
-                      <p className="text-xs text-gray-500">Attending Technician</p>
+                      <p className="text-sm font-medium text-gray-900">{data.service_technician_name || "________________________"}</p>
+                      <p className="text-xs text-gray-500">Signed by Technician</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Service Supervisor</p>
-                    {data.service_supervisor_signature ? (
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Noted By</p>
+                    {data.noted_by_signature ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.service_supervisor_signature}
-                          alt="Service Supervisor Signature"
+                          src={data.noted_by_signature}
+                          alt="Noted By Signature"
                           className="h-24 w-auto object-contain"
                         />
                       </div>
@@ -566,8 +564,48 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF }: ViewE
                       </div>
                     )}
                     <div className="border-t border-gray-400 w-48 pt-2 text-center">
-                      <p className="text-sm font-medium text-gray-900">{data.service_supervisor || "________________________"}</p>
-                      <p className="text-xs text-gray-500">Service Supervisor</p>
+                      <p className="text-sm font-medium text-gray-900">{data.noted_by_name || "________________________"}</p>
+                      <p className="text-xs text-gray-500">Service Manager</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Approved By</p>
+                    {data.approved_by_signature ? (
+                      <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
+                        <img
+                          src={data.approved_by_signature}
+                          alt="Approved By Signature"
+                          className="h-24 w-auto object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-24 w-full border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">
+                        No signature
+                      </div>
+                    )}
+                    <div className="border-t border-gray-400 w-48 pt-2 text-center">
+                      <p className="text-sm font-medium text-gray-900">{data.approved_by_name || "________________________"}</p>
+                      <p className="text-xs text-gray-500">Authorized Signature</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Acknowledged By</p>
+                    {data.acknowledged_by_signature ? (
+                      <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
+                        <img
+                          src={data.acknowledged_by_signature}
+                          alt="Acknowledged By Signature"
+                          className="h-24 w-auto object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-24 w-full border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">
+                        No signature
+                      </div>
+                    )}
+                    <div className="border-t border-gray-400 w-48 pt-2 text-center">
+                      <p className="text-sm font-medium text-gray-900">{data.acknowledged_by_name || "________________________"}</p>
+                      <p className="text-xs text-gray-500">Customer Signature</p>
                     </div>
                   </div>
                 </div>

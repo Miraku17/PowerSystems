@@ -7,12 +7,15 @@ interface EngineTeardownFormData {
   job_number: string;
   engine_model: string;
   serial_no: string;
-  attending_technician: string;
-  service_supervisor: string;
-
-  // Signatures
-  attending_technician_signature: string;
-  service_supervisor_signature: string;
+  // Signatures (matching Deutz Service Form)
+  service_technician_name: string;
+  service_technician_signature: string;
+  noted_by_name: string;
+  noted_by_signature: string;
+  approved_by_name: string;
+  approved_by_signature: string;
+  acknowledged_by_name: string;
+  acknowledged_by_signature: string;
 
   // 1. Cylinder Block
   cam_shaft_bushing_bore: string;
@@ -294,12 +297,15 @@ const initialFormData: EngineTeardownFormData = {
   job_number: "",
   engine_model: "",
   serial_no: "",
-  attending_technician: "",
-  service_supervisor: "",
-
-  // Signatures
-  attending_technician_signature: "",
-  service_supervisor_signature: "",
+  // Signatures (matching Deutz Service Form)
+  service_technician_name: "",
+  service_technician_signature: "",
+  noted_by_name: "",
+  noted_by_signature: "",
+  approved_by_name: "",
+  approved_by_signature: "",
+  acknowledged_by_name: "",
+  acknowledged_by_signature: "",
 
   // 1. Cylinder Block
   cam_shaft_bushing_bore: "",

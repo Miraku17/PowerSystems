@@ -368,8 +368,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       { label: "Job Number", value: record.job_number },
       { label: "Engine Model", value: record.engine_model },
       { label: "Serial No.", value: record.serial_no },
-      { label: "Attending Technician", value: record.attending_technician },
-      { label: "Service Supervisor", value: record.service_supervisor },
     ]);
 
     // 1. Cylinder Block
@@ -587,64 +585,50 @@ export const GET = withAuth(async (request, { user, params }) => {
     addSection("Signatures");
     checkPageBreak(60);
 
-    const signatureBoxWidth = (contentWidth - 10) / 2;
-    const signatureBoxHeight = 45;
+    const signatures = [
+      { label: "Signed by Technician", title: "Service Technician", name: record.service_technician_name, imageUrl: record.service_technician_signature },
+      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature },
+      { label: "Authorized Signature", title: "Approved By", name: record.approved_by_name, imageUrl: record.approved_by_signature },
+      { label: "Customer Signature", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature },
+    ];
+
+    const sigBoxWidth = (contentWidth - 15) / 4;
+    const sigBoxHeight = 48;
 
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
     doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
     doc.setLineWidth(0.1);
+    doc.rect(leftMargin, yPos, contentWidth, sigBoxHeight + 8, "FD");
 
-    // Left signature box - Attending Technician
-    doc.rect(leftMargin, yPos, signatureBoxWidth, signatureBoxHeight, "FD");
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-    doc.text("Attending Technician", leftMargin + 5, yPos + 5);
+    for (let i = 0; i < signatures.length; i++) {
+      const sig = signatures[i];
+      const xOffset = leftMargin + 3 + i * (sigBoxWidth + 3);
 
-    if (record.attending_technician_signature) {
-      try {
-        doc.addImage(record.attending_technician_signature, 'PNG', leftMargin + 5, yPos + 8, signatureBoxWidth - 10, 25);
-      } catch (e) {
-        console.error("Error adding attending technician signature:", e);
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.3);
+      doc.line(xOffset, yPos + sigBoxHeight - 8, xOffset + sigBoxWidth - 3, yPos + sigBoxHeight - 8);
+
+      if (sig.imageUrl) {
+        try {
+          doc.addImage(sig.imageUrl, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 28);
+        } catch (e) {
+          console.error(`Error adding ${sig.title} signature:`, e);
+        }
       }
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text(sig.name || "________________________", xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight - 4, { align: "center" });
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+      doc.text(sig.title, xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight + 2, { align: "center" });
+      doc.text(sig.label, xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight + 6, { align: "center" });
     }
 
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.line(leftMargin + 5, yPos + 36, leftMargin + signatureBoxWidth - 5, yPos + 36);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(record.attending_technician || "________________________", leftMargin + signatureBoxWidth / 2, yPos + 42, { align: "center" });
-
-    // Right signature box - Service Supervisor
-    const rightBoxX = leftMargin + signatureBoxWidth + 10;
-    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-    doc.setLineWidth(0.1);
-    doc.rect(rightBoxX, yPos, signatureBoxWidth, signatureBoxHeight, "FD");
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-    doc.text("Service Supervisor", rightBoxX + 5, yPos + 5);
-
-    if (record.service_supervisor_signature) {
-      try {
-        doc.addImage(record.service_supervisor_signature, 'PNG', rightBoxX + 5, yPos + 8, signatureBoxWidth - 10, 25);
-      } catch (e) {
-        console.error("Error adding service supervisor signature:", e);
-      }
-    }
-
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.line(rightBoxX + 5, yPos + 36, rightBoxX + signatureBoxWidth - 5, yPos + 36);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(record.service_supervisor || "________________________", rightBoxX + signatureBoxWidth / 2, yPos + 42, { align: "center" });
-
-    yPos += signatureBoxHeight + 5;
+    yPos += sigBoxHeight + 15;
 
     // Footer
     checkPageBreak(25);

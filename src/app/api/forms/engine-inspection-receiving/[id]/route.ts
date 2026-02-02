@@ -80,7 +80,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     // First, fetch the record to get signature URLs for cleanup
     const { data: existingRecord, error: fetchError } = await supabase
       .from("engine_inspection_receiving_report")
-      .select("inspected_by_technician_signature, inspected_by_supervisor_signature")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
       .eq("id", id)
       .single();
 
@@ -106,8 +106,10 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Optionally delete signature files from storage (uncomment if needed)
-    // await deleteSignature(supabase, existingRecord?.inspected_by_technician_signature);
-    // await deleteSignature(supabase, existingRecord?.inspected_by_supervisor_signature);
+    // await deleteSignature(supabase, existingRecord?.service_technician_signature);
+    // await deleteSignature(supabase, existingRecord?.noted_by_signature);
+    // await deleteSignature(supabase, existingRecord?.approved_by_signature);
+    // await deleteSignature(supabase, existingRecord?.acknowledged_by_signature);
 
     // Log the deletion in audit logs
     await supabase.from('audit_logs').insert({

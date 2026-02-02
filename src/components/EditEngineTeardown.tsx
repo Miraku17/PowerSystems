@@ -143,12 +143,15 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
     job_number: data.job_number || '',
     engine_model: data.engine_model || '',
     serial_no: data.serial_no || '',
-    attending_technician: data.attending_technician || '',
-    service_supervisor: data.service_supervisor || '',
-
-    // Signatures
-    attending_technician_signature: data.attending_technician_signature || '',
-    service_supervisor_signature: data.service_supervisor_signature || '',
+    // Signatures (matching Deutz Service Form)
+    service_technician_name: data.service_technician_name || '',
+    service_technician_signature: data.service_technician_signature || '',
+    noted_by_name: data.noted_by_name || '',
+    noted_by_signature: data.noted_by_signature || '',
+    approved_by_name: data.approved_by_name || '',
+    approved_by_signature: data.approved_by_signature || '',
+    acknowledged_by_name: data.acknowledged_by_name || '',
+    acknowledged_by_signature: data.acknowledged_by_signature || '',
 
     // 1. Cylinder Block
     cam_shaft_bushing_bore: cylinderBlock.cam_shaft_bushing_bore || '',
@@ -824,35 +827,65 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
 
             {/* Signatures */}
             <Section title="Signatures">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
                   <SelectDropdown
-                    label="Attending Technician"
-                    name="attending_technician"
-                    value={formData.attending_technician}
+                    label="Service Technician"
+                    name="service_technician_name"
+                    value={formData.service_technician_name}
                     onChange={handleChange}
                     options={users.map(user => user.fullName)}
                   />
                   <SignaturePad
                     label="Draw Signature"
-                    value={formData.attending_technician_signature}
-                    onChange={(signature) => handleChange('attending_technician_signature', signature)}
-                    subtitle="Attending Technician"
+                    value={formData.service_technician_signature}
+                    onChange={(signature) => handleChange('service_technician_signature', signature)}
+                    subtitle="Signed by Technician"
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SelectDropdown
-                    label="Service Supervisor"
-                    name="service_supervisor"
-                    value={formData.service_supervisor}
+                    label="Noted By"
+                    name="noted_by_name"
+                    value={formData.noted_by_name}
                     onChange={handleChange}
                     options={users.map(user => user.fullName)}
                   />
                   <SignaturePad
                     label="Draw Signature"
-                    value={formData.service_supervisor_signature}
-                    onChange={(signature) => handleChange('service_supervisor_signature', signature)}
-                    subtitle="Service Supervisor"
+                    value={formData.noted_by_signature}
+                    onChange={(signature) => handleChange('noted_by_signature', signature)}
+                    subtitle="Service Manager"
+                  />
+                </div>
+                <div className="flex flex-col space-y-4">
+                  <SelectDropdown
+                    label="Approved By"
+                    name="approved_by_name"
+                    value={formData.approved_by_name}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formData.approved_by_signature}
+                    onChange={(signature) => handleChange('approved_by_signature', signature)}
+                    subtitle="Authorized Signature"
+                  />
+                </div>
+                <div className="flex flex-col space-y-4">
+                  <SelectDropdown
+                    label="Acknowledged By"
+                    name="acknowledged_by_name"
+                    value={formData.acknowledged_by_name}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formData.acknowledged_by_signature}
+                    onChange={(signature) => handleChange('acknowledged_by_signature', signature)}
+                    subtitle="Customer Signature"
                   />
                 </div>
               </div>

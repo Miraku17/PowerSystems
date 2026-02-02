@@ -145,23 +145,33 @@ export const POST = withAuth(async (request, { user }) => {
     const job_number = getString('job_number');
     const engine_model = getString('engine_model');
     const serial_no = getString('serial_no');
-    const attending_technician = getString('attending_technician');
-    const service_supervisor = getString('service_supervisor');
 
     // Signatures - upload to Supabase Storage
     const timestamp = Date.now();
-    const rawAttendingTechSignature = getString('attending_technician_signature');
-    const rawServiceSupervisorSignature = getString('service_supervisor_signature');
+    const service_technician_name = getString('service_technician_name');
+    const noted_by_name = getString('noted_by_name');
+    const approved_by_name = getString('approved_by_name');
+    const acknowledged_by_name = getString('acknowledged_by_name');
 
-    const attending_technician_signature = await uploadSignature(
+    const service_technician_signature = await uploadSignature(
       supabase,
-      rawAttendingTechSignature,
-      `engine-teardown/attending-technician-${timestamp}.png`
+      getString('service_technician_signature'),
+      `engine-teardown/service-technician-${timestamp}.png`
     );
-    const service_supervisor_signature = await uploadSignature(
+    const noted_by_signature = await uploadSignature(
       supabase,
-      rawServiceSupervisorSignature,
-      `engine-teardown/service-supervisor-${timestamp}.png`
+      getString('noted_by_signature'),
+      `engine-teardown/noted-by-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      supabase,
+      getString('approved_by_signature'),
+      `engine-teardown/approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      supabase,
+      getString('acknowledged_by_signature'),
+      `engine-teardown/acknowledged-by-${timestamp}.png`
     );
 
     // 1. Insert main report first
@@ -172,10 +182,14 @@ export const POST = withAuth(async (request, { user }) => {
         job_number,
         engine_model,
         serial_no,
-        attending_technician,
-        service_supervisor,
-        attending_technician_signature,
-        service_supervisor_signature,
+        service_technician_name,
+        service_technician_signature,
+        noted_by_name,
+        noted_by_signature,
+        approved_by_name,
+        approved_by_signature,
+        acknowledged_by_name,
+        acknowledged_by_signature,
         created_by: user.id,
         updated_by: user.id,
       }])

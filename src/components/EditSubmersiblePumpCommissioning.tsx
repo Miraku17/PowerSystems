@@ -848,10 +848,10 @@ export default function EditSubmersiblePumpCommissioning({
                 </h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {/* Commissioned By */}
+                {/* Service Technician */}
                 <div className="flex flex-col space-y-4">
                   <Select
-                    label="Commissioned By"
+                    label="Service Technician"
                     name="commissioned_by_name"
                     value={formData.commissioned_by_name}
                     onChange={handleChange}

@@ -380,12 +380,12 @@ export default function ViewEngineSurfacePumpService({ data, onClose, onExportPD
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
                       {data.performed_by_signature ? (
-                        <img src={data.performed_by_signature} alt="Performed By Signature" className="max-h-20 max-w-full object-contain" />
+                        <img src={data.performed_by_signature} alt="Service Technician Signature" className="max-h-20 max-w-full object-contain" />
                       ) : (
                         <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                       )}
                     </div>
-                    <Field label="Performed By" value={data.performed_by_name} />
+                    <Field label="Service Technician" value={data.performed_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc Engineer/Technician</p>
                   </div>
                   <div className="text-center flex flex-col items-center">

@@ -427,72 +427,55 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Signatures Section
     addSection("Signatures");
-    checkPageBreak(50);
+    checkPageBreak(60);
 
-    const signatureBoxWidth = (contentWidth - 10) / 2;
-    const signatureBoxHeight = 40;
+    const signatures = [
+      { label: "Signed by Technician", title: "Service Technician", name: record.service_technician_name, imageUrl: record.service_technician_signature },
+      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature },
+      { label: "Authorized Signature", title: "Approved By", name: record.approved_by_name, imageUrl: record.approved_by_signature },
+      { label: "Customer Signature", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature },
+    ];
+
+    const sigBoxWidth = (contentWidth - 15) / 4;
+    const sigBoxHeight = 48;
 
     doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
     doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
     doc.setLineWidth(0.1);
+    doc.rect(leftMargin, yPos, contentWidth, sigBoxHeight + 8, "FD");
 
-    // Left signature box - Technician
-    doc.rect(leftMargin, yPos, signatureBoxWidth, signatureBoxHeight, "FD");
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-    doc.text("Inspected By (Technician)", leftMargin + 3, yPos + 5);
+    for (let i = 0; i < signatures.length; i++) {
+      const sig = signatures[i];
+      const xOffset = leftMargin + 3 + i * (sigBoxWidth + 3);
 
-    if (record.inspected_by_technician_signature) {
-      try {
-        const techSignatureBase64 = await fetchSignatureBase64(record.inspected_by_technician_signature);
-        if (techSignatureBase64) {
-          doc.addImage(techSignatureBase64, 'PNG', leftMargin + 3, yPos + 8, signatureBoxWidth - 6, 20, undefined, 'FAST');
+      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+      doc.setLineWidth(0.3);
+      doc.line(xOffset, yPos + sigBoxHeight - 8, xOffset + sigBoxWidth - 3, yPos + sigBoxHeight - 8);
+
+      if (sig.imageUrl) {
+        try {
+          const sigBase64 = await fetchSignatureBase64(sig.imageUrl);
+          if (sigBase64) {
+            doc.addImage(sigBase64, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 28, undefined, 'FAST');
+          }
+        } catch (e) {
+          console.error(`Error adding ${sig.title} signature:`, e);
         }
-      } catch (e) {
-        console.error("Error adding technician signature:", e);
       }
+
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0, 0, 0);
+      doc.text(sig.name || "________________________", xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight - 4, { align: "center" });
+
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+      doc.text(sig.title, xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight + 2, { align: "center" });
+      doc.text(sig.label, xOffset + (sigBoxWidth - 3) / 2, yPos + sigBoxHeight + 6, { align: "center" });
     }
 
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.line(leftMargin + 5, yPos + 32, leftMargin + signatureBoxWidth - 5, yPos + 32);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(record.inspected_by_technician_name || "________________________", leftMargin + signatureBoxWidth / 2, yPos + 37, { align: "center" });
-
-    // Right signature box - Supervisor
-    const rightBoxX = leftMargin + signatureBoxWidth + 10;
-    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-    doc.setLineWidth(0.1);
-    doc.rect(rightBoxX, yPos, signatureBoxWidth, signatureBoxHeight, "FD");
-    doc.setFontSize(7);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-    doc.text("Inspected By (Supervisor)", rightBoxX + 3, yPos + 5);
-
-    if (record.inspected_by_supervisor_signature) {
-      try {
-        const supervisorSignatureBase64 = await fetchSignatureBase64(record.inspected_by_supervisor_signature);
-        if (supervisorSignatureBase64) {
-          doc.addImage(supervisorSignatureBase64, 'PNG', rightBoxX + 3, yPos + 8, signatureBoxWidth - 6, 20, undefined, 'FAST');
-        }
-      } catch (e) {
-        console.error("Error adding supervisor signature:", e);
-      }
-    }
-
-    doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.3);
-    doc.line(rightBoxX + 5, yPos + 32, rightBoxX + signatureBoxWidth - 5, yPos + 32);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(0, 0, 0);
-    doc.text(record.inspected_by_supervisor_name || "________________________", rightBoxX + signatureBoxWidth / 2, yPos + 37, { align: "center" });
-
-    yPos += signatureBoxHeight + 5;
+    yPos += sigBoxHeight + 15;
 
     // Footer
     checkPageBreak(15);

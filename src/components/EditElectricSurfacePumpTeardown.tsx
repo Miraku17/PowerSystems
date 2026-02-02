@@ -387,7 +387,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
               <div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4></div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
-                  <Select label="Tear downed By" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+                  <Select label="Service Technician" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
                   <SignaturePad label="Draw Signature" value={formData.teardowned_by_signature} onChange={(signature: string) => handleChange('teardowned_by_signature', signature)} subtitle="Svc Engineer/Technician" />
                 </div>
                 <div className="flex flex-col space-y-4">

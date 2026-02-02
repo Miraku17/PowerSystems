@@ -554,9 +554,9 @@ export default function EditElectricSurfacePumpCommissioning({
                 </h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-                {/* Commissioned By */}
+                {/* Service Technician */}
                 <div className="flex flex-col space-y-4">
-                  <Select label="Commissioned By" name="commissioned_by_name" value={formData.commissioned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+                  <Select label="Service Technician" name="commissioned_by_name" value={formData.commissioned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
                   {formData.commissioned_by_signature && formData.commissioned_by_signature.startsWith('http') ? (
                     <div className="flex flex-col items-center">
                       <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">

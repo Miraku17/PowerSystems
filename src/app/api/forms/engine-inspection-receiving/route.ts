@@ -141,11 +141,15 @@ export const POST = withAuth(async (request, { user }) => {
     const modification_of_engine = getString('modification_of_engine');
     const missing_parts = getString('missing_parts');
 
-    // Signatures
-    const inspected_by_technician_name = getString('inspected_by_technician_name');
-    const rawTechSignature = getString('inspected_by_technician_signature');
-    const inspected_by_supervisor_name = getString('inspected_by_supervisor_name');
-    const rawSupervisorSignature = getString('inspected_by_supervisor_signature');
+    // Signatures (matching Deutz Service Form)
+    const service_technician_name = getString('service_technician_name');
+    const noted_by_name = getString('noted_by_name');
+    const approved_by_name = getString('approved_by_name');
+    const acknowledged_by_name = getString('acknowledged_by_name');
+    const rawServiceTechSignature = getString('service_technician_signature');
+    const rawNotedBySignature = getString('noted_by_signature');
+    const rawApprovedBySignature = getString('approved_by_signature');
+    const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
 
     // Parse inspection items JSON
     const inspectionItemsJson = getString('inspectionItems');
@@ -182,15 +186,25 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Upload signatures
     const timestamp = Date.now();
-    const inspected_by_technician_signature = await uploadSignature(
+    const service_technician_signature = await uploadSignature(
       supabase,
-      rawTechSignature,
-      `engine-inspection/technician-${timestamp}.png`
+      rawServiceTechSignature,
+      `engine-inspection/service-technician-${timestamp}.png`
     );
-    const inspected_by_supervisor_signature = await uploadSignature(
+    const noted_by_signature = await uploadSignature(
       supabase,
-      rawSupervisorSignature,
-      `engine-inspection/supervisor-${timestamp}.png`
+      rawNotedBySignature,
+      `engine-inspection/noted-by-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      supabase,
+      rawApprovedBySignature,
+      `engine-inspection/approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      supabase,
+      rawAcknowledgedBySignature,
+      `engine-inspection/acknowledged-by-${timestamp}.png`
     );
 
     // Insert main record
@@ -212,10 +226,14 @@ export const POST = withAuth(async (request, { user }) => {
         engine_kw,
         modification_of_engine,
         missing_parts,
-        inspected_by_technician_name,
-        inspected_by_technician_signature,
-        inspected_by_supervisor_name,
-        inspected_by_supervisor_signature,
+        service_technician_name,
+        service_technician_signature,
+        noted_by_name,
+        noted_by_signature,
+        approved_by_name,
+        approved_by_signature,
+        acknowledged_by_name,
+        acknowledged_by_signature,
         created_by: user.id,
       }])
       .select();
@@ -308,7 +326,7 @@ export const PATCH = withAuth(async (request, { user }) => {
     // Fetch current record
     const { data: currentRecord, error: fetchError } = await supabase
       .from("engine_inspection_receiving_report")
-      .select("inspected_by_technician_signature, inspected_by_supervisor_signature, deleted_at, created_by")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -344,10 +362,14 @@ export const PATCH = withAuth(async (request, { user }) => {
       engine_maker, application, engine_model, engine_serial_number,
       date_received, date_inspected, engine_rpm, engine_kw,
       modification_of_engine, missing_parts,
-      inspected_by_technician_name,
-      inspected_by_technician_signature: rawTechSignature,
-      inspected_by_supervisor_name,
-      inspected_by_supervisor_signature: rawSupervisorSignature,
+      service_technician_name,
+      service_technician_signature: rawServiceTechSignature,
+      noted_by_name,
+      noted_by_signature: rawNotedBySignature,
+      approved_by_name,
+      approved_by_signature: rawApprovedBySignature,
+      acknowledged_by_name,
+      acknowledged_by_signature: rawAcknowledgedBySignature,
       inspectionItems,
     } = body;
 
@@ -376,30 +398,54 @@ export const PATCH = withAuth(async (request, { user }) => {
 
     // Process signatures
     const timestamp = Date.now();
-    const inspected_by_technician_signature = await uploadSignature(
+    const service_technician_signature = await uploadSignature(
       supabase,
-      rawTechSignature || "",
-      `engine-inspection/technician-${timestamp}.png`
+      rawServiceTechSignature || "",
+      `engine-inspection/service-technician-${timestamp}.png`
     );
-    const inspected_by_supervisor_signature = await uploadSignature(
+    const noted_by_signature = await uploadSignature(
       supabase,
-      rawSupervisorSignature || "",
-      `engine-inspection/supervisor-${timestamp}.png`
+      rawNotedBySignature || "",
+      `engine-inspection/noted-by-${timestamp}.png`
+    );
+    const approved_by_signature = await uploadSignature(
+      supabase,
+      rawApprovedBySignature || "",
+      `engine-inspection/approved-by-${timestamp}.png`
+    );
+    const acknowledged_by_signature = await uploadSignature(
+      supabase,
+      rawAcknowledgedBySignature || "",
+      `engine-inspection/acknowledged-by-${timestamp}.png`
     );
 
     // Delete old signatures if replaced
-    if (currentRecord.inspected_by_technician_signature) {
-      if (rawTechSignature === "") {
-        await deleteSignature(supabase, currentRecord.inspected_by_technician_signature);
-      } else if (inspected_by_technician_signature && inspected_by_technician_signature !== currentRecord.inspected_by_technician_signature) {
-        await deleteSignature(supabase, currentRecord.inspected_by_technician_signature);
+    if (currentRecord.service_technician_signature) {
+      if (rawServiceTechSignature === "") {
+        await deleteSignature(supabase, currentRecord.service_technician_signature);
+      } else if (service_technician_signature && service_technician_signature !== currentRecord.service_technician_signature) {
+        await deleteSignature(supabase, currentRecord.service_technician_signature);
       }
     }
-    if (currentRecord.inspected_by_supervisor_signature) {
-      if (rawSupervisorSignature === "") {
-        await deleteSignature(supabase, currentRecord.inspected_by_supervisor_signature);
-      } else if (inspected_by_supervisor_signature && inspected_by_supervisor_signature !== currentRecord.inspected_by_supervisor_signature) {
-        await deleteSignature(supabase, currentRecord.inspected_by_supervisor_signature);
+    if (currentRecord.noted_by_signature) {
+      if (rawNotedBySignature === "") {
+        await deleteSignature(supabase, currentRecord.noted_by_signature);
+      } else if (noted_by_signature && noted_by_signature !== currentRecord.noted_by_signature) {
+        await deleteSignature(supabase, currentRecord.noted_by_signature);
+      }
+    }
+    if (currentRecord.approved_by_signature) {
+      if (rawApprovedBySignature === "") {
+        await deleteSignature(supabase, currentRecord.approved_by_signature);
+      } else if (approved_by_signature && approved_by_signature !== currentRecord.approved_by_signature) {
+        await deleteSignature(supabase, currentRecord.approved_by_signature);
+      }
+    }
+    if (currentRecord.acknowledged_by_signature) {
+      if (rawAcknowledgedBySignature === "") {
+        await deleteSignature(supabase, currentRecord.acknowledged_by_signature);
+      } else if (acknowledged_by_signature && acknowledged_by_signature !== currentRecord.acknowledged_by_signature) {
+        await deleteSignature(supabase, currentRecord.acknowledged_by_signature);
       }
     }
 
@@ -420,18 +466,26 @@ export const PATCH = withAuth(async (request, { user }) => {
       engine_kw,
       modification_of_engine,
       missing_parts,
-      inspected_by_technician_name,
-      inspected_by_supervisor_name,
+      service_technician_name,
+      noted_by_name,
+      approved_by_name,
+      acknowledged_by_name,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     };
 
     // Handle signature updates
-    if (inspected_by_technician_signature) updateData.inspected_by_technician_signature = inspected_by_technician_signature;
-    else if (rawTechSignature === "") updateData.inspected_by_technician_signature = null;
+    if (service_technician_signature) updateData.service_technician_signature = service_technician_signature;
+    else if (rawServiceTechSignature === "") updateData.service_technician_signature = null;
 
-    if (inspected_by_supervisor_signature) updateData.inspected_by_supervisor_signature = inspected_by_supervisor_signature;
-    else if (rawSupervisorSignature === "") updateData.inspected_by_supervisor_signature = null;
+    if (noted_by_signature) updateData.noted_by_signature = noted_by_signature;
+    else if (rawNotedBySignature === "") updateData.noted_by_signature = null;
+
+    if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
+    else if (rawApprovedBySignature === "") updateData.approved_by_signature = null;
+
+    if (acknowledged_by_signature) updateData.acknowledged_by_signature = acknowledged_by_signature;
+    else if (rawAcknowledgedBySignature === "") updateData.acknowledged_by_signature = null;
 
     // Update main record
     const { data: updatedData, error: updateError } = await supabase

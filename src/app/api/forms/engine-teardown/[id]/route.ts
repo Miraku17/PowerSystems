@@ -135,7 +135,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     // Fetch existing record to get old signature URLs
     const { data: existingRecord } = await supabase
       .from("engine_teardown_reports")
-      .select("attending_technician_signature, service_supervisor_signature")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature")
       .eq("id", id)
       .single();
 
@@ -149,33 +149,55 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     if (hasField('job_number')) mainReportData.job_number = getString('job_number');
     if (hasField('engine_model')) mainReportData.engine_model = getString('engine_model');
     if (hasField('serial_no')) mainReportData.serial_no = getString('serial_no');
-    if (hasField('attending_technician')) mainReportData.attending_technician = getString('attending_technician');
-    if (hasField('service_supervisor')) mainReportData.service_supervisor = getString('service_supervisor');
+    if (hasField('service_technician_name')) mainReportData.service_technician_name = getString('service_technician_name');
+    if (hasField('noted_by_name')) mainReportData.noted_by_name = getString('noted_by_name');
+    if (hasField('approved_by_name')) mainReportData.approved_by_name = getString('approved_by_name');
+    if (hasField('acknowledged_by_name')) mainReportData.acknowledged_by_name = getString('acknowledged_by_name');
 
     // Handle signature uploads
     const timestamp = Date.now();
-    if (hasField('attending_technician_signature')) {
-      const rawSignature = getString('attending_technician_signature');
-      // Delete old signature if exists and new one is being uploaded
-      if (existingRecord?.attending_technician_signature && rawSignature.startsWith('data:image')) {
-        await deleteSignature(supabase, existingRecord.attending_technician_signature);
+    if (hasField('service_technician_signature')) {
+      const rawSignature = getString('service_technician_signature');
+      if (existingRecord?.service_technician_signature && rawSignature.startsWith('data:image')) {
+        await deleteSignature(supabase, existingRecord.service_technician_signature);
       }
-      mainReportData.attending_technician_signature = await uploadSignature(
+      mainReportData.service_technician_signature = await uploadSignature(
         supabase,
         rawSignature,
-        `engine-teardown/attending-technician-${id}-${timestamp}.png`
+        `engine-teardown/service-technician-${id}-${timestamp}.png`
       );
     }
-    if (hasField('service_supervisor_signature')) {
-      const rawSignature = getString('service_supervisor_signature');
-      // Delete old signature if exists and new one is being uploaded
-      if (existingRecord?.service_supervisor_signature && rawSignature.startsWith('data:image')) {
-        await deleteSignature(supabase, existingRecord.service_supervisor_signature);
+    if (hasField('noted_by_signature')) {
+      const rawSignature = getString('noted_by_signature');
+      if (existingRecord?.noted_by_signature && rawSignature.startsWith('data:image')) {
+        await deleteSignature(supabase, existingRecord.noted_by_signature);
       }
-      mainReportData.service_supervisor_signature = await uploadSignature(
+      mainReportData.noted_by_signature = await uploadSignature(
         supabase,
         rawSignature,
-        `engine-teardown/service-supervisor-${id}-${timestamp}.png`
+        `engine-teardown/noted-by-${id}-${timestamp}.png`
+      );
+    }
+    if (hasField('approved_by_signature')) {
+      const rawSignature = getString('approved_by_signature');
+      if (existingRecord?.approved_by_signature && rawSignature.startsWith('data:image')) {
+        await deleteSignature(supabase, existingRecord.approved_by_signature);
+      }
+      mainReportData.approved_by_signature = await uploadSignature(
+        supabase,
+        rawSignature,
+        `engine-teardown/approved-by-${id}-${timestamp}.png`
+      );
+    }
+    if (hasField('acknowledged_by_signature')) {
+      const rawSignature = getString('acknowledged_by_signature');
+      if (existingRecord?.acknowledged_by_signature && rawSignature.startsWith('data:image')) {
+        await deleteSignature(supabase, existingRecord.acknowledged_by_signature);
+      }
+      mainReportData.acknowledged_by_signature = await uploadSignature(
+        supabase,
+        rawSignature,
+        `engine-teardown/acknowledged-by-${id}-${timestamp}.png`
       );
     }
 

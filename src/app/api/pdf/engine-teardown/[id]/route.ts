@@ -581,6 +581,21 @@ export const GET = withAuth(async (request, { user, params }) => {
     ], 3);
     addFieldsGrid([{ label: "Others", value: majorComponents.others, span: 2 }]);
 
+    // Helper function to fetch signature and convert to base64
+    const fetchSignatureBase64 = async (url: string): Promise<string | null> => {
+      if (!url) return null;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return buffer.toString("base64");
+      } catch (error) {
+        console.error("Error fetching signature:", error);
+        return null;
+      }
+    };
+
     // Signatures Section
     addSection("Signatures");
     checkPageBreak(60);
@@ -610,7 +625,10 @@ export const GET = withAuth(async (request, { user, params }) => {
 
       if (sig.imageUrl) {
         try {
-          doc.addImage(sig.imageUrl, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 28);
+          const sigBase64 = await fetchSignatureBase64(sig.imageUrl);
+          if (sigBase64) {
+            doc.addImage(sigBase64, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 28, undefined, 'FAST');
+          }
         } catch (e) {
           console.error(`Error adding ${sig.title} signature:`, e);
         }

@@ -253,7 +253,7 @@ export default function FormRecordsPage() {
 
   const getSerialNo = (record: FormRecord): string => {
     const data = record.data;
-    return data?.engine_serial_no || data?.engine_serial_number || data?.pump_serial_number || data?.pump_serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
+    return data?.engine_serial_no || data?.engine_serial_number || data?.pump_serial_number || data?.pump_serial_no || data?.serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
   };
 
   const filteredRecords = records.filter((record) => {

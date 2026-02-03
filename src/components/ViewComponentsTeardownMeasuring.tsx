@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
 
 interface ViewComponentsTeardownMeasuringProps {
@@ -12,9 +13,6 @@ interface ViewComponentsTeardownMeasuringProps {
 }
 
 export default function ViewComponentsTeardownMeasuring({ data, recordId, onClose }: ViewComponentsTeardownMeasuringProps) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [fullData, setFullData] = useState<any>(null);
-
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     header: true,
     cylinderBore: true,
@@ -44,23 +42,26 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  useEffect(() => {
-    const fetchFullData = async () => {
-      try {
-        const response = await apiClient.get(`/forms/components-teardown-measuring/${recordId}`);
-        if (response.data.success) {
-          setFullData(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch full record", error);
-        toast.error("Failed to load record data");
-      } finally {
-        setIsLoading(false);
+  // Use TanStack Query for caching - data will be cached by recordId
+  const { data: fullData, isLoading, error } = useQuery({
+    queryKey: ['components-teardown-measuring', recordId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/forms/components-teardown-measuring/${recordId}`);
+      if (response.data.success) {
+        return response.data.data;
       }
-    };
+      throw new Error("Failed to load record data");
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh
+    gcTime: 30 * 60 * 1000, // 30 minutes - cache retention
+  });
 
-    fetchFullData();
-  }, [recordId]);
+  // Show error toast when query fails
+  useEffect(() => {
+    if (error) {
+      toast.error("Failed to load record data");
+    }
+  }, [error]);
 
   const handlePrint = () => {
     window.print();

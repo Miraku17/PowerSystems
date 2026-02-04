@@ -221,8 +221,8 @@ export default function SubmersiblePumpServiceForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Service Dates & Operation Info</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Date In Service/Commissioning" name="date_in_service_commissioning" type="date" value={formData.date_in_service_commissioning} onChange={handleChange} />
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <Input label="Date In Service" name="date_in_service_commissioning" type="date" value={formData.date_in_service_commissioning} onChange={handleChange} />
             <Input label="Date Failed" name="date_failed" type="date" value={formData.date_failed} onChange={handleChange} />
             <Input label="Running Hours" name="running_hours" value={formData.running_hours} onChange={handleChange} />
             <Input label="Water Quality" name="water_quality" value={formData.water_quality} onChange={handleChange} />
@@ -386,21 +386,12 @@ export default function SubmersiblePumpServiceForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
-              <Select label="Performed By" name="performed_by_name" value={formData.performed_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Service Technician" name="performed_by_name" value={formData.performed_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.performed_by_signature}
                 onChange={(signature: string) => handleSignatureChange('performed_by_signature', signature)}
                 subtitle="Svc Engineer/Technician"
-              />
-            </div>
-            <div className="flex flex-col space-y-4">
-              <Select label="Checked & Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.checked_approved_by_signature}
-                onChange={(signature: string) => handleSignatureChange('checked_approved_by_signature', signature)}
-                subtitle="Svc. Supvr. / Supt."
               />
             </div>
             <div className="flex flex-col space-y-4">
@@ -410,6 +401,15 @@ export default function SubmersiblePumpServiceForm() {
                 value={formData.noted_by_signature}
                 onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
                 subtitle="Svc. Manager"
+              />
+            </div>
+            <div className="flex flex-col space-y-4">
+              <Select label="Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.checked_approved_by_signature}
+                onChange={(signature: string) => handleSignatureChange('checked_approved_by_signature', signature)}
+                subtitle="Svc. Supvr. / Supt."
               />
             </div>
             <div className="flex flex-col space-y-4">

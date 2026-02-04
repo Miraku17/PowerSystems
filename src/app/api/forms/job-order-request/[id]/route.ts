@@ -205,9 +205,10 @@ export const PATCH = withAuth(async (request, { params, user }) => {
         .select('id')
         .eq('shop_field_jo_number', shop_field_jo_number)
         .neq('id', id)
-        .single();
+        .is('deleted_at', null)
+        .maybeSingle();
 
-      if (searchError && searchError.code !== 'PGRST116') {
+      if (searchError) {
         console.error('Error checking for duplicate job order:', searchError);
         return NextResponse.json({ error: 'Failed to validate J.O. Number uniqueness.' }, { status: 500 });
       }

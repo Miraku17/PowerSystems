@@ -41,6 +41,8 @@ import ViewEngineInspectionReceiving from "@/components/ViewEngineInspectionRece
 import EditEngineInspectionReceiving from "@/components/EditEngineInspectionReceiving";
 import ViewComponentsTeardownMeasuring from "@/components/ViewComponentsTeardownMeasuring";
 import EditComponentsTeardownMeasuring from "@/components/EditComponentsTeardownMeasuring";
+import ViewJobOrderRequest from "@/components/ViewJobOrderRequest";
+import EditJobOrderRequest from "@/components/EditJobOrderRequest";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -84,6 +86,7 @@ export default function FormRecordsPage() {
 
   // Form type to endpoint mapping (case-insensitive)
   const formTypeEndpoints: Record<string, { endpoint: string; name: string }> = {
+    "job-order-request": { endpoint: "/forms/job-order-request", name: "Job Order Requests" },
     "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
     "submersible-pump-commissioning": { endpoint: "/forms/submersible-pump-commissioning", name: "Submersible Pump Commissioning Report" },
@@ -175,6 +178,7 @@ export default function FormRecordsPage() {
 
       // Map form type aliases to actual PDF route names
       const pdfFormTypeMap: Record<string, string> = {
+        "job-order-request": "job-order-request",
         "deutz-commissioning": "deutz-commissioning",
         "commission": "deutz-commissioning",
         "commissioning": "deutz-commissioning",
@@ -243,12 +247,14 @@ export default function FormRecordsPage() {
 
   const getJobOrder = (record: FormRecord): string => {
     if (record.job_order) return record.job_order;
+    // Check for job order request specific field
+    if (record.data?.shop_field_jo_number) return record.data.shop_field_jo_number;
     return "N/A";
   };
 
   const getCustomer = (record: FormRecord): string => {
     const data = record.data;
-    return data?.customer_name || data?.customer || data?.basicInformation?.customer || data?.basicInformation?.customerName || "N/A";
+    return data?.full_customer_name || data?.customer_name || data?.customer || data?.basicInformation?.customer || data?.basicInformation?.customerName || "N/A";
   };
 
   const getSerialNo = (record: FormRecord): string => {
@@ -815,6 +821,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "components-teardown-measuring" && (
         <EditComponentsTeardownMeasuring
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "job-order-request" && (
+        <ViewJobOrderRequest
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "job-order-request" && (
+        <EditJobOrderRequest
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

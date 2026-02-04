@@ -26,6 +26,7 @@ const formTypeEndpoints: Record<FormType, string> = {
   'submersible-pump-teardown': '/forms/submersible-pump-teardown',
   'engine-inspection-receiving': '/forms/engine-inspection-receiving',
   'components-teardown-measuring': '/forms/components-teardown-measuring',
+  'job-order-request': '/forms/job-order-request',
 };
 
 // Retry delays in milliseconds (exponential backoff)

@@ -403,7 +403,6 @@ export default function DeutzServiceForm() {
             <Input
               label="Running Hours"
               name="running_hours"
-              type="number"
               value={formData.running_hours}
               onChange={handleChange}
             />

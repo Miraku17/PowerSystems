@@ -309,7 +309,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
                 <Input label="Rating" name="rating" value={formData.rating} onChange={handleChange} />
                 <Input label="Revolution (RPM)" name="revolution" value={formData.revolution} onChange={handleChange} />
                 <Input label="Starting Voltage" name="starting_voltage" value={formData.starting_voltage} onChange={handleChange} />
-                <Input label="Running Hours" name="running_hours" type="number" value={formData.running_hours} onChange={handleChange} />
+                <Input label="Running Hours" name="running_hours" value={formData.running_hours} onChange={handleChange} />
                 <Input label="Lube Oil Type" name="lube_oil_type" value={formData.lube_oil_type} onChange={handleChange} />
                 <Input label="Fuel Type" name="fuel_type" value={formData.fuel_type} onChange={handleChange} />
                 <Input label="Fuel Pump Code" name="fuel_pump_code" value={formData.fuel_pump_code} onChange={handleChange} />

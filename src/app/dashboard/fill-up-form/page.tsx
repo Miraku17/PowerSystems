@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import DeutzServiceForm from "@/components/DeutzServiceForm";
 import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
 import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommissioningForm";
+import SubmersiblePumpServiceForm from "@/components/SubmersiblePumpServiceForm";
 import SubmersiblePumpTeardownForm from "@/components/SubmersiblePumpTeardownForm";
 import ElectricSurfacePumpCommissioningForm from "@/components/ElectricSurfacePumpCommissioningForm";
 import ElectricSurfacePumpServiceForm from "@/components/ElectricSurfacePumpServiceForm";
@@ -27,6 +28,8 @@ const FillUpFormPage = () => {
         return <DeutzCommissioningReport />;
       case "submersible-pump-commissioning":
         return <SubmersiblePumpCommissioningForm />;
+      case "submersible-pump-service":
+        return <SubmersiblePumpServiceForm />;
       case "submersible-pump-teardown":
         return <SubmersiblePumpTeardownForm />;
       case "electric-surface-pump-commissioning":
@@ -57,6 +60,7 @@ const FillUpFormPage = () => {
     { value: "service", label: "Deutz Service Form" },
     { value: "commissioning", label: "Deutz Commissioning Report" },
     { value: "submersible-pump-commissioning", label: "Submersible Pump Commissioning Report" },
+    { value: "submersible-pump-service", label: "Submersible Pump Service Report" },
     { value: "submersible-pump-teardown", label: "Submersible Pump Teardown Report" },
     { value: "electric-surface-pump-commissioning", label: "Electric Driven Surface Pump Commissioning Report" },
     { value: "electric-surface-pump-service", label: "Electric Driven Surface Pump Service Report" },

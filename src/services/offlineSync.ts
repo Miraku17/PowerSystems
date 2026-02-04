@@ -23,6 +23,7 @@ const formTypeEndpoints: Record<FormType, string> = {
   'engine-surface-pump-service': '/forms/engine-surface-pump-service',
   'engine-surface-pump-commissioning': '/forms/engine-surface-pump-commissioning',
   'submersible-pump-commissioning': '/forms/submersible-pump-commissioning',
+  'submersible-pump-service': '/forms/submersible-pump-service',
   'submersible-pump-teardown': '/forms/submersible-pump-teardown',
   'engine-inspection-receiving': '/forms/engine-inspection-receiving',
   'components-teardown-measuring': '/forms/components-teardown-measuring',

@@ -12,6 +12,7 @@ export type FormType =
   | 'engine-surface-pump-service'
   | 'engine-surface-pump-commissioning'
   | 'submersible-pump-commissioning'
+  | 'submersible-pump-service'
   | 'submersible-pump-teardown'
   | 'engine-inspection-receiving'
   | 'components-teardown-measuring';

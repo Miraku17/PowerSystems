@@ -2,6 +2,7 @@ import { openDB, DBSchema, IDBPDatabase } from 'idb';
 
 // Form type identifiers that match API endpoints
 export type FormType =
+  | 'job-order-request'
   | 'deutz-commissioning'
   | 'deutz-service'
   | 'engine-teardown'

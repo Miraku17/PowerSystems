@@ -162,7 +162,7 @@ export const POST = withAuth(async (request, { user }) => {
     const rating = getNumeric('rating');
     const revolution = getNumeric('revolution');
     const starting_voltage = getNumeric('starting_voltage');
-    const running_hours = getNumeric('running_hours');
+    const running_hours = getString('running_hours');
     const fuel_pump_serial_no = getString('fuel_pump_serial_no');
     const fuel_pump_code = getString('fuel_pump_code');
     const lube_oil_type = getString('lube_oil_type');

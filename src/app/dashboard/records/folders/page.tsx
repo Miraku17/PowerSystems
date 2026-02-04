@@ -8,6 +8,12 @@ export default function RecordsFoldersPage() {
 
   const formTemplates = [
     {
+      id: "job-order-request",
+      name: "Job Order Requests",
+      formType: "job-order-request",
+      description: "Job order requests for service, repairs, and equipment maintenance.",
+    },
+    {
       id: "deutz-commissioning",
       name: "Deutz Commissioning",
       formType: "deutz-commissioning",

@@ -302,7 +302,7 @@ export default function DeutzCommissioningReport() {
                 <Input label="Revolutions (RPM)" name="revolutions" value={formData.revolutions} onChange={handleChange} />
                 <Input label="Main Effective Pressure" name="main_effective_pressure" value={formData.main_effective_pressure} onChange={handleChange} />
 
-                 <Input label="Running Hours" name="running_hours" type="number" value={formData.running_hours} onChange={handleChange} />
+                 <Input label="Running Hours" name="running_hours" value={formData.running_hours} onChange={handleChange} />
             </div>
         </div>
 

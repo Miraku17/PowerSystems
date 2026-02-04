@@ -266,7 +266,7 @@ export const POST = withAuth(async (request, { user }) => {
         {
           reporting_person_name,
           equipment_name,
-          running_hours: toNumeric(running_hours),
+          running_hours,
           customer_name,
           contact_person,
           address,

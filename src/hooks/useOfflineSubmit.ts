@@ -14,6 +14,7 @@ import {
 
 // Map form types to their respective endpoints
 const formTypeEndpoints: Record<FormType, string> = {
+  'job-order-request': '/forms/job-order-request',
   'deutz-commissioning': '/forms/deutz-commissioning',
   'deutz-service': '/forms/deutz-service',
   'engine-teardown': '/forms/engine-teardown',

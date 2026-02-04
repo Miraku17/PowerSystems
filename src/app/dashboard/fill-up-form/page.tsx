@@ -13,10 +13,11 @@ import EngineTeardownForm from "@/components/EngineTeardownForm";
 import ElectricSurfacePumpTeardownForm from "@/components/ElectricSurfacePumpTeardownForm";
 import EngineInspectionReceivingForm from "@/components/EngineInspectionReceivingForm";
 import ComponentsTeardownMeasuringForm from "@/components/ComponentsTeardownMeasuringForm";
+import JobOrderRequestForm from "@/components/JobOrderRequestForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
-  const [activeForm, setActiveForm] = useState<string>("service");
+  const [activeForm, setActiveForm] = useState<string>("job-order-request");
 
   const renderContent = () => {
     switch (activeForm) {
@@ -44,12 +45,15 @@ const FillUpFormPage = () => {
         return <EngineInspectionReceivingForm />;
       case "components-teardown-measuring":
         return <ComponentsTeardownMeasuringForm />;
+      case "job-order-request":
+        return <JobOrderRequestForm />;
       default:
         return <DeutzServiceForm />;
     }
   };
 
   const options = [
+    { value: "job-order-request", label: "Job Order Request Form" },
     { value: "service", label: "Deutz Service Form" },
     { value: "commissioning", label: "Deutz Commissioning Report" },
     { value: "submersible-pump-commissioning", label: "Submersible Pump Commissioning Report" },

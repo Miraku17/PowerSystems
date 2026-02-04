@@ -18,6 +18,7 @@ export interface FormRecord {
 
 // Map form types to their respective endpoints
 const formTypeEndpoints: Record<string, string> = {
+  "job-order-request": "/forms/job-order-request",
   "deutz-commissioning": "/forms/deutz-commissioning",
   "deutz-service": "/forms/deutz-service",
   "submersible-pump-commissioning": "/forms/submersible-pump-commissioning",
@@ -42,6 +43,17 @@ export const formRecordService = {
       throw new Error(`Unsupported form type: ${formType}`);
     }
     const response = await apiClient.get<ApiResponse<FormRecord[]>>(endpoint);
+    return response.data;
+  },
+
+  // Get a single record by ID
+  getById: async (formType: string, id: string) => {
+    const normalizedFormType = formType.toLowerCase();
+    const endpoint = formTypeEndpoints[normalizedFormType];
+    if (!endpoint) {
+      throw new Error(`Unsupported form type: ${formType}`);
+    }
+    const response = await apiClient.get<ApiResponse<FormRecord>>(`${endpoint}/${id}`);
     return response.data;
   },
 
@@ -71,10 +83,17 @@ export const formRecordService = {
     return response.data;
   },
 
-  // Note: Update method is not implemented yet as it requires
-  // form-type-specific routes. They will be added when needed.
-  update: async (id: string, data: Partial<FormRecordSubmission>) => {
-    throw new Error("Update functionality not yet implemented for form records");
+  // Update a form record
+  update: async (formType: string, id: string, data: Record<string, any>) => {
+    const normalizedFormType = formType.toLowerCase();
+    const endpoint = formTypeEndpoints[normalizedFormType];
+
+    if (!endpoint) {
+      throw new Error(`Unsupported form type: ${formType}`);
+    }
+
+    const response = await apiClient.patch<ApiResponse<any>>(`${endpoint}/${id}`, data);
+    return response.data;
   },
 
   // Delete a record by its ID for a specific form type

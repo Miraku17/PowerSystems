@@ -14,6 +14,8 @@ interface Attachment {
   id: string;
   file_url: string;
   file_name: string;
+  file_type?: string;
+  file_size?: number;
   description: string;
   created_at: string;
 }

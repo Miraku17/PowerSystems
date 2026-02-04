@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/response';
+import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";

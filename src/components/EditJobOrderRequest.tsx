@@ -29,13 +29,14 @@ interface Attachment {
 }
 
 // Helper Components
-const Input = ({ label, name, value, type = "text", className = "", onChange }: { label: string; name: string; value: any; type?: string; className?: string; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, type = "text", className = "", step, onChange }: { label: string; name: string; value: any; type?: string; className?: string; step?: string; onChange: (name: string, value: any) => void }) => (
   <div className={`flex flex-col w-full ${className}`}>
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
       type={type}
       name={name}
       value={value || ''}
+      step={step}
       onChange={(e) => onChange(name, e.target.value)}
       className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
     />

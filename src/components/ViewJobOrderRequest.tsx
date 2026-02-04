@@ -317,7 +317,7 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
                 </div>
                 <Field label="Date Job Started" value={formatDate(data.date_job_started)} />
                 <Field label="Date Job Completed/Closed" value={formatDate(data.date_job_completed_closed)} />
-                <Field label="Status" value={data.status} />
+                {/* <Field label="Status" value={data.status} /> */}
                 <Field label="Parts Cost" value={formatCurrency(data.parts_cost)} />
                 <Field label="Labor Cost" value={formatCurrency(data.labor_cost)} />
                 <Field label="Other Cost" value={formatCurrency(data.other_cost)} />

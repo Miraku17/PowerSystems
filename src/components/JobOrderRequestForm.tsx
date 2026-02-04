@@ -315,13 +315,7 @@ export default function JobOrderRequestForm() {
             </div>
             <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} />
             <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} />
-            <SelectDropdown
-              label="Status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              options={["PENDING", "IN_PROGRESS", "COMPLETED", "CLOSED", "CANCELLED"]}
-            />
+            {/* Status field hidden as requested */}
             <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
             <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />
             <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} />

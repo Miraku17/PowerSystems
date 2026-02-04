@@ -328,7 +328,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     addFieldsGrid([
       { label: "Shop/Field J.O. Number", value: record.shop_field_jo_number },
       { label: "Date Prepared", value: formatDate(record.date_prepared) },
-      { label: "Status", value: record.status || "PENDING" },
+      // { label: "Status", value: record.status || "PENDING" },
     ]);
 
     // Customer Information

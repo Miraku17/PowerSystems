@@ -263,7 +263,12 @@ export default function FormRecordsPage() {
 
   const getSerialNo = (record: FormRecord): string => {
     const data = record.data;
-    return data?.engine_serial_no || data?.engine_serial_number || data?.pump_serial_number || data?.pump_serial_no || data?.serial_no || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
+    // For Job Order Request, show equipment_number in this column
+    if (normalizedFormType === "job-order-request") {
+      return data?.equipment_number || "N/A";
+    }
+    // For other forms, show equipment/engine serial numbers
+    return data?.engine_serial_no || data?.engine_serial_number || data?.pump_serial_number || data?.pump_serial_no || data?.serial_no || data?.esn || data?.equipment_number || data?.engineInformation?.engineSerialNo || data?.engineInformation?.serialNo || "N/A";
   };
 
   const filteredRecords = records.filter((record) => {
@@ -303,6 +308,9 @@ export default function FormRecordsPage() {
   }, [searchTerm, startDate, endDate]);
 
   const formConfig = formTypeEndpoints[normalizedFormType];
+
+  // Determine the serial number column label based on form type
+  const serialNoLabel = normalizedFormType === "job-order-request" ? "Equipment No." : "Serial No.";
 
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto animate-fadeIn">
@@ -404,7 +412,7 @@ export default function FormRecordsPage() {
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Order</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Serial No.</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{serialNoLabel}</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Created</th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -487,7 +495,7 @@ export default function FormRecordsPage() {
                       <p className="text-sm text-gray-800 font-medium line-clamp-1">{getCustomer(record)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Serial No.</p>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{serialNoLabel}</p>
                       <p className="text-sm text-gray-600 font-mono">{getSerialNo(record)}</p>
                     </div>
                   </div>

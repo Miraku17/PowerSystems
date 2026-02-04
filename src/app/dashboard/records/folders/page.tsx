@@ -13,17 +13,17 @@ export default function RecordsFoldersPage() {
       formType: "job-order-request",
       description: "Job order requests for service, repairs, and equipment maintenance.",
     },
+        {
+      id: "deutz-service",
+      name: "Deutz Service",
+      formType: "deutz-service",
+      description: "Service maintenance and repair logs for Deutz systems.",
+    },
     {
       id: "deutz-commissioning",
       name: "Deutz Commissioning",
       formType: "deutz-commissioning",
       description: "Commissioning reports and records for Deutz engines.",
-    },
-    {
-      id: "deutz-service",
-      name: "Deutz Service",
-      formType: "deutz-service",
-      description: "Service maintenance and repair logs for Deutz systems.",
     },
     {
       id: "submersible-pump-commissioning",

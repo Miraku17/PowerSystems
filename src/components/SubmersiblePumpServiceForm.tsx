@@ -6,7 +6,7 @@ import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useElectricSurfacePumpCommissioningFormStore } from "@/stores/electricSurfacePumpCommissioningFormStore";
+import { useSubmersiblePumpServiceFormStore } from "@/stores/submersiblePumpServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
@@ -14,9 +14,9 @@ interface User {
   fullName: string;
 }
 
-export default function ElectricSurfacePumpCommissioningForm() {
+export default function SubmersiblePumpServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { formData, setFormData, resetFormData } = useElectricSurfacePumpCommissioningFormStore();
+  const { formData, setFormData, resetFormData } = useSubmersiblePumpServiceFormStore();
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
@@ -57,6 +57,10 @@ export default function ElectricSurfacePumpCommissioningForm() {
     setFormData({ [name]: value });
   };
 
+  const handleBooleanChange = (name: string, value: boolean | null) => {
+    setFormData({ [name]: value });
+  };
+
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       reporting_person_name: customer.name || "",
@@ -75,7 +79,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
     setIsModalOpen(false);
 
     await submit({
-      formType: 'electric-surface-pump-commissioning',
+      formType: 'submersible-pump-service',
       formData: formData as unknown as Record<string, unknown>,
       attachments,
       onSuccess: () => {
@@ -115,9 +119,9 @@ export default function ElectricSurfacePumpCommissioningForm() {
         </div>
         <div className="mt-6">
           <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Commissioning Report
+            Service Report
           </h2>
-          <p className="text-sm text-gray-600 mt-2">(Electric Driven Surface Pump)</p>
+          <p className="text-sm text-gray-600 mt-2">(Submersible Pump)</p>
         </div>
       </div>
 
@@ -152,7 +156,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
             />
             <Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} />
             <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
-            <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
+            <Input label="Servicing Date" name="servicing_date" type="date" value={formData.servicing_date} onChange={handleChange} />
             <CustomerAutocomplete
               label="Customer"
               name="customer"
@@ -194,83 +198,86 @@ export default function ElectricSurfacePumpCommissioningForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Pump Details</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Pump Maker" name="pump_maker" value={formData.pump_maker} onChange={handleChange} />
-            <Input label="Pump Type" name="pump_type" value={formData.pump_type} onChange={handleChange} />
-            <Input label="Impeller Material" name="impeller_material" value={formData.impeller_material} onChange={handleChange} />
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <Input label="Pump Model" name="pump_model" value={formData.pump_model} onChange={handleChange} />
             <Input label="Pump Serial Number" name="pump_serial_number" value={formData.pump_serial_number} onChange={handleChange} />
-            <Input label="RPM" name="pump_rpm" value={formData.pump_rpm} onChange={handleChange} />
-            <Input label="Product Number" name="product_number" value={formData.product_number} onChange={handleChange} />
-            <Input label="HMAX (Head)" name="hmax_head" value={formData.hmax_head} onChange={handleChange} />
-            <Input label="QMAX (Flow)" name="qmax_flow" value={formData.qmax_flow} onChange={handleChange} />
-            <Input label="Suction Size" name="suction_size" value={formData.suction_size} onChange={handleChange} />
-            <Input label="Suction Connection" name="suction_connection" value={formData.suction_connection} onChange={handleChange} />
-            <Input label="Suction Strainer P.N" name="suction_strainer_pn" value={formData.suction_strainer_pn} onChange={handleChange} />
-            <Input label="Discharge Size" name="discharge_size" value={formData.discharge_size} onChange={handleChange} />
-            <Input label="Discharge Connection" name="discharge_connection" value={formData.discharge_connection} onChange={handleChange} />
+            <Input label="Pump Type" name="pump_type" value={formData.pump_type} onChange={handleChange} />
+            <Input label="KW Rating P1" name="kw_rating_p1" value={formData.kw_rating_p1} onChange={handleChange} />
+            <Input label="KW Rating P2" name="kw_rating_p2" value={formData.kw_rating_p2} onChange={handleChange} />
+            <Input label="Voltage" name="voltage" value={formData.voltage} onChange={handleChange} />
+            <Input label="Frequency" name="frequency" value={formData.frequency} onChange={handleChange} />
+            <Input label="Max Head" name="max_head" value={formData.max_head} onChange={handleChange} />
+            <Input label="Max Flow" name="max_flow" value={formData.max_flow} onChange={handleChange} />
+            <Input label="Max Submerged Depth" name="max_submerged_depth" value={formData.max_submerged_depth} onChange={handleChange} />
+            <Input label="No. of Leads" name="no_of_leads" value={formData.no_of_leads} onChange={handleChange} />
             <Input label="Configuration" name="configuration" value={formData.configuration} onChange={handleChange} />
+            <Input label="Discharge Size/Type" name="discharge_size_type" value={formData.discharge_size_type} onChange={handleChange} />
           </div>
         </div>
 
-        {/* Section: Electric Motor Details */}
+        {/* Section: Service Dates & Operation Info */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Electric Motor Details</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Service Dates & Operation Info</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Maker" name="motor_maker" value={formData.motor_maker} onChange={handleChange} />
-            <Input label="Model" name="motor_model" value={formData.motor_model} onChange={handleChange} />
-            <Input label="HP" name="motor_hp" value={formData.motor_hp} onChange={handleChange} />
-            <Input label="Phase" name="motor_phase" value={formData.motor_phase} onChange={handleChange} />
-            <Input label="RPM" name="motor_rpm" value={formData.motor_rpm} onChange={handleChange} />
-            <Input label="Voltage" name="motor_voltage" value={formData.motor_voltage} onChange={handleChange} />
-            <Input label="Frequency" name="motor_frequency" value={formData.motor_frequency} onChange={handleChange} />
-            <Input label="Amps" name="motor_amps" value={formData.motor_amps} onChange={handleChange} />
-            <Input label="Max Amb Temperature" name="motor_max_amb_temperature" value={formData.motor_max_amb_temperature} onChange={handleChange} />
-            <Input label="Insulation Class" name="motor_insulation_class" value={formData.motor_insulation_class} onChange={handleChange} />
-            <Input label="No. of Leads" name="motor_no_of_leads" value={formData.motor_no_of_leads} onChange={handleChange} />
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <Input label="Date In Service" name="date_in_service_commissioning" type="date" value={formData.date_in_service_commissioning} onChange={handleChange} />
+            <Input label="Date Failed" name="date_failed" type="date" value={formData.date_failed} onChange={handleChange} />
+            <Input label="Running Hours" name="running_hours" value={formData.running_hours} onChange={handleChange} />
+            <Input label="Water Quality" name="water_quality" value={formData.water_quality} onChange={handleChange} />
+            <Input label="Water Temp" name="water_temp" value={formData.water_temp} onChange={handleChange} />
           </div>
         </div>
 
-        {/* Section: Installation Details */}
+        {/* Section: Service Information */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Installation Details</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Service Information</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Location" name="location" value={formData.location} onChange={handleChange} />
-            <Input label="Static Head" name="static_head" value={formData.static_head} onChange={handleChange} />
-            <Input label="Suction Pipe Size" name="suction_pipe_size" value={formData.suction_pipe_size} onChange={handleChange} />
-            <Input label="Suction Pipe Length" name="suction_pipe_length" value={formData.suction_pipe_length} onChange={handleChange} />
-            <Input label="Suction Pipe Type" name="suction_pipe_type" value={formData.suction_pipe_type} onChange={handleChange} />
-            <Input label="Discharge Pipe Size" name="discharge_pipe_size" value={formData.discharge_pipe_size} onChange={handleChange} />
-            <Input label="Discharge Pipe Length" name="discharge_pipe_length" value={formData.discharge_pipe_length} onChange={handleChange} />
-            <Input label="Discharge Pipe Type" name="discharge_pipe_type" value={formData.discharge_pipe_type} onChange={handleChange} />
-            <Input label="Check Valve Size/Type" name="check_valve_size_type" value={formData.check_valve_size_type} onChange={handleChange} />
-            <Input label="No. of Elbows/Size" name="no_of_elbows_size" value={formData.no_of_elbows_size} onChange={handleChange} />
-            <Input label="Media to be Pump" name="media_to_be_pump" value={formData.media_to_be_pump} onChange={handleChange} />
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <TextArea label="Customer's Complaints" name="customers_complaints" value={formData.customers_complaints} onChange={handleChange} rows={3} />
+            <TextArea label="Possible Cause" name="possible_cause" value={formData.possible_cause} onChange={handleChange} rows={3} />
           </div>
         </div>
 
-        {/* Section: Operational Details */}
+        {/* Section: Warranty Coverage */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Operational Details</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Warranty Coverage</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="RPM" name="actual_rpm" value={formData.actual_rpm} onChange={handleChange} />
-            <Input label="Voltage" name="actual_voltage" value={formData.actual_voltage} onChange={handleChange} />
-            <Input label="Amps" name="actual_amps" value={formData.actual_amps} onChange={handleChange} />
-            <Input label="Frequency" name="actual_frequency" value={formData.actual_frequency} onChange={handleChange} />
-            <Input label="Motor Temperature" name="motor_temperature" value={formData.motor_temperature} onChange={handleChange} />
-            <Input label="Amb Temperature" name="amb_temperature" value={formData.amb_temperature} onChange={handleChange} />
-            <Input label="Discharge Pressure" name="discharge_pressure" value={formData.discharge_pressure} onChange={handleChange} />
-            <Input label="Discharge Flow" name="discharge_flow" value={formData.discharge_flow} onChange={handleChange} />
-            <Input label="Test Duration" name="test_duration" value={formData.test_duration} onChange={handleChange} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <BooleanSelect
+              label="Is the unit within the coverage period?"
+              name="is_within_coverage_period"
+              value={formData.is_within_coverage_period}
+              onChange={(value) => handleBooleanChange('is_within_coverage_period', value)}
+            />
+            <BooleanSelect
+              label="If yes, is this a warrantable failure?"
+              name="is_warrantable_failure"
+              value={formData.is_warrantable_failure}
+              onChange={(value) => handleBooleanChange('is_warrantable_failure', value)}
+            />
+            <div className="md:col-span-2">
+              <TextArea label="Summary Details" name="warranty_summary_details" value={formData.warranty_summary_details} onChange={handleChange} rows={3} />
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Service Details */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Service Details</h3>
+          </div>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <TextArea label="Action Taken" name="action_taken" value={formData.action_taken} onChange={handleChange} rows={3} />
+            <TextArea label="Observation" name="observation" value={formData.observation} onChange={handleChange} rows={3} />
+            <TextArea label="Findings" name="findings" value={formData.findings} onChange={handleChange} rows={3} />
+            <TextArea label="Recommendation" name="recommendation" value={formData.recommendation} onChange={handleChange} rows={3} />
           </div>
         </div>
 
@@ -282,7 +289,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-              Installation Photo / Drawing
+              Photos
             </label>
 
             {attachments.length > 0 && (
@@ -343,10 +350,10 @@ export default function ElectricSurfacePumpCommissioningForm() {
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <div className="flex text-sm text-gray-600">
-                  <label htmlFor="file-upload-electric" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                  <label htmlFor="file-upload-submersible-service" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
                     <span>Upload an image</span>
                     <input
-                      id="file-upload-electric"
+                      id="file-upload-submersible-service"
                       type="file"
                       accept="image/*"
                       className="sr-only"
@@ -379,11 +386,11 @@ export default function ElectricSurfacePumpCommissioningForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
-              <Select label="Service Technician" name="commissioned_by_name" value={formData.commissioned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Service Technician" name="performed_by_name" value={formData.performed_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
               <SignaturePad
                 label="Draw Signature"
-                value={formData.commissioned_by_signature}
-                onChange={(signature: string) => handleSignatureChange('commissioned_by_signature', signature)}
+                value={formData.performed_by_signature}
+                onChange={(signature: string) => handleSignatureChange('performed_by_signature', signature)}
                 subtitle="Svc Engineer/Technician"
               />
             </div>
@@ -422,7 +429,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
             Clear Form
           </button>
           <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isSubmitting}>
-            <span className="mr-2">Submit Commissioning Report</span>
+            <span className="mr-2">Submit Service Report</span>
             {isSubmitting ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -441,7 +448,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
         onConfirm={handleConfirmSubmit}
         onClose={() => setIsModalOpen(false)}
         title="Confirm Submission"
-        message="Are you sure you want to submit this Electric Driven Surface Pump Commissioning Report?"
+        message="Are you sure you want to submit this Submersible Pump Service Report?"
       />
     </div>
   );
@@ -467,6 +474,63 @@ const Input = ({ label, name, value, onChange, type = "text" }: InputProps) => (
       className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
       placeholder={`Enter ${label.toLowerCase()}`}
     />
+  </div>
+);
+
+interface TextAreaProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  rows?: number;
+}
+
+const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => (
+  <div className="flex flex-col w-full">
+    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      rows={rows}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      placeholder={`Enter ${label.toLowerCase()}`}
+    />
+  </div>
+);
+
+interface BooleanSelectProps {
+  label: string;
+  name: string;
+  value: boolean | null;
+  onChange: (value: boolean | null) => void;
+}
+
+const BooleanSelect = ({ label, name, value, onChange }: BooleanSelectProps) => (
+  <div className="flex flex-col w-full">
+    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+    <div className="flex gap-4">
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          name={name}
+          checked={value === true}
+          onChange={() => onChange(true)}
+          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+        />
+        <span className="text-sm text-gray-700">Yes</span>
+      </label>
+      <label className="flex items-center gap-2 cursor-pointer">
+        <input
+          type="radio"
+          name={name}
+          checked={value === false}
+          onChange={() => onChange(false)}
+          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+        />
+        <span className="text-sm text-gray-700">No</span>
+      </label>
+    </div>
   </div>
 );
 

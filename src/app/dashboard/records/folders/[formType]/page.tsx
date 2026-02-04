@@ -20,6 +20,7 @@ import { TableSkeleton } from "@/components/Skeletons";
 import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
 import ViewDeutzService from "@/components/ViewDeutzService";
 import ViewSubmersiblePumpCommissioning from "@/components/ViewSubmersiblePumpCommissioning";
+import ViewSubmersiblePumpService from "@/components/ViewSubmersiblePumpService";
 import ViewSubmersiblePumpTeardown from "@/components/ViewSubmersiblePumpTeardown";
 import ViewElectricSurfacePumpCommissioning from "@/components/ViewElectricSurfacePumpCommissioning";
 import ViewElectricSurfacePumpService from "@/components/ViewElectricSurfacePumpService";
@@ -28,6 +29,7 @@ import ViewEngineSurfacePumpCommissioning from "@/components/ViewEngineSurfacePu
 import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
 import EditDeutzService from "@/components/EditDeutzService";
 import EditSubmersiblePumpCommissioning from "@/components/EditSubmersiblePumpCommissioning";
+import EditSubmersiblePumpService from "@/components/EditSubmersiblePumpService";
 import EditSubmersiblePumpTeardown from "@/components/EditSubmersiblePumpTeardown";
 import EditElectricSurfacePumpCommissioning from "@/components/EditElectricSurfacePumpCommissioning";
 import EditElectricSurfacePumpService from "@/components/EditElectricSurfacePumpService";
@@ -90,6 +92,7 @@ export default function FormRecordsPage() {
     "deutz-commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "deutz-service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
     "submersible-pump-commissioning": { endpoint: "/forms/submersible-pump-commissioning", name: "Submersible Pump Commissioning Report" },
+    "submersible-pump-service": { endpoint: "/forms/submersible-pump-service", name: "Submersible Pump Service Report" },
     "submersible-pump-teardown": { endpoint: "/forms/submersible-pump-teardown", name: "Submersible Pump Teardown Report" },
     "electric-surface-pump-commissioning": { endpoint: "/forms/electric-surface-pump-commissioning", name: "Electric Driven Surface Pump Commissioning Report" },
     "electric-surface-pump-service": { endpoint: "/forms/electric-surface-pump-service", name: "Electric Driven Surface Pump Service Report" },
@@ -185,6 +188,7 @@ export default function FormRecordsPage() {
         "deutz-service": "deutz-service",
         "service": "deutz-service",
         "submersible-pump-commissioning": "submersible-pump-commissioning",
+        "submersible-pump-service": "submersible-pump-service",
         "submersible-pump-teardown": "submersible-pump-teardown",
         "electric-surface-pump-commissioning": "electric-surface-pump-commissioning",
         "electric-surface-pump-service": "electric-surface-pump-service",
@@ -668,6 +672,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "submersible-pump-commissioning" && (
         <EditSubmersiblePumpCommissioning
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "submersible-pump-service" && (
+        <ViewSubmersiblePumpService
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "submersible-pump-service" && (
+        <EditSubmersiblePumpService
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

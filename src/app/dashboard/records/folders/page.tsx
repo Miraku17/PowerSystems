@@ -32,6 +32,12 @@ export default function RecordsFoldersPage() {
       description: "Commissioning documentation for submersible pumps.",
     },
     {
+      id: "submersible-pump-service",
+      name: "Submersible Pump Service",
+      formType: "submersible-pump-service",
+      description: "Service and maintenance reports for submersible pumps.",
+    },
+    {
       id: "submersible-pump-teardown",
       name: "Submersible Pump Teardown",
       formType: "submersible-pump-teardown",

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { FolderIcon, FolderOpenIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import apiClient from "@/lib/axios";
 
 export default function RecordsFoldersPage() {
   const router = useRouter();
@@ -101,6 +103,16 @@ export default function RecordsFoldersPage() {
     },
   ];
 
+  // Fetch record counts using TanStack Query
+  const { data: recordCounts = {}, isLoading: isLoadingCounts } = useQuery({
+    queryKey: ["formRecordCounts"],
+    queryFn: async () => {
+      const response = await apiClient.get("/forms/counts");
+      return response.data?.counts || {};
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   const handleFolderClick = (template: { formType: string }) => {
     const normalizedFormType = template.formType.toLowerCase();
     router.push(`/dashboard/records/folders/${normalizedFormType}`);
@@ -178,7 +190,20 @@ export default function RecordsFoldersPage() {
                       <FolderOpenIcon className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100" />
                    </div>
                 </div>
-                {/* Optional Badge or Status could go here */}
+                {/* Record Count Badge */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2B4C7E]/5 text-[#2B4C7E] rounded-lg text-sm font-semibold group-hover:bg-[#2B4C7E]/10 transition-colors">
+                  <span className="text-xs text-gray-500 font-normal">Records:</span>
+                  {isLoadingCounts ? (
+                    <div className="flex items-center">
+                      <svg className="animate-spin h-4 w-4 text-[#2B4C7E]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    </div>
+                  ) : (
+                    <span>{recordCounts[template.formType] ?? 0}</span>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1">

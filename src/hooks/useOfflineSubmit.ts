@@ -28,6 +28,7 @@ const formTypeEndpoints: Record<FormType, string> = {
   'submersible-pump-teardown': '/forms/submersible-pump-teardown',
   'engine-inspection-receiving': '/forms/engine-inspection-receiving',
   'components-teardown-measuring': '/forms/components-teardown-measuring',
+  'daily-time-sheet': '/forms/daily-time-sheet',
 };
 
 interface Attachment {

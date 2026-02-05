@@ -45,6 +45,8 @@ import ViewComponentsTeardownMeasuring from "@/components/ViewComponentsTeardown
 import EditComponentsTeardownMeasuring from "@/components/EditComponentsTeardownMeasuring";
 import ViewJobOrderRequest from "@/components/ViewJobOrderRequest";
 import EditJobOrderRequest from "@/components/EditJobOrderRequest";
+import ViewDailyTimeSheet from "@/components/ViewDailyTimeSheet";
+import EditDailyTimeSheet from "@/components/EditDailyTimeSheet";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface FormRecord {
@@ -102,6 +104,7 @@ export default function FormRecordsPage() {
     "electric-surface-pump-teardown": { endpoint: "/forms/electric-surface-pump-teardown", name: "Electric Driven Surface Pump Teardown Report" },
     "engine-inspection-receiving": { endpoint: "/forms/engine-inspection-receiving", name: "Engine Inspection / Receiving Report" },
     "components-teardown-measuring": { endpoint: "/forms/components-teardown-measuring", name: "Components Teardown Measuring Report" },
+    "daily-time-sheet": { endpoint: "/forms/daily-time-sheet", name: "Daily Time Sheet" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
@@ -198,6 +201,7 @@ export default function FormRecordsPage() {
         "electric-surface-pump-teardown": "electric-surface-pump-teardown",
         "engine-inspection-receiving": "engine-inspection-receiving",
         "components-teardown-measuring": "components-teardown-measuring",
+        "daily-time-sheet": "daily-time-sheet",
       };
 
       const pdfFormType = pdfFormTypeMap[normalizedFormType];
@@ -867,6 +871,23 @@ export default function FormRecordsPage() {
 
       {editingRecord && normalizedFormType === "job-order-request" && (
         <EditJobOrderRequest
+          data={editingRecord.data}
+          recordId={editingRecord.id}
+          onClose={() => setEditingRecord(null)}
+          onSaved={loadRecords}
+        />
+      )}
+
+      {selectedRecord && normalizedFormType === "daily-time-sheet" && (
+        <ViewDailyTimeSheet
+          data={selectedRecord.data}
+          onClose={() => setSelectedRecord(null)}
+          onExportPDF={() => handleExportPDF(selectedRecord.id)}
+        />
+      )}
+
+      {editingRecord && normalizedFormType === "daily-time-sheet" && (
+        <EditDailyTimeSheet
           data={editingRecord.data}
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}

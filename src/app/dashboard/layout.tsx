@@ -17,6 +17,7 @@ import {
   ClipboardDocumentCheckIcon,
   DocumentTextIcon,
   ChevronRightIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 import { Company } from "@/types";
 import apiClient from "@/lib/axios";
@@ -197,6 +198,11 @@ export default function DashboardLayout({
       href: "/dashboard/fill-up-form",
     },
     {
+      name: "Daily Time Sheet",
+      icon: ClockIcon,
+      href: "/dashboard/daily-time-sheet",
+    },
+    {
       name: "Form Records",
       icon: ClipboardDocumentListIcon,
       href: "/dashboard/records",
@@ -218,6 +224,7 @@ export default function DashboardLayout({
       ? allNavigation.filter(
           (item) =>
             item.href === "/dashboard/fill-up-form" ||
+            item.href === "/dashboard/daily-time-sheet" ||
             item.href === "/dashboard/records" ||
             item.href === "/dashboard/pending-forms"
         )
@@ -228,6 +235,7 @@ export default function DashboardLayout({
     if (!userLoading && userRole === "user") {
       const isAllowed =
         pathname.startsWith("/dashboard/fill-up-form") ||
+        pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms");
       if (!isAllowed) {

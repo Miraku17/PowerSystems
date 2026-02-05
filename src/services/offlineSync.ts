@@ -28,6 +28,7 @@ const formTypeEndpoints: Record<FormType, string> = {
   'engine-inspection-receiving': '/forms/engine-inspection-receiving',
   'components-teardown-measuring': '/forms/components-teardown-measuring',
   'job-order-request': '/forms/job-order-request',
+  'daily-time-sheet': '/forms/daily-time-sheet',
 };
 
 // Retry delays in milliseconds (exponential backoff)

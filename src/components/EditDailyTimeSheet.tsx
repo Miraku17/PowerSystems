@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 
-interface EditJobOrderRequestProps {
+interface EditDailyTimeSheetProps {
   data: Record<string, any>;
   recordId: string;
   onClose: () => void;
@@ -28,8 +28,17 @@ interface Attachment {
   created_at: string;
 }
 
+interface TimeSheetEntry {
+  id: string;
+  entry_date: string;
+  start_time: string;
+  stop_time: string;
+  total_hours: string;
+  job_description: string;
+}
+
 // Helper Components
-const Input = ({ label, name, value, type = "text", className = "", step, onChange }: { label: string; name: string; value: any; type?: string; className?: string; step?: string; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, type = "text", className = "", step, disabled, onChange }: { label: string; name: string; value: any; type?: string; className?: string; step?: string; disabled?: boolean; onChange: (name: string, value: any) => void }) => (
   <div className={`flex flex-col w-full ${className}`}>
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
@@ -37,8 +46,9 @@ const Input = ({ label, name, value, type = "text", className = "", step, onChan
       name={name}
       value={value || ''}
       step={step}
+      disabled={disabled}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
     />
   </div>
 );
@@ -116,26 +126,11 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
   );
 };
 
-const SelectDropdown = ({ label, name, value, options, onChange }: { label: string; name: string; value: any; options: string[]; onChange: (name: string, value: any) => void }) => (
-  <div className="flex flex-col w-full">
-    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    <select
-      name={name}
-      value={value || ''}
-      onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
+export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
   const [formData, setFormData] = useState<Record<string, any>>(data);
+  const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -157,9 +152,9 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
     const fetchAttachments = async () => {
       try {
         const { data: attachmentsData, error } = await supabase
-          .from('job_order_attachments')
+          .from('daily_time_sheet_attachments')
           .select('*')
-          .eq('job_order_id', recordId)
+          .eq('daily_time_sheet_id', recordId)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -172,20 +167,75 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       }
     };
 
+    const fetchEntries = async () => {
+      try {
+        const { data: entriesData, error } = await supabase
+          .from('daily_time_sheet_entries')
+          .select('*')
+          .eq('daily_time_sheet_id', recordId)
+          .order('sort_order', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching entries:', error);
+        } else {
+          const mappedEntries = (entriesData || []).map((entry: any) => ({
+            id: entry.id,
+            entry_date: entry.entry_date || '',
+            start_time: entry.start_time || '',
+            stop_time: entry.stop_time || '',
+            total_hours: entry.total_hours?.toString() || '',
+            job_description: entry.job_description || '',
+          }));
+          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '' }]);
+        }
+      } catch (error) {
+        console.error('Error fetching entries:', error);
+      }
+    };
+
     fetchUsers();
     fetchAttachments();
-  }, [recordId]);
+    fetchEntries();
 
-  // Auto-calculate total cost
-  useEffect(() => {
-    const parts = parseFloat(formData.parts_cost) || 0;
-    const labor = parseFloat(formData.labor_cost) || 0;
-    const other = parseFloat(formData.other_cost) || 0;
-    const total = (parts + labor + other).toFixed(2);
-    if (formData.total_cost !== total) {
-      handleFieldChange('total_cost', total);
+    // Also check if entries are in data object
+    if (data.daily_time_sheet_entries && Array.isArray(data.daily_time_sheet_entries)) {
+      const mappedEntries = data.daily_time_sheet_entries.map((entry: any) => ({
+        id: entry.id || generateEntryId(),
+        entry_date: entry.entry_date || '',
+        start_time: entry.start_time || '',
+        stop_time: entry.stop_time || '',
+        total_hours: entry.total_hours?.toString() || '',
+        job_description: entry.job_description || '',
+      }));
+      if (mappedEntries.length > 0) {
+        setEntries(mappedEntries);
+      }
     }
-  }, [formData.parts_cost, formData.labor_cost, formData.other_cost]);
+  }, [recordId, data.daily_time_sheet_entries]);
+
+  // Auto-calculate total manhours
+  useEffect(() => {
+    const totalHours = entries.reduce((sum, entry) => {
+      const hours = parseFloat(entry.total_hours) || 0;
+      return sum + hours;
+    }, 0);
+    const total = totalHours.toFixed(2);
+    if (formData.total_manhours !== total) {
+      handleFieldChange('total_manhours', total);
+    }
+  }, [entries]);
+
+  // Auto-calculate performance
+  useEffect(() => {
+    const srt = parseFloat(formData.total_srt) || 0;
+    const actualManhour = parseFloat(formData.actual_manhour) || 0;
+    if (actualManhour > 0) {
+      const perf = ((srt / actualManhour) * 100).toFixed(2);
+      if (formData.performance !== perf) {
+        handleFieldChange('performance', perf);
+      }
+    }
+  }, [formData.total_srt, formData.actual_manhour]);
 
   const handleFieldChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -195,16 +245,53 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
     setFormData((prev) => ({ ...prev, [name]: signature }));
   };
 
+  const addEntry = () => {
+    setEntries([...entries, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '' }]);
+  };
+
+  const updateEntry = (id: string, field: keyof TimeSheetEntry, value: string) => {
+    setEntries(entries.map(entry => {
+      if (entry.id === id) {
+        const updated = { ...entry, [field]: value };
+        // Recalculate total hours if time changed
+        if ((field === 'start_time' || field === 'stop_time') && updated.start_time && updated.stop_time) {
+          const [startHour, startMin] = updated.start_time.split(':').map(Number);
+          const [stopHour, stopMin] = updated.stop_time.split(':').map(Number);
+          let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
+          if (totalMinutes < 0) totalMinutes += 24 * 60;
+          updated.total_hours = (totalMinutes / 60).toFixed(2);
+        }
+        return updated;
+      }
+      return entry;
+    }));
+  };
+
+  const removeEntry = (id: string) => {
+    if (entries.length > 1) {
+      setEntries(entries.filter(entry => entry.id !== id));
+    }
+  };
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
 
-      // First, update the main form data
-      await apiClient.patch(`/forms/job-order-request/${recordId}`, formData);
+      // Prepare entries data
+      const entriesData = entries.map(({ id, ...rest }, index) => ({
+        ...rest,
+        sort_order: index,
+      }));
 
-      // Handle attachments updates
+      // First, update the main form data (JSON)
+      await apiClient.patch(`/forms/daily-time-sheet/${recordId}`, {
+        ...formData,
+        entries: entriesData,
+      });
+
+      // Handle attachments updates separately
       const formDataObj = new FormData();
-      formDataObj.append('job_order_id', recordId);
+      formDataObj.append('daily_time_sheet_id', recordId);
       formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
       formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
 
@@ -215,14 +302,14 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       });
 
       // Update attachments
-      await apiClient.post('/forms/job-order-request/attachments', formDataObj);
+      await apiClient.post('/forms/daily-time-sheet/attachments', formDataObj);
 
-      toast.success("Job Order Request updated successfully!");
+      toast.success("Daily Time Sheet updated successfully!");
       onSaved();
       onClose();
     } catch (error: any) {
-      console.error("Error updating Job Order Request:", error);
-      const errorMessage = error.response?.data?.error || "Failed to update Job Order Request";
+      console.error("Error updating Daily Time Sheet:", error);
+      const errorMessage = error.response?.data?.error || "Failed to update Daily Time Sheet";
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -234,9 +321,9 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 bg-white z-10">
+        <div className="px-6 py-4 border-b border-gray-100 bg-white z-10 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-900">Edit Job Order Request</h3>
+            <h3 className="text-xl font-bold text-gray-900">Edit Daily Time Sheet</h3>
             <button
               onClick={onClose}
               className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -248,204 +335,171 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-gray-50/50">
-          <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-6 max-w-5xl mx-auto space-y-6">
+          <div className="space-y-6 max-w-5xl mx-auto">
 
-            {/* Job Order Information */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Job Order Information</h3>
+            {/* Basic Information */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200">
+              <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Basic Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleFieldChange} />
-                <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleFieldChange} />
+                <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
+                <Input label="Job No." name="job_number" value={formData.job_number} onChange={handleFieldChange} />
+                <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
+                <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>
             </div>
 
-            {/* Customer Information */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Customer Information</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <Input label="Full Customer's Name" name="full_customer_name" value={formData.full_customer_name} onChange={handleFieldChange} />
-                <TextArea label="Address" name="address" value={formData.address} onChange={handleFieldChange} />
-                <Input label="Location of Unit" name="location_of_unit" value={formData.location_of_unit} onChange={handleFieldChange} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleFieldChange} />
-                  <Input label="Tel No/s." name="telephone_numbers" value={formData.telephone_numbers} onChange={handleFieldChange} />
-                </div>
+            {/* Manhours & Job Descriptions */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200">
+              <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
+                <h4 className="text-base font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h4>
+                <button
+                  type="button"
+                  onClick={addEntry}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  Add Row
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b-2 border-gray-300">
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[110px]">Date</th>
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Start</th>
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Stop</th>
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[70px]">Total</th>
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2">Job Description</th>
+                      <th className="w-[40px]"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((entry) => (
+                      <tr key={entry.id} className="border-b border-gray-200">
+                        <td className="py-2 px-2">
+                          <input
+                            type="date"
+                            value={entry.entry_date}
+                            onChange={(e) => updateEntry(entry.id, 'entry_date', e.target.value)}
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input
+                            type="time"
+                            value={entry.start_time}
+                            onChange={(e) => updateEntry(entry.id, 'start_time', e.target.value)}
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input
+                            type="time"
+                            value={entry.stop_time}
+                            onChange={(e) => updateEntry(entry.id, 'stop_time', e.target.value)}
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={entry.total_hours}
+                            readOnly
+                            className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          <input
+                            type="text"
+                            value={entry.job_description}
+                            onChange={(e) => updateEntry(entry.id, 'job_description', e.target.value)}
+                            placeholder="Enter job description"
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                          />
+                        </td>
+                        <td className="py-2 px-2">
+                          {entries.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeEntry(entry.id)}
+                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t-2 border-gray-400">
+                      <td colSpan={3} className="py-2 px-2 text-right font-bold text-gray-700 uppercase text-sm">Total Manhours</td>
+                      <td className="py-2 px-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.total_manhours || ''}
+                          readOnly
+                          className="w-full bg-blue-50 border border-blue-300 text-gray-900 text-sm rounded-md p-1.5 font-bold"
+                        />
+                      </td>
+                      <td colSpan={2}></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="mt-4">
+                <Input label="Grand Total Manhours (REG. + O.T.)" name="grand_total_manhours" type="number" step="0.01" value={formData.grand_total_manhours} onChange={handleFieldChange} />
               </div>
             </div>
 
-            {/* Equipment Details */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Equipment Details</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <TextArea label="Particulars" name="particulars" value={formData.particulars} onChange={handleFieldChange} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="Equipment Model" name="equipment_model" value={formData.equipment_model} onChange={handleFieldChange} />
-                  <Input label="Equipment No." name="equipment_number" value={formData.equipment_number} onChange={handleFieldChange} />
-                  <Input label="Engine Model" name="engine_model" value={formData.engine_model} onChange={handleFieldChange} />
-                  <Input label="ESN" name="esn" value={formData.esn} onChange={handleFieldChange} />
-                </div>
-              </div>
-            </div>
-
-            {/* Service Details */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Service Details</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <TextArea label="Complaints" name="complaints" value={formData.complaints} onChange={handleFieldChange} />
-                <TextArea label="Work To Be Done" name="work_to_be_done" value={formData.work_to_be_done} onChange={handleFieldChange} />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Input label="Preferred Service Date" name="preferred_service_date" type="date" value={formData.preferred_service_date} onChange={handleFieldChange} />
-                  <Input label="Time" name="preferred_service_time" type="time" value={formData.preferred_service_time} onChange={handleFieldChange} />
-                  <SelectDropdown
-                    label="Charges Absorbed By"
-                    name="charges_absorbed_by"
-                    value={formData.charges_absorbed_by}
-                    onChange={handleFieldChange}
-                    options={[
-                      "Local warranty",
-                      "Factory warranty",
-                      "Customers acct",
-                      "Cost of sales",
-                      "Admin",
-                      "Facility maint. & repair",
-                      "Leasehold improvement"
-                    ]}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Attached References */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attached References</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Input label="QTN. REF" name="qtn_ref" value={formData.qtn_ref} onChange={handleFieldChange} />
-                <Input label="Customer's P.O/WTY Claim No." name="customers_po_wty_claim_no" value={formData.customers_po_wty_claim_no} onChange={handleFieldChange} />
-                <Input label="D.R. Number" name="dr_number" value={formData.dr_number} onChange={handleFieldChange} />
-              </div>
-            </div>
-
-            {/* Request & Approval */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
+            {/* Performed By */}
+            <div className="bg-white p-6 rounded-xl border border-gray-200">
+              <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Performed By</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <Select
-                    label="Requested By (Sales/Service Engineer)"
-                    name="requested_by_name"
-                    value={formData.requested_by_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
+                  <Select label="Print Name" name="performed_by_name" value={formData.performed_by_name} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
                   <SignaturePad
                     label="Signature"
-                    value={formData.requested_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('requested_by_signature', signature)}
-                    subtitle="Sales/Service Engineer"
+                    value={formData.performed_by_signature}
+                    onChange={(sig) => handleSignatureChange('performed_by_signature', sig)}
+                    subtitle="Performed By"
                   />
                 </div>
                 <div className="space-y-4">
-                  <Select
-                    label="Approved By (Department Head)"
-                    name="approved_by_name"
-                    value={formData.approved_by_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
+                  <Select label="Supervisor" name="approved_by_name" value={formData.approved_by_name} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
                   <SignaturePad
                     label="Signature"
                     value={formData.approved_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
-                    subtitle="Department Head"
+                    onChange={(sig) => handleSignatureChange('approved_by_signature', sig)}
+                    subtitle="Approved By (Supervisor)"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Request Received By */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request Received By</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <Select
-                    label="Service Dept."
-                    name="received_by_service_dept_name"
-                    value={formData.received_by_service_dept_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.received_by_service_dept_signature}
-                    onChange={(signature: string) => handleSignatureChange('received_by_service_dept_signature', signature)}
-                    subtitle="Service Department"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Select
-                    label="Credit & Collection"
-                    name="received_by_credit_collection_name"
-                    value={formData.received_by_credit_collection_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.received_by_credit_collection_signature}
-                    onChange={(signature: string) => handleSignatureChange('received_by_credit_collection_signature', signature)}
-                    subtitle="Credit & Collection"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Service Use Only */}
-            <div>
-              <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">Service Use Only</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-red-50 p-4 rounded-lg">
-                <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleFieldChange} />
-                <div className="lg:col-span-2">
-                  <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleFieldChange} />
-                </div>
-                <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleFieldChange} />
-                <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleFieldChange} />
-                {/* <SelectDropdown
-                  label="Status"
-                  name="status"
-                  value={formData.status}
-                  onChange={handleFieldChange}
-                  options={["PENDING", "IN_PROGRESS", "COMPLETED", "CLOSED", "CANCELLED"]}
-                /> */}
-                <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleFieldChange} />
-                <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleFieldChange} />
-                <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleFieldChange} />
-                <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleFieldChange} className="bg-gray-100" />
-                <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleFieldChange} />
-                <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleFieldChange} />
-                <div className="lg:col-span-3">
-                  <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleFieldChange} />
-                </div>
-                <div className="lg:col-span-3 space-y-4">
-                  <Select
-                    label="Verified By"
-                    name="verified_by_name"
-                    value={formData.verified_by_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.verified_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('verified_by_signature', signature)}
-                    subtitle="Verified By"
-                  />
+            {/* For Service Office Only */}
+            <div className="bg-red-50 p-6 rounded-xl border border-red-200">
+              <h4 className="text-base font-bold text-red-700 mb-4 pb-2 border-b border-red-300 uppercase">For Service Office Only</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Input label="Total SRT" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleFieldChange} />
+                <Input label="Actual Manhour" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} />
+                <Input label="Performance (%)" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
+                <div></div>
+                <Select label="CHK. BY" name="checked_by" value={formData.checked_by} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
+                <Select label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
+                <Select label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
+                <Select label="SVC. MANAGER" name="service_manager" value={formData.service_manager} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
+                <div className="lg:col-span-4">
+                  <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
                 </div>
               </div>
             </div>
 
             {/* Attachments */}
-            <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments</h3>
+            <div className="bg-white p-6 rounded-xl border border-gray-200">
+              <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Attachments</h4>
               <div className="space-y-4">
                 {/* Existing Attachments */}
                 {existingAttachments.map((attachment) => {
@@ -641,7 +695,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-6 py-2.5 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium text-sm"

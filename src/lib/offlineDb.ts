@@ -15,7 +15,8 @@ export type FormType =
   | 'submersible-pump-service'
   | 'submersible-pump-teardown'
   | 'engine-inspection-receiving'
-  | 'components-teardown-measuring';
+  | 'components-teardown-measuring'
+  | 'daily-time-sheet';
 
 // Storable attachment (files converted to ArrayBuffer)
 export interface StorableAttachment {

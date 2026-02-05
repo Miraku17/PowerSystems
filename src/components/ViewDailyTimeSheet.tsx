@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 
-interface ViewJobOrderRequestProps {
+interface ViewDailyTimeSheetProps {
   data: Record<string, any>;
   onClose: () => void;
   onExportPDF?: () => void;
@@ -20,8 +20,19 @@ interface Attachment {
   created_at: string;
 }
 
-export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: ViewJobOrderRequestProps) {
+interface TimeSheetEntry {
+  id: string;
+  entry_date: string;
+  start_time: string;
+  stop_time: string;
+  total_hours: number;
+  job_description: string;
+  sort_order: number;
+}
+
+export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
   const [auditInfo, setAuditInfo] = useState<{
     createdBy?: string;
     updatedBy?: string;
@@ -32,9 +43,9 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
     const fetchAttachments = async () => {
       try {
         const { data: attachmentsData, error } = await supabase
-          .from('job_order_attachments')
+          .from('daily_time_sheet_attachments')
           .select('*')
-          .eq('job_order_id', data.id)
+          .eq('daily_time_sheet_id', data.id)
           .order('created_at', { ascending: true });
 
         if (error) {
@@ -47,10 +58,34 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
       }
     };
 
+    const fetchEntries = async () => {
+      try {
+        const { data: entriesData, error } = await supabase
+          .from('daily_time_sheet_entries')
+          .select('*')
+          .eq('daily_time_sheet_id', data.id)
+          .order('sort_order', { ascending: true });
+
+        if (error) {
+          console.error('Error fetching entries:', error);
+        } else {
+          setEntries(entriesData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching entries:', error);
+      }
+    };
+
     if (data.id) {
       fetchAttachments();
+      fetchEntries();
     }
-  }, [data.id]);
+
+    // Also check if entries are included in the data object (from API response)
+    if (data.daily_time_sheet_entries) {
+      setEntries(data.daily_time_sheet_entries);
+    }
+  }, [data.id, data.daily_time_sheet_entries]);
 
   useEffect(() => {
     const fetchAuditInfo = async () => {
@@ -123,19 +158,32 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
   };
 
   const formatDate = (dateString: any) => {
-    if (!dateString) return 'N/A';
+    if (!dateString) return '-';
     try {
       return new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     } catch {
-      return 'N/A';
+      return '-';
     }
   };
 
-  const formatCurrency = (value: any) => {
+  const formatTime = (timeString: any) => {
+    if (!timeString) return '-';
+    try {
+      const [hours, minutes] = timeString.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+      return `${displayHour}:${minutes} ${ampm}`;
+    } catch {
+      return timeString;
+    }
+  };
+
+  const formatNumber = (value: any) => {
     if (value === null || value === undefined || value === '') return '-';
     const num = parseFloat(value);
     if (isNaN(num)) return '-';
-    return `₱${num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
+    return num.toFixed(2);
   };
 
   return (
@@ -146,7 +194,7 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
         <div className="px-6 py-4 border-b border-gray-100 bg-white z-10">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900">Job Order Request Form</h3>
+              <h3 className="text-xl font-bold text-gray-900">Daily Time Sheet</h3>
               {(data.created_at || data.updated_at || data.deleted_at) && (
                 <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs text-gray-500">
                   {data.created_at && (
@@ -188,93 +236,87 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
 
             {/* Company Header */}
             <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-              <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
+              <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
               <p className="text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-bold text-gray-700">Tel. Nos.:</span> 287-89-16; 285-09-23
-              </p>
               <div className="mt-6">
                 <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-                  Job Order Request Form
+                  Daily Time Sheet
                 </h2>
               </div>
             </div>
 
-            {/* Job Order Information */}
+            {/* Basic Information */}
             <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Job Order Information</h3>
+              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Basic Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="SHOP/FIELD J.O. NO." value={data.shop_field_jo_number} />
-                <Field label="Date Prepared" value={formatDate(data.date_prepared)} />
-              </div>
-            </div>
-
-            {/* Customer Information */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Customer Information</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <Field label="Full Customer's Name" value={data.full_customer_name} />
+                <Field label="Customer" value={data.customer} />
+                <Field label="Job No." value={data.job_number} />
                 <Field label="Address" value={data.address} />
-                <Field label="Location of Unit" value={data.location_of_unit} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Contact Person" value={data.contact_person} />
-                  <Field label="Tel No/s." value={data.telephone_numbers} />
-                </div>
+                <Field label="Date" value={formatDate(data.date)} />
               </div>
             </div>
 
-            {/* Equipment Details */}
+            {/* Manhours & Job Descriptions Table */}
             <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Equipment Details</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <Field label="Particulars" value={data.particulars} />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="Equipment Model" value={data.equipment_model} />
-                  <Field label="Equipment No." value={data.equipment_number} />
-                  <Field label="Engine Model" value={data.engine_model} />
-                  <Field label="ESN (Engine Serial Number)" value={data.esn} />
-                </div>
+              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Manhours & Job Descriptions</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse border border-gray-300">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Date</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Start</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Stop</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Total</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Job Descriptions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.length > 0 ? (
+                      entries.map((entry, index) => (
+                        <tr key={entry.id || index} className="hover:bg-gray-50">
+                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatDate(entry.entry_date)}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatTime(entry.start_time)}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatTime(entry.stop_time)}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-sm font-medium">{formatNumber(entry.total_hours)}</td>
+                          <td className="border border-gray-300 px-3 py-2 text-sm">{entry.job_description || '-'}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="border border-gray-300 px-3 py-4 text-sm text-center text-gray-500">
+                          No time entries recorded
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-blue-50 font-bold">
+                      <td colSpan={3} className="border border-gray-300 px-3 py-2 text-right text-sm uppercase">Total Manhours</td>
+                      <td className="border border-gray-300 px-3 py-2 text-sm">{formatNumber(data.total_manhours)}</td>
+                      <td className="border border-gray-300 px-3 py-2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Grand Total Manhours (REG. + O.T.)" value={formatNumber(data.grand_total_manhours)} />
               </div>
             </div>
 
-            {/* Service Details */}
+            {/* Performed By */}
             <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Service Details</h3>
-              <div className="grid grid-cols-1 gap-4">
-                <Field label="Complaints" value={data.complaints} />
-                <Field label="Work To Be Done" value={data.work_to_be_done} />
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Field label="Preferred Service Date" value={formatDate(data.preferred_service_date)} />
-                  <Field label="Time" value={data.preferred_service_time || '-'} />
-                  <Field label="Charges Absorbed By" value={data.charges_absorbed_by} />
-                </div>
-              </div>
-            </div>
-
-            {/* Attached References */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attached References</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Field label="QTN. REF" value={data.qtn_ref} />
-                <Field label="Customer's P.O/WTY Claim No." value={data.customers_po_wty_claim_no} />
-                <Field label="D.R. Number" value={data.dr_number} />
-              </div>
-            </div>
-
-            {/* Request & Approval */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
+              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Performed By</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Field label="Requested By (Sales/Service Engineer)" value={data.requested_by_name} />
-                  {data.requested_by_signature && (
+                  <Field label="Print Name" value={data.performed_by_name} />
+                  {data.performed_by_signature && (
                     <div className="mt-2">
-                      <img src={data.requested_by_signature} alt="Requested By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={data.performed_by_signature} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
                 <div>
-                  <Field label="Approved By (Department Head)" value={data.approved_by_name} />
+                  <Field label="Supervisor" value={data.approved_by_name} />
                   {data.approved_by_signature && (
                     <div className="mt-2">
                       <img src={data.approved_by_signature} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
@@ -284,56 +326,24 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
               </div>
             </div>
 
-            {/* Request Received By */}
+            {/* For Service Office Only */}
             <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request Received By</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Field label="Service Dept." value={data.received_by_service_dept_name} />
-                  {data.received_by_service_dept_signature && (
-                    <div className="mt-2">
-                      <img src={data.received_by_service_dept_signature} alt="Service Dept. Signature" className="h-16 border border-gray-300 rounded" />
-                    </div>
-                  )}
+              <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">For Service Office Only</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-4 rounded-lg">
+                <Field label="Total SRT" value={formatNumber(data.total_srt)} />
+                <Field label="Actual Manhour" value={formatNumber(data.actual_manhour)} />
+                <Field label="Performance (%)" value={data.performance ? `${formatNumber(data.performance)}%` : '-'} />
+                <div></div>
+                <Field label="CHK. BY" value={data.checked_by} />
+                <Field label="SVC. CO'RDNTR" value={data.service_coordinator} />
+                <Field label="APVD. BY" value={data.approved_by_service} />
+                <Field label="SVC. MANAGER" value={data.service_manager} />
+                <div className="md:col-span-4">
+                  <Field label="Note" value={data.service_office_note} />
                 </div>
-                <div>
-                  <Field label="Credit & Collection" value={data.received_by_credit_collection_name} />
-                  {data.received_by_credit_collection_signature && (
-                    <div className="mt-2">
-                      <img src={data.received_by_credit_collection_signature} alt="Credit & Collection Signature" className="h-16 border border-gray-300 rounded" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Service Use Only */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">Service Use Only</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-red-50 p-4 rounded-lg">
-                <Field label="Estimated No. of Repairs Days" value={data.estimated_repair_days} />
-                <div className="md:col-span-2">
-                  <Field label="Technicians Involved" value={data.technicians_involved} />
-                </div>
-                <Field label="Date Job Started" value={formatDate(data.date_job_started)} />
-                <Field label="Date Job Completed/Closed" value={formatDate(data.date_job_completed_closed)} />
-                {/* <Field label="Status" value={data.status} /> */}
-                <Field label="Parts Cost" value={formatCurrency(data.parts_cost)} />
-                <Field label="Labor Cost" value={formatCurrency(data.labor_cost)} />
-                <Field label="Other Cost" value={formatCurrency(data.other_cost)} />
-                <Field label="Total Cost" value={formatCurrency(data.total_cost)} />
-                <Field label="Date of Invoice" value={formatDate(data.date_of_invoice)} />
-                <Field label="Invoice Number" value={data.invoice_number} />
-                <div className="md:col-span-3">
-                  <Field label="Remarks" value={data.remarks} />
-                </div>
-                <div className="md:col-span-3">
-                  <Field label="Verified By" value={data.verified_by_name} />
-                  {data.verified_by_signature && (
-                    <div className="mt-2">
-                      <img src={data.verified_by_signature} alt="Verified By Signature" className="h-16 border border-gray-300 rounded" />
-                    </div>
-                  )}
+                <div className="md:col-span-4 text-xs text-gray-600 italic">
+                  <p>ACTUAL MANHOUR = REGULAR + OVERTIME</p>
+                  <p>PERFORMANCE = SRT / ACTUAL MANHOUR</p>
                 </div>
               </div>
             </div>

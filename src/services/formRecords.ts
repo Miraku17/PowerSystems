@@ -31,6 +31,7 @@ const formTypeEndpoints: Record<string, string> = {
   "engine-teardown": "/forms/engine-teardown",
   "engine-inspection-receiving": "/forms/engine-inspection-receiving",
   "components-teardown-measuring": "/forms/components-teardown-measuring",
+  "daily-time-sheet": "/forms/daily-time-sheet",
 };
 
 export const formRecordService = {

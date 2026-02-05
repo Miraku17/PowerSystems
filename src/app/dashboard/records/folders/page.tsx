@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FolderIcon, FolderOpenIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { FolderIcon, FolderOpenIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function RecordsFoldersPage() {
   const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
 
   const formTemplates = [
     {
@@ -14,16 +16,22 @@ export default function RecordsFoldersPage() {
       description: "Job order requests for service, repairs, and equipment maintenance.",
     },
     {
-      id: "deutz-commissioning",
-      name: "Deutz Commissioning",
-      formType: "deutz-commissioning",
-      description: "Commissioning reports and records for Deutz engines.",
+      id: "daily-time-sheet",
+      name: "Daily Time Sheets",
+      formType: "daily-time-sheet",
+      description: "Daily time sheets tracking manhours and job descriptions.",
     },
     {
       id: "deutz-service",
       name: "Deutz Service",
       formType: "deutz-service",
       description: "Service maintenance and repair logs for Deutz systems.",
+    },
+    {
+      id: "deutz-commissioning",
+      name: "Deutz Commissioning",
+      formType: "deutz-commissioning",
+      description: "Commissioning reports and records for Deutz engines.",
     },
     {
       id: "submersible-pump-commissioning",
@@ -98,6 +106,17 @@ export default function RecordsFoldersPage() {
     router.push(`/dashboard/records/folders/${normalizedFormType}`);
   };
 
+  // Filter templates based on search term
+  const filteredTemplates = formTemplates.filter((template) => {
+    if (!searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      template.name.toLowerCase().includes(searchLower) ||
+      template.description.toLowerCase().includes(searchLower) ||
+      template.formType.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto animate-fadeIn p-6">
       {/* Header */}
@@ -110,9 +129,37 @@ export default function RecordsFoldersPage() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="relative max-w-md">
+        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search folders..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white shadow-sm"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
       {/* Folders View */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {formTemplates.map((template, index) => (
+        {filteredTemplates.length === 0 ? (
+          <div className="col-span-full text-center py-12">
+            <FolderIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No folders found matching "{searchTerm}"</p>
+          </div>
+        ) : (
+          filteredTemplates.map((template, index) => (
           <div
             key={template.id}
             onClick={() => handleFolderClick(template)}
@@ -149,7 +196,8 @@ export default function RecordsFoldersPage() {
               </div>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

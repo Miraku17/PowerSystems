@@ -5,8 +5,8 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
-import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
+import { ChevronDownIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 
 interface User {
@@ -14,9 +14,9 @@ interface User {
   fullName: string;
 }
 
-export default function JobOrderRequestForm() {
+export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { formData, setFormData, resetFormData } = useJobOrderRequestFormStore();
+  const { formData, setFormData, resetFormData, addEntry, updateEntry, removeEntry } = useDailyTimeSheetFormStore();
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
@@ -52,16 +52,43 @@ export default function JobOrderRequestForm() {
     fetchCustomers();
   }, []);
 
-  // Auto-calculate total cost when parts, labor, or other cost changes
+  // Auto-calculate total manhours when entries change
   useEffect(() => {
-    const parts = parseFloat(formData.parts_cost) || 0;
-    const labor = parseFloat(formData.labor_cost) || 0;
-    const other = parseFloat(formData.other_cost) || 0;
-    const total = (parts + labor + other).toFixed(2);
-    if (formData.total_cost !== total) {
-      setFormData({ total_cost: total });
+    const totalHours = formData.entries.reduce((sum, entry) => {
+      const hours = parseFloat(entry.total_hours) || 0;
+      return sum + hours;
+    }, 0);
+    const total = totalHours.toFixed(2);
+    if (formData.total_manhours !== total) {
+      setFormData({ total_manhours: total });
     }
-  }, [formData.parts_cost, formData.labor_cost, formData.other_cost]);
+  }, [formData.entries]);
+
+  // Auto-calculate performance percentage
+  useEffect(() => {
+    const srt = parseFloat(formData.total_srt) || 0;
+    const actualManhour = parseFloat(formData.actual_manhour) || 0;
+    if (actualManhour > 0) {
+      const perf = ((srt / actualManhour) * 100).toFixed(2);
+      if (formData.performance !== perf) {
+        setFormData({ performance: perf });
+      }
+    }
+  }, [formData.total_srt, formData.actual_manhour]);
+
+  // Calculate total hours for an entry when start/stop time changes
+  const calculateTotalHours = (entry: TimeSheetEntry) => {
+    if (entry.start_time && entry.stop_time) {
+      const [startHour, startMin] = entry.start_time.split(':').map(Number);
+      const [stopHour, stopMin] = entry.stop_time.split(':').map(Number);
+
+      let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
+      if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight
+
+      const hours = (totalMinutes / 60).toFixed(2);
+      updateEntry(entry.id, { total_hours: hours });
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -70,10 +97,8 @@ export default function JobOrderRequestForm() {
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({
-      full_customer_name: customer.customer || "",
-      contact_person: customer.contactPerson || "",
+      customer: customer.customer || "",
       address: customer.address || "",
-      telephone_numbers: customer.phone || "",
     });
   };
 
@@ -81,12 +106,31 @@ export default function JobOrderRequestForm() {
     setFormData({ [name]: signature });
   };
 
+  const handleEntryChange = (entryId: string, field: keyof TimeSheetEntry, value: string) => {
+    const entry = formData.entries.find(e => e.id === entryId);
+    if (entry) {
+      updateEntry(entryId, { [field]: value });
+
+      // Recalculate total hours if time changed
+      if (field === 'start_time' || field === 'stop_time') {
+        const updatedEntry = { ...entry, [field]: value };
+        setTimeout(() => calculateTotalHours(updatedEntry), 0);
+      }
+    }
+  };
+
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
+    // Prepare entries data for submission
+    const entriesData = formData.entries.map(({ id, ...rest }) => rest);
+
     await submit({
-      formType: 'job-order-request',
-      formData: formData as unknown as Record<string, unknown>,
+      formType: 'daily-time-sheet' as any,
+      formData: {
+        ...formData,
+        entries: JSON.stringify(entriesData),
+      } as unknown as Record<string, unknown>,
       attachments,
       onSuccess: () => {
         setAttachments([]);
@@ -98,13 +142,13 @@ export default function JobOrderRequestForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.shop_field_jo_number || formData.shop_field_jo_number.trim() === '') {
-      toast.error('J.O. Number is required');
+    if (!formData.job_number || formData.job_number.trim() === '') {
+      toast.error('Job Number is required');
       return;
     }
 
-    if (!formData.full_customer_name || formData.full_customer_name.trim() === '') {
-      toast.error('Customer Name is required');
+    if (!formData.customer || formData.customer.trim() === '') {
+      toast.error('Customer is required');
       return;
     }
 
@@ -115,14 +159,11 @@ export default function JobOrderRequestForm() {
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
+        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
         <p className="text-xs md:text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel. Nos.:</span> 287-89-16; 285-09-23
-        </p>
         <div className="mt-6">
           <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Job Order Request Form
+            Daily Time Sheet
           </h2>
         </div>
       </div>
@@ -132,30 +173,19 @@ export default function JobOrderRequestForm() {
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Job Order Information</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleChange} required />
-            <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleChange} />
-          </div>
-        </div>
-
-        {/* Section: Customer Information */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Customer Information</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Basic Information</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <div className="md:col-span-2">
               <CustomerAutocomplete
-                label="Full Customer's Name"
-                name="full_customer_name"
-                value={formData.full_customer_name}
+                label="Customer"
+                name="customer"
+                value={formData.customer}
                 onChange={handleChange}
                 onSelect={handleCustomerSelect}
                 customers={customers}
                 searchKey="customer"
+                required
               />
             </div>
             <div className="md:col-span-2">
@@ -169,170 +199,179 @@ export default function JobOrderRequestForm() {
                 searchKey="address"
               />
             </div>
-            <div className="md:col-span-2">
-              <Input label="Location of Unit" name="location_of_unit" value={formData.location_of_unit} onChange={handleChange} />
+            <Input label="Job No." name="job_number" value={formData.job_number} onChange={handleChange} required />
+            <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />
+          </div>
+        </div>
+
+        {/* Section: Time Entries Table */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+              <h3 className="text-lg font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h3>
             </div>
-            <CustomerAutocomplete
-              label="Contact Person"
-              name="contact_person"
-              value={formData.contact_person}
+            <button
+              type="button"
+              onClick={addEntry}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Add Row
+            </button>
+          </div>
+
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead>
+                <tr className="border-b-2 border-gray-300">
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[120px]">Date</th>
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Start</th>
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Stop</th>
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[80px]">Total</th>
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2">Job Descriptions<br/><span className="font-normal text-gray-500">(Pls. indicate specific component & Eng. Model)</span></th>
+                  <th className="w-[50px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.entries.map((entry, index) => (
+                  <tr key={entry.id} className="border-b border-gray-200">
+                    <td className="py-2 px-2">
+                      <input
+                        type="date"
+                        value={entry.entry_date}
+                        onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
+                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="time"
+                        value={entry.start_time}
+                        onChange={(e) => handleEntryChange(entry.id, 'start_time', e.target.value)}
+                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="time"
+                        value={entry.stop_time}
+                        onChange={(e) => handleEntryChange(entry.id, 'stop_time', e.target.value)}
+                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={entry.total_hours}
+                        onChange={(e) => handleEntryChange(entry.id, 'total_hours', e.target.value)}
+                        className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2"
+                        readOnly
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      <input
+                        type="text"
+                        value={entry.job_description}
+                        onChange={(e) => handleEntryChange(entry.id, 'job_description', e.target.value)}
+                        placeholder="Enter job description"
+                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                      />
+                    </td>
+                    <td className="py-2 px-2">
+                      {formData.entries.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeEntry(entry.id)}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-400">
+                  <td colSpan={3} className="py-3 px-2 text-right font-bold text-gray-700 uppercase">Total Manhours</td>
+                  <td className="py-3 px-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={formData.total_manhours}
+                      className="w-full bg-blue-50 border border-blue-300 text-gray-900 text-sm rounded-md p-2 font-bold"
+                      readOnly
+                    />
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <Input
+              label="Grand Total Manhours (REG. + O.T.)"
+              name="grand_total_manhours"
+              type="number"
+              step="0.01"
+              value={formData.grand_total_manhours}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="contactPerson"
             />
-            <Input label="Tel No/s." name="telephone_numbers" value={formData.telephone_numbers} onChange={handleChange} />
           </div>
         </div>
 
-        {/* Section: Equipment Details */}
+        {/* Section: Performed By */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Equipment Details</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div className="md:col-span-2">
-              <TextArea label="Particulars" name="particulars" value={formData.particulars} onChange={handleChange} rows={2} />
-            </div>
-            <Input label="Equipment Model" name="equipment_model" value={formData.equipment_model} onChange={handleChange} />
-            <Input label="Equipment No." name="equipment_number" value={formData.equipment_number} onChange={handleChange} />
-            <Input label="Engine Model" name="engine_model" value={formData.engine_model} onChange={handleChange} />
-            <Input label="ESN (Engine Serial Number)" name="esn" value={formData.esn} onChange={handleChange} />
-          </div>
-        </div>
-
-        {/* Section: Service Details */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Service Details</h3>
-          </div>
-          <div className="grid grid-cols-1 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <TextArea label="Complaints" name="complaints" value={formData.complaints} onChange={handleChange} rows={3} />
-            <TextArea label="Work To Be Done" name="work_to_be_done" value={formData.work_to_be_done} onChange={handleChange} rows={3} />
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
-              <Input label="Preferred Service Date" name="preferred_service_date" type="date" value={formData.preferred_service_date} onChange={handleChange} />
-              <Input label="Time" name="preferred_service_time" type="time" value={formData.preferred_service_time} onChange={handleChange} />
-              <SelectDropdown
-                label="Charges Absorbed By"
-                name="charges_absorbed_by"
-                value={formData.charges_absorbed_by}
-                onChange={handleChange}
-                options={[
-                  "Local warranty",
-                  "Factory warranty",
-                  "Customers acct",
-                  "Cost of sales",
-                  "Admin",
-                  "Facility maint. & repair",
-                  "Leasehold improvement"
-                ]}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section: Attached References */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Attached References</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="QTN. REF" name="qtn_ref" value={formData.qtn_ref} onChange={handleChange} />
-            <Input label="Customer's P.O/WTY Claim No." name="customers_po_wty_claim_no" value={formData.customers_po_wty_claim_no} onChange={handleChange} />
-            <Input label="D.R. Number" name="dr_number" value={formData.dr_number} onChange={handleChange} />
-          </div>
-        </div>
-
-        {/* Section: Request and Approval */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Request & Approval</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Performed By</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <div className="space-y-4">
-              <Select label="Requested By (Sales/Service Engineer)" name="requested_by_name" value={formData.requested_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Print Name" name="performed_by_name" value={formData.performed_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
               <SignaturePad
                 label="Signature"
-                value={formData.requested_by_signature}
-                onChange={(signature: string) => handleSignatureChange('requested_by_signature', signature)}
-                subtitle="Sales/Service Engineer"
+                value={formData.performed_by_signature}
+                onChange={(signature: string) => handleSignatureChange('performed_by_signature', signature)}
+                subtitle="Performed By"
               />
             </div>
             <div className="space-y-4">
-              <Select label="Approved By (Department Head)" name="approved_by_name" value={formData.approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Supervisor" name="approved_by_name" value={formData.approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
               <SignaturePad
                 label="Signature"
                 value={formData.approved_by_signature}
                 onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
-                subtitle="Department Head"
+                subtitle="Approved By (Supervisor)"
               />
             </div>
           </div>
         </div>
 
-        {/* Section: Request Received By */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Request Received By</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div className="space-y-4">
-              <Select label="Service Dept." name="received_by_service_dept_name" value={formData.received_by_service_dept_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.received_by_service_dept_signature}
-                onChange={(signature: string) => handleSignatureChange('received_by_service_dept_signature', signature)}
-                subtitle="Service Department"
-              />
-            </div>
-            <div className="space-y-4">
-              <Select label="Credit & Collection" name="received_by_credit_collection_name" value={formData.received_by_credit_collection_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.received_by_credit_collection_signature}
-                onChange={(signature: string) => handleSignatureChange('received_by_credit_collection_signature', signature)}
-                subtitle="Credit & Collection"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Section: Service Use Only */}
+        {/* Section: For Service Office Only */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-red-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Service Use Only</h3>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">For Service Office Only</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
-            <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleChange} />
-            <div className="lg:col-span-2">
-              <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleChange} placeholder="Comma-separated names" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
+            <Input label="Total SRT" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleChange} />
+            <Input label="Actual Manhour" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} />
+            <Input label="Performance (%)" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled />
+            <div></div>
+            <Select label="CHK. BY" name="checked_by" value={formData.checked_by} onChange={handleChange} options={users.map(user => user.fullName)} />
+            <Select label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} onChange={handleChange} options={users.map(user => user.fullName)} />
+            <Select label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} onChange={handleChange} options={users.map(user => user.fullName)} />
+            <Select label="SVC. MANAGER" name="service_manager" value={formData.service_manager} onChange={handleChange} options={users.map(user => user.fullName)} />
+            <div className="lg:col-span-4">
+              <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
             </div>
-            <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} />
-            <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} />
-            {/* Status field hidden as requested */}
-            <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
-            <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />
-            <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} />
-            <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleChange} disabled />
-            <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleChange} />
-            <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleChange} />
-            <div className="lg:col-span-3">
-              <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} />
-            </div>
-            <div className="lg:col-span-3 space-y-4">
-              <Select label="Verified By" name="verified_by_name" value={formData.verified_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.verified_by_signature}
-                onChange={(signature: string) => handleSignatureChange('verified_by_signature', signature)}
-                subtitle="Verified By"
-              />
+            <div className="lg:col-span-4 text-xs text-gray-600 italic">
+              <p>ACTUAL MANHOUR = REGULAR + OVERTIME</p>
+              <p>PERFORMANCE = SRT / ACTUAL MANHOUR</p>
             </div>
           </div>
         </div>
@@ -406,10 +445,10 @@ export default function JobOrderRequestForm() {
                   <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <div className="flex text-sm text-gray-600">
-                  <label htmlFor="file-upload-job-order" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+                  <label htmlFor="file-upload-time-sheet" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
                     <span>Upload a file</span>
                     <input
-                      id="file-upload-job-order"
+                      id="file-upload-time-sheet"
                       type="file"
                       accept="image/*"
                       className="sr-only"
@@ -439,7 +478,7 @@ export default function JobOrderRequestForm() {
             Clear Form
           </button>
           <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isSubmitting}>
-            <span className="mr-2">Submit Job Order Request</span>
+            <span className="mr-2">Submit Daily Time Sheet</span>
             {isSubmitting ? (
               <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -458,7 +497,7 @@ export default function JobOrderRequestForm() {
         onConfirm={handleConfirmSubmit}
         onClose={() => setIsModalOpen(false)}
         title="Confirm Submission"
-        message="Are you sure you want to submit this Job Order Request Form?"
+        message="Are you sure you want to submit this Daily Time Sheet?"
       />
     </div>
   );
@@ -581,32 +620,6 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
   );
 };
 
-interface SelectDropdownProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  options: string[];
-}
-
-const SelectDropdown = ({ label, name, value, onChange, options }: SelectDropdownProps) => (
-  <div className="flex flex-col w-full">
-    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  </div>
-);
-
 interface CustomerAutocompleteProps {
   label: string;
   name: string;
@@ -615,9 +628,10 @@ interface CustomerAutocompleteProps {
   onSelect: (customer: any) => void;
   customers: any[];
   searchKey?: string;
+  required?: boolean;
 }
 
-const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer", required = false }: CustomerAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -642,7 +656,9 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
 
   return (
     <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
       <div className="relative">
         <input
           type="text"

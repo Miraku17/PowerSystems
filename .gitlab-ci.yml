@@ -1,0 +1,128 @@
+image: node:18
+
+stages:
+  - install
+  - lint
+  - test
+  - build
+  - deploy-staging
+  - deploy-production
+
+variables:
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+    - node_modules/
+    - .next/cache/
+
+# Install dependencies
+install:
+  stage: install
+  script:
+    - npm ci --prefer-offline
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+
+# Lint code
+lint:
+  stage: lint
+  dependencies:
+    - install
+  script:
+    - npm run lint
+  only:
+    - merge_requests
+    - main
+    - staging
+
+# Run tests
+test:
+  stage: test
+  dependencies:
+    - install
+  script:
+    - npm run test -- --ci --coverage --maxWorkers=2
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 30 days
+  only:
+    - merge_requests
+    - main
+    - staging
+
+# Build application
+build:
+  stage: build
+  dependencies:
+    - install
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 hour
+  only:
+    - main
+    - staging
+
+# Deploy to Vercel Staging
+deploy-staging:
+  stage: deploy-staging
+  dependencies:
+    - build
+  before_script:
+    - npm install -g vercel@latest
+  script:
+    - |
+      vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
+      vercel build --token=$VERCEL_TOKEN
+      DEPLOYMENT_URL=$(vercel deploy --prebuilt --token=$VERCEL_TOKEN)
+      echo "Deployed to: $DEPLOYMENT_URL"
+      echo "DEPLOYMENT_URL=$DEPLOYMENT_URL" >> deploy.env
+  artifacts:
+    reports:
+      dotenv: deploy.env
+  environment:
+    name: staging
+    url: $DEPLOYMENT_URL
+  only:
+    - staging
+
+# Deploy to Vercel Production
+deploy-production:
+  stage: deploy-production
+  dependencies:
+    - build
+  before_script:
+    - npm install -g vercel@latest
+  script:
+    - |
+      vercel pull --yes --environment=production --token=$VERCEL_TOKEN
+      vercel build --prod --token=$VERCEL_TOKEN
+      PROD_URL=$(vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN)
+      echo "Deployed to production: $PROD_URL"
+      echo "PROD_URL=$PROD_URL" >> deploy-prod.env
+  artifacts:
+    reports:
+      dotenv: deploy-prod.env
+  environment:
+    name: production
+    url: $PROD_URL
+  only:
+    - main
+  when: on_success

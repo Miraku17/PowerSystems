@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Test coverage
+coverage/
+
+# Config files that use CommonJS
+jest.config.js
+next.config.js
+postcss.config.js
+tailwind.config.js

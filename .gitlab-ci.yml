@@ -1,0 +1,95 @@
+# GitLab CI/CD Pipeline for Power Systems Inc Frontend
+# This pipeline runs build, test, and deploy stages for the Next.js application
+
+image: node:20-alpine
+
+# Define pipeline stages
+stages:
+  - install
+  - test
+  - build
+  - deploy
+
+# Cache node_modules to speed up pipeline
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - node_modules/
+    - .next/cache/
+
+# Install dependencies
+install-dependencies:
+  stage: install
+  script:
+    - echo "Installing dependencies..."
+    - npm ci
+  artifacts:
+    paths:
+      - node_modules/
+    expire_in: 1 hour
+
+# Run unit tests
+unit-test:
+  stage: test
+  needs: ['install-dependencies']
+  script:
+    - echo "Running unit tests..."
+    - npm run test -- --ci --coverage --maxWorkers=2
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    when: always
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+    expire_in: 30 days
+
+# Run linting
+lint-test:
+  stage: test
+  needs: ['install-dependencies']
+  script:
+    - echo "Linting code..."
+    - npm run lint
+  allow_failure: true
+
+# Build the application
+build-job:
+  stage: build
+  needs: ['install-dependencies']
+  script:
+    - echo "Building the Next.js application..."
+    - npm run build
+    - echo "Build complete."
+  artifacts:
+    paths:
+      - .next/
+    expire_in: 1 hour
+
+# Deploy to production (only on main branch)
+deploy-production:
+  stage: deploy
+  needs: ['build-job', 'unit-test']
+  environment:
+    name: production
+  only:
+    - main
+  script:
+    - echo "Deploying application to production..."
+    - echo "Application successfully deployed."
+
+# Deploy to staging (only on staging branch)
+deploy-staging:
+  stage: deploy
+  needs: ['build-job', 'unit-test']
+  environment:
+    name: staging
+  only:
+    - staging
+  script:
+    - echo "Deploying application to staging..."
+    - echo "Application successfully deployed to staging."

@@ -1,290 +1,320 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LoginForm } from "@/types";
 import Image from "next/image";
-import { EyeIcon, EyeSlashIcon, XMarkIcon, ArrowRightIcon } from "@heroicons/react/24/outline";
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  BoltIcon,
+  ShieldCheckIcon,
+  ChartBarIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+} from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { authService } from "@/services";
 import apiClient from "@/lib/axios";
 import { useAuthStore } from "@/stores/authStore";
 
-// --- Modal Component ---
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}
-
-const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    if (isOpen) {
-      setShow(true);
-      document.body.style.overflow = "hidden";
-    } else {
-      const timer = setTimeout(() => setShow(false), 300);
-      document.body.style.overflow = "unset";
-      return () => clearTimeout(timer);
-    }
-    
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
-  if (!show && !isOpen) return null;
-
-  return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300 ${
-        isOpen ? "opacity-100" : "opacity-0"
-      }`}
-    >
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-md"
-        onClick={onClose}
-      />
-      
-      {/* Modal Content */}
-      <div
-        className={`relative bg-white w-full max-w-lg rounded-2xl shadow-2xl transform transition-all duration-300 flex flex-col max-h-[90vh] ${
-          isOpen ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
-        }`}
-      >
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 shrink-0">
-          <h2 className="text-2xl font-bold text-primary-blue">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 overflow-y-auto custom-scrollbar">
-          {children}
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function AuthPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
 
-    // Modal States
-    const [showLoginModal, setShowLoginModal] = useState(false);
-  
-    // Form States
-    const [loginFormData, setLoginFormData] = useState<LoginForm>({
-      email: "",
-      password: "",
-    });
-  
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-  
-    // Password visibility states
-    const [showLoginPassword, setShowLoginPassword] = useState(false);
-  
-    // --- Handlers ---
-  
-    const resetForms = () => {
-      setError("");
-      setLoading(false);
-      setLoginFormData({ email: "", password: "" });
-    };
-  
-    const openLogin = () => {
-      resetForms();
-      setShowLoginModal(true);
-    };
-  
-    const handleLoginSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setLoading(true);
-      setError("");
-  
-      const loadingToast = toast.loading("Logging in...");
-  
-      try {
-        // Use local API route for Supabase login
-        const response = await apiClient.post("/auth/login", {
-          email: loginFormData.email,
-          password: loginFormData.password,
-        });
-  
-        const result = response.data;
-  
-        if (result.success && result.data?.access_token && result.data?.user) {
-          const { access_token, user } = result.data;
-          authService.saveToken(access_token);
-          authService.saveUser(user);
-          setUser(user); // Set user in Zustand store
+  const [loginFormData, setLoginFormData] = useState<LoginForm>({
+    email: "",
+    password: "",
+  });
 
-          toast.success("Login successful! Redirecting...", {
-            id: loadingToast,
-          });
-  
-          setTimeout(() => {
-            router.push("/dashboard/overview");
-          }, 500);
-        } else {
-          toast.error(result.message || "Login failed", {
-            id: loadingToast,
-          });
-          setError(result.message || "Login failed");
-        }
-      } catch (error: any) {
-        const errorMessage =
-          error.response?.data?.message ||
-          error.message ||
-          "An unexpected error occurred";
-        toast.error(errorMessage, {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const loadingToast = toast.loading("Logging in...");
+
+    try {
+      const response = await apiClient.post("/auth/login", {
+        email: loginFormData.email,
+        password: loginFormData.password,
+      });
+
+      const result = response.data;
+
+      if (result.success && result.data?.access_token && result.data?.user) {
+        const { access_token, user } = result.data;
+        authService.saveToken(access_token);
+        authService.saveUser(user);
+        setUser(user);
+
+        toast.success("Login successful! Redirecting...", {
           id: loadingToast,
         });
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
+
+        setTimeout(() => {
+          router.push("/dashboard/overview");
+        }, 500);
+      } else {
+        toast.error(result.message || "Login failed", {
+          id: loadingToast,
+        });
+        setError(result.message || "Login failed");
       }
-    };
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.message ||
+        error.message ||
+        "An unexpected error occurred";
+      toast.error(errorMessage, {
+        id: loadingToast,
+      });
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-primary-dark-blue via-primary-blue to-[#1e3a8a] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background blobs */}
-      <div className="absolute inset-0 overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-400 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500 rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute -bottom-32 left-1/3 w-96 h-96 bg-primary-light-blue rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    <main className="min-h-screen flex">
+      {/* Left Panel - Branding */}
+      <div className="hidden lg:flex lg:w-[55%] relative bg-gradient-to-br from-[#1A2F4F] via-[#2B4C7E] to-[#1e3a5f] flex-col justify-between p-12 overflow-hidden">
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-[0.04]">
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid)" />
+          </svg>
+        </div>
+
+        {/* Animated gradient orbs */}
+        <div className="absolute top-20 right-20 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl animate-blob" />
+        <div className="absolute bottom-20 left-10 w-80 h-80 bg-indigo-400/15 rounded-full blur-3xl animate-blob animation-delay-2000" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-cyan-400/10 rounded-full blur-3xl animate-blob animation-delay-4000" />
+
+        {/* Top - Logo & Brand */}
+        <div className="relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="relative w-14 h-14 bg-white/10 backdrop-blur-sm rounded-xl p-2 border border-white/20">
+              <Image
+                src="/images/powersystemslogov2.png"
+                alt="Power Systems Inc"
+                fill
+                className="object-contain p-1"
+              />
+            </div>
+            <div>
+              <h2 className="text-white font-bold text-xl tracking-tight">Power Systems Inc.</h2>
+              <p className="text-blue-200/70 text-sm">Management Platform</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Center - Value Proposition */}
+        <div className="relative z-10 space-y-8">
+          <div>
+            <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight tracking-tight">
+              Powering smarter
+              <br />
+              <span className="text-blue-200">infrastructure.</span>
+            </h1>
+            <p className="mt-4 text-blue-100/60 text-lg max-w-md leading-relaxed">
+              Advanced management solutions designed for modern power systems — secure, reliable, and efficient.
+            </p>
+          </div>
+
+          {/* Feature highlights */}
+          <div className="space-y-4">
+            {[
+              { icon: BoltIcon, text: "Real-time monitoring & analytics" },
+              { icon: ShieldCheckIcon, text: "Enterprise-grade security" },
+              { icon: ChartBarIcon, text: "Comprehensive reporting tools" },
+            ].map((feature, i) => (
+              <div key={i} className="flex items-center gap-3 text-blue-100/70">
+                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-white/10 border border-white/10">
+                  <feature.icon className="w-4.5 h-4.5 text-blue-200" />
+                </div>
+                <span className="text-sm font-medium">{feature.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom - Footer */}
+        <div className="relative z-10">
+          <p className="text-blue-200/40 text-sm">
+            © {new Date().getFullYear()} Power Systems Inc. All rights reserved.
+          </p>
+        </div>
       </div>
 
-      {/* Landing Content */}
-      <div className="relative z-10 text-center max-w-4xl mx-auto px-4">
-        <div className="mb-12 animate-slideDown">
-          <div className="relative w-32 h-32 mx-auto mb-8 bg-white/10 backdrop-blur-md rounded-2xl p-4 shadow-2xl border border-white/20 transform hover:scale-105 transition-transform duration-300">
+      {/* Right Panel - Login Form */}
+      <div className="w-full lg:w-[45%] flex flex-col justify-center px-6 sm:px-12 lg:px-16 xl:px-24 bg-white relative">
+        {/* Mobile logo */}
+        <div className="lg:hidden flex items-center gap-3 absolute top-8 left-6 sm:left-12">
+          <div className="relative w-10 h-10 bg-[#2B4C7E]/10 rounded-lg p-1.5">
             <Image
               src="/images/powersystemslogov2.png"
               alt="Power Systems Inc"
               fill
-              className="object-contain p-2 drop-shadow-lg"
+              className="object-contain p-0.5"
             />
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-lg">
-            Power Systems Inc.
-          </h1>
-          <p className="text-xl md:text-2xl text-blue-100 max-w-2xl mx-auto font-light leading-relaxed">
-            Advanced management solutions for modern power infrastructure.
-            Secure, reliable, and efficient.
-          </p>
+          <span className="font-bold text-[#2B4C7E]">Power Systems Inc.</span>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-slideUp">
-          <button
-            onClick={openLogin}
-            className="group relative w-full sm:w-64 px-8 py-4 bg-white text-primary-blue font-bold text-lg rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] hover:scale-105 transition-all duration-300 flex items-center justify-center overflow-hidden"
-          >
-            <span className="relative z-10">Sign In</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </button>
-        </div>
-        
-        <p className="mt-12 text-blue-200/60 text-sm">
-          © {new Date().getFullYear()} Power Systems Inc. All rights reserved.
-        </p>
-      </div>
+        <div className="w-full max-w-sm mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+              Welcome back
+            </h1>
+            <p className="mt-2 text-gray-500 text-sm">
+              Enter your credentials to access your account.
+            </p>
+          </div>
 
-      {/* Login Modal */}
-      <Modal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        title="Welcome Back"
-      >
-        <form onSubmit={handleLoginSubmit} className="space-y-5">
+          {/* Error Alert */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-start">
-              <div className="shrink-0 mr-2 mt-0.5">
-                <XMarkIcon className="w-4 h-4" />
-              </div>
-              {error}
+            <div className="mb-6 flex items-start gap-3 bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl text-sm animate-fadeIn">
+              <svg className="w-5 h-5 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{error}</span>
             </div>
           )}
 
-          <div>
-            <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
-            <input
-              type="email"
-              id="login-email"
-              required
-              value={loginFormData.email}
-              onChange={(e) => setLoginFormData({ ...loginFormData, email: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all bg-gray-50 focus:bg-white outline-none"
-              placeholder="Enter your email address"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
-            <div className="relative">
-              <input
-                type={showLoginPassword ? "text" : "password"}
-                id="login-password"
-                required
-                value={loginFormData.password}
-                onChange={(e) => setLoginFormData({ ...loginFormData, password: e.target.value })}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-blue/20 focus:border-primary-blue transition-all bg-gray-50 focus:bg-white outline-none pr-12"
-                placeholder="Enter your password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowLoginPassword(!showLoginPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-blue transition-colors"
+          {/* Login Form */}
+          <form onSubmit={handleLoginSubmit} className="space-y-5">
+            {/* Email Field */}
+            <div>
+              <label
+                htmlFor="login-email"
+                className="block text-sm font-medium text-gray-700 mb-1.5"
               >
-                {showLoginPassword ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
-              </button>
+                Email
+              </label>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <EnvelopeIcon className="w-5 h-5" />
+                </div>
+                <input
+                  type="email"
+                  id="login-email"
+                  required
+                  value={loginFormData.email}
+                  onChange={(e) =>
+                    setLoginFormData({ ...loginFormData, email: e.target.value })
+                  }
+                  className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2B4C7E]/20 focus:border-[#2B4C7E] transition-all bg-gray-50/50 focus:bg-white outline-none text-sm"
+                  placeholder="name@company.com"
+                />
+              </div>
             </div>
-            <div className="text-right mt-2">
-              <Link href="/forgot-password" className="text-sm text-primary-blue font-medium hover:underline">Forgot Password?</Link>
+
+            {/* Password Field */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="login-password"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Password
+                </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-[#2B4C7E] font-medium hover:text-[#1A2F4F] transition-colors"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                  <LockClosedIcon className="w-5 h-5" />
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="login-password"
+                  required
+                  value={loginFormData.password}
+                  onChange={(e) =>
+                    setLoginFormData({
+                      ...loginFormData,
+                      password: e.target.value,
+                    })
+                  }
+                  className="w-full pl-11 pr-12 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#2B4C7E]/20 focus:border-[#2B4C7E] transition-all bg-gray-50/50 focus:bg-white outline-none text-sm"
+                  placeholder="Enter your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-1"
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="w-4.5 h-4.5" />
+                  ) : (
+                    <EyeIcon className="w-4.5 h-4.5" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3.5 bg-[#2B4C7E] text-white font-semibold rounded-xl hover:bg-[#1A2F4F] hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Signing In...
-              </span>
-            ) : "Sign In"}
-          </button>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-[#2B4C7E] text-white font-semibold rounded-xl hover:bg-[#1A2F4F] active:scale-[0.98] shadow-sm hover:shadow-md transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100 text-sm"
+            >
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="animate-spin h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+          </form>
 
-          <div className="text-center pt-2">
-            <p className="text-sm text-gray-500">
-              {/* Don't have an account?{" "} */}
-              {/* <button
-                type="button"
-                onClick={openRegister}
-                className="text-primary-blue font-semibold hover:underline"
-              >
-                Create Account
-              </button> */}
-            </p>
-          </div>
-        </form>
-      </Modal>
+          {/* Mobile footer */}
+          <p className="lg:hidden mt-12 text-center text-gray-400 text-xs">
+            © {new Date().getFullYear()} Power Systems Inc. All rights reserved.
+          </p>
+        </div>
+      </div>
     </main>
   );
 }

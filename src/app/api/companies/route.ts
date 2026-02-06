@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
-export const GET = withAuth(async (request, { user }) => {
+export const GET = withAuth(async () => {
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase

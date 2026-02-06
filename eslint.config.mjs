@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Additional ignores from .eslintignore:
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    "jest.config.js",
+    "next.config.js",
+    "postcss.config.js",
+    "tailwind.config.js",
   ]),
 ]);
 

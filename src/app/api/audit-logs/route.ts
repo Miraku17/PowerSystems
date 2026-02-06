@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
 
-export const GET = withAuth(async (request, { user }) => {
+export const GET = withAuth(async (request) => {
   try {
     const supabaseAdmin = getServiceSupabase();
     const { searchParams } = new URL(request.url);
@@ -74,7 +74,7 @@ export const GET = withAuth(async (request, { user }) => {
             .in(idColumn, ids);
         
         if (!fetchError && records) {
-            records.forEach((record: any) => {
+            records.forEach((record: Record<string, string>) => {
                 const key = `${tableName}:${record[idColumn]}`;
                 jobOrderMap.set(key, record[jobOrderColumn]);
             });
@@ -129,7 +129,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     return NextResponse.json({ success: true, data: enrichedLogs });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('API error fetching audit logs:', error);
     return NextResponse.json(
       { error: 'Internal Server Error' },

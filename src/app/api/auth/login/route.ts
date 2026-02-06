@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     }
 
     // Fetch detailed user profile from 'users' table
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from("users")
       .select("*")
       .eq("id", data.user.id)
@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
       { success: false, message: "An unexpected error occurred" },

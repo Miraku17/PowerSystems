@@ -74,9 +74,9 @@ export const GET = withAuth(async (request) => {
             .in(idColumn, ids);
         
         if (!fetchError && records) {
-            records.forEach((record: Record<string, string>) => {
-                const key = `${tableName}:${record[idColumn]}`;
-                jobOrderMap.set(key, record[jobOrderColumn]);
+            records.forEach((record) => {
+                const key = `${tableName}:${record[idColumn as keyof typeof record]}`;
+                jobOrderMap.set(key, record[jobOrderColumn as keyof typeof record] as string);
             });
         }
     };

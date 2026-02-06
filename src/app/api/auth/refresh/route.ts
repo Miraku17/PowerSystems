@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createClient } from "@supabase/supabase-js";
 
-export async function POST(request: Request) {
+export async function POST(_request: Request) {
   try {
     const cookieStore = await cookies();
     const refreshToken = cookieStore.get("refreshToken")?.value;
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Token refresh error:", error);
     return NextResponse.json(
       { success: false, message: "An unexpected error occurred" },

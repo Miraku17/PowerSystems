@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 
-export const PUT = withAuth(async (request, { user, params }) => {
+export const PUT = withAuth(async (request, { params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
@@ -10,7 +10,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
     const name = formData.get("name") as string | null;
     const imageFile = formData.get("image") as File | null;
 
-    const updateData: any = {
+    const updateData: Record<string, string> = {
       updated_at: new Date().toISOString(),
     };
 
@@ -61,19 +61,19 @@ export const PUT = withAuth(async (request, { user, params }) => {
         updatedAt: data.updated_at,
       },
     });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        message: error.message || "Internal Server Error",
-        details: error.toString(),
+        message: error instanceof Error ? error.message : "Internal Server Error",
+        details: String(error),
       },
       { status: 500 }
     );
   }
 });
 
-export const DELETE = withAuth(async (request, { user, params }) => {
+export const DELETE = withAuth(async (request, { params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
@@ -91,7 +91,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       success: true,
       message: "Company deleted successfully",
     });
-  } catch (error: any) {
+  } catch {
     return NextResponse.json(
       { success: false, message: "Internal Server Error" },
       { status: 500 }

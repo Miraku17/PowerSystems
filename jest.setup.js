@@ -26,7 +26,9 @@ jest.mock('next/navigation', () => ({
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props) => {
+    // Remove Next.js-specific props that don't belong on img elements
+    const { fill, priority, quality, loading, sizes, ...imgProps } = props
     // eslint-disable-next-line jsx-a11y/alt-text, @next/next/no-img-element
-    return <img {...props} />
+    return <img {...imgProps} />
   },
 }))

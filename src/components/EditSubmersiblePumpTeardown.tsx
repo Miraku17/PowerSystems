@@ -237,6 +237,9 @@ export default function EditSubmersiblePumpTeardown({
   const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
+  const [newPreTeardownAttachments, setNewPreTeardownAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [newWetEndAttachments, setNewWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [newMotorAttachments, setNewMotorAttachments] = useState<{ file: File; title: string }[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -283,12 +286,38 @@ export default function EditSubmersiblePumpTeardown({
     const loadingToast = toast.loading("Saving changes...");
 
     try {
+      // 1. Update report data
       const response = await apiClient.patch(
         `/forms/submersible-pump-teardown?id=${recordId}`,
         formData
       );
 
       if (response.status === 200) {
+        // 2. Update attachments if there are changes
+        const attachmentFormData = new FormData();
+        attachmentFormData.append('report_id', recordId);
+        attachmentFormData.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
+        attachmentFormData.append('existing_attachments', JSON.stringify(existingAttachments));
+
+        // Add new attachments
+        const allNewAttachments = [
+          ...newPreTeardownAttachments.map(att => ({ ...att, category: 'pre_teardown' })),
+          ...newWetEndAttachments.map(att => ({ ...att, category: 'wet_end' })),
+          ...newMotorAttachments.map(att => ({ ...att, category: 'motor' })),
+        ];
+
+        allNewAttachments.forEach((attachment) => {
+          attachmentFormData.append('attachment_files', attachment.file);
+          attachmentFormData.append('attachment_titles', attachment.title);
+          attachmentFormData.append('attachment_categories', attachment.category);
+        });
+
+        await apiClient.post('/forms/submersible-pump-teardown/attachments', attachmentFormData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
         toast.success("Report updated successfully!", { id: loadingToast });
         onSaved();
         onClose();
@@ -308,41 +337,155 @@ export default function EditSubmersiblePumpTeardown({
   const wetEndAttachments = existingAttachments.filter(a => a.attachment_category === 'wet_end');
   const motorAttachments = existingAttachments.filter(a => a.attachment_category === 'motor');
 
-  const renderAttachments = (attachmentList: Attachment[], title: string) => {
-    if (attachmentList.length === 0) return null;
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setAttachmentsToDelete([...attachmentsToDelete, attachmentId]);
+    setExistingAttachments(existingAttachments.filter(att => att.id !== attachmentId));
+  };
+
+  const renderNewAttachmentUpload = (
+    newAttachments: { file: File; title: string }[],
+    setNewAttachments: React.Dispatch<React.SetStateAction<{ file: File; title: string }[]>>,
+    inputId: string
+  ) => (
+    <div className="mt-4">
+      {newAttachments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {newAttachments.map((attachment, index) => {
+            const previewUrl = URL.createObjectURL(attachment.file);
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="aspect-video bg-gray-100 relative">
+                  <img
+                    src={previewUrl}
+                    alt={attachment.file.name}
+                    className="w-full h-full object-cover"
+                    onLoad={() => URL.revokeObjectURL(previewUrl)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNewAttachments(newAttachments.filter((_, i) => i !== index))}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    title="Remove attachment"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                  <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                    New
+                  </div>
+                </div>
+                <div className="p-3 bg-white">
+                  <input
+                    type="text"
+                    placeholder="Enter image title"
+                    value={attachment.title}
+                    onChange={(e) => {
+                      const updated = [...newAttachments];
+                      updated[index].title = e.target.value;
+                      setNewAttachments(updated);
+                    }}
+                    className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="space-y-1 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="flex text-sm text-gray-600">
+            <label htmlFor={inputId} className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+              <span>Upload new images</span>
+              <input
+                id={inputId}
+                type="file"
+                accept="image/*"
+                multiple
+                className="sr-only"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    const files = Array.from(e.target.files);
+                    const validFiles = files.filter(file => {
+                      if (!file.type.startsWith('image/')) {
+                        toast.error(`${file.name} is not an image file`);
+                        return false;
+                      }
+                      return true;
+                    });
+                    const newAttachmentsArray = validFiles.map(file => ({ file, title: '' }));
+                    setNewAttachments([...newAttachments, ...newAttachmentsArray]);
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </label>
+            <p className="pl-1">or drag and drop</p>
+          </div>
+          <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAttachments = (
+    attachmentList: Attachment[],
+    title: string,
+    newAttachments: { file: File; title: string }[],
+    setNewAttachments: React.Dispatch<React.SetStateAction<{ file: File; title: string }[]>>,
+    inputId: string
+  ) => {
     return (
       <div>
         <div className="flex items-center mb-4">
           <div className="w-1 h-6 bg-blue-600 mr-2"></div>
           <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {attachmentList.map((attachment) => (
-            <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              <div className="aspect-video bg-gray-100 relative">
-                <img
-                  src={attachment.file_url}
-                  alt={attachment.file_name || 'Attachment'}
-                  className="w-full h-full object-cover"
-                />
+
+        {/* Existing Attachments */}
+        {attachmentList.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {attachmentList.map((attachment) => (
+              <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="aspect-video bg-gray-100 relative">
+                  <img
+                    src={attachment.file_url}
+                    alt={attachment.file_name || 'Attachment'}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAttachment(attachment.id)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    title="Delete attachment"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="p-3 bg-white">
+                  <input
+                    type="text"
+                    value={attachment.file_name || ''}
+                    onChange={(e) => {
+                      const updatedAttachments = existingAttachments.map((att) =>
+                        att.id === attachment.id ? { ...att, file_name: e.target.value } : att
+                      );
+                      setExistingAttachments(updatedAttachments);
+                    }}
+                    className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
+                    placeholder="Enter image title"
+                  />
+                </div>
               </div>
-              <div className="p-3 bg-white">
-                <input
-                  type="text"
-                  value={attachment.file_name || ''}
-                  onChange={(e) => {
-                    const updatedAttachments = existingAttachments.map((att) =>
-                      att.id === attachment.id ? { ...att, file_name: e.target.value } : att
-                    );
-                    setExistingAttachments(updatedAttachments);
-                  }}
-                  className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
-                  placeholder="Enter image title"
-                />
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* New Attachments Upload Section */}
+        {renderNewAttachmentUpload(newAttachments, setNewAttachments, inputId)}
       </div>
     );
   };
@@ -494,7 +637,13 @@ export default function EditSubmersiblePumpTeardown({
             </div>
 
             {/* Pre-Teardown Photos */}
-            {renderAttachments(preTeardownAttachments, "Pre-Teardown Photos")}
+            {renderAttachments(
+              preTeardownAttachments,
+              "Pre-Teardown Photos",
+              newPreTeardownAttachments,
+              setNewPreTeardownAttachments,
+              "pre-teardown-upload"
+            )}
 
             {/* Section: Components Condition During Teardown */}
             <div>
@@ -543,7 +692,13 @@ export default function EditSubmersiblePumpTeardown({
             </div>
 
             {/* Wet End Teardown Photos */}
-            {renderAttachments(wetEndAttachments, "Wet End Teardown Photos")}
+            {renderAttachments(
+              wetEndAttachments,
+              "Wet End Teardown Photos",
+              newWetEndAttachments,
+              setNewWetEndAttachments,
+              "wet-end-upload"
+            )}
 
             {/* Section: Motor Condition */}
             <div>
@@ -608,7 +763,13 @@ export default function EditSubmersiblePumpTeardown({
             </div>
 
             {/* Motor Teardown Photos */}
-            {renderAttachments(motorAttachments, "Motor Teardown Photos")}
+            {renderAttachments(
+              motorAttachments,
+              "Motor Teardown Photos",
+              newMotorAttachments,
+              setNewMotorAttachments,
+              "motor-upload"
+            )}
 
             {/* Section: Signatures */}
             <div>

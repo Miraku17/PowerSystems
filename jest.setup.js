@@ -1,6 +1,10 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
 
+// Mock URL.createObjectURL and revokeObjectURL
+global.URL.createObjectURL = jest.fn(() => 'mocked-url')
+global.URL.revokeObjectURL = jest.fn()
+
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -33,3 +37,20 @@ jest.mock('next/image', () => ({
     return <img {...imgProps} />
   },
 }))
+
+// Mock react-signature-canvas
+jest.mock('react-signature-canvas', () => {
+  return {
+    __esModule: true,
+    default: ({ value, onChange }) => (
+      <div data-testid="signature-canvas">
+        <input
+          type="text"
+          value={value || ''}
+          onChange={(e) => onChange && onChange(e.target.value)}
+          data-testid="signature-input"
+        />
+      </div>
+    ),
+  }
+})

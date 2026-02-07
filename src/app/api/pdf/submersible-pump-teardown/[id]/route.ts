@@ -760,9 +760,19 @@ export const GET = withAuth(async (request, { user, params }) => {
       };
 
       await renderAttachmentSection("Pre-Teardown Photos", preTeardownAttachments);
+
+      // Add page break before Wet End Photos
+      if (wetEndAttachments.length > 0) {
+        doc.addPage();
+        yPos = 15;
+      }
       await renderAttachmentSection("Wet End Photos", wetEndAttachments);
       await renderAttachmentSection("Motor Photos", motorAttachments);
     }
+
+    // Add page break before Signatures
+    doc.addPage();
+    yPos = 15;
 
     // Signatures
     addSection("Signatures");

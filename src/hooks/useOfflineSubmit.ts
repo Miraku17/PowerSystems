@@ -181,24 +181,32 @@ export function useOfflineSubmit() {
       }
 
       // Handle other errors
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'An error occurred. Please try again.';
+      let errorMessage = 'An error occurred. Please try again.';
 
       // Check for axios error response
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as {
-          response?: { data?: { error?: string; message?: string } };
+          response?: { data?: { error?: any; message?: any } };
         };
-        const apiError =
-          axiosError.response?.data?.error ||
-          axiosError.response?.data?.message ||
-          errorMessage;
-        toast.error(`Failed to submit: ${apiError}`, { id: loadingToastId });
-      } else {
-        toast.error(`Failed to submit: ${errorMessage}`, { id: loadingToastId });
+
+        // Extract error message, handling both string and object cases
+        const apiError = axiosError.response?.data?.error || axiosError.response?.data?.message;
+
+        if (apiError) {
+          // If apiError is an object, try to stringify it or extract a message
+          if (typeof apiError === 'object') {
+            errorMessage = apiError.message || JSON.stringify(apiError);
+          } else {
+            errorMessage = String(apiError);
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
       }
+
+      toast.error(`Failed to submit: ${errorMessage}`, { id: loadingToastId });
 
       onError?.(error as Error);
       return false;

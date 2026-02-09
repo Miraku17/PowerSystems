@@ -241,6 +241,27 @@ export const POST = withAuth(async (request, { user }) => {
       `submersible/teardown/acknowledged-by-${timestamp}.png`
     );
 
+    // Check for duplicate Job Order
+    if (job_order && job_order.trim() !== '') {
+      const { data: existingRecord, error: searchError } = await supabase
+        .from('submersible_pump_teardown_report')
+        .select('id')
+        .eq('job_order', job_order)
+        .single();
+
+      if (searchError && searchError.code !== 'PGRST116') {
+        console.error('Error checking for duplicate job order:', searchError);
+        return NextResponse.json({ error: 'Failed to validate Job Order uniqueness.' }, { status: 500 });
+      }
+
+      if (existingRecord) {
+        return NextResponse.json(
+          { error: `Job Order '${job_order}' already exists.` },
+          { status: 400 }
+        );
+      }
+    }
+
     const { data, error } = await supabase
       .from("submersible_pump_teardown_report")
       .insert([
@@ -315,7 +336,8 @@ export const POST = withAuth(async (request, { user }) => {
 
     if (error) {
       console.error("Error inserting data:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      const errorMessage = error.message || 'Failed to insert teardown report';
+      return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
     // Upload attachments

@@ -27,7 +27,6 @@ export default function ElectricSurfacePumpTeardownForm() {
 
   const [motorComponentsAttachments, setMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
   const [wetEndAttachments, setWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [enableCompression, setEnableCompression] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
@@ -168,7 +167,8 @@ export default function ElectricSurfacePumpTeardownForm() {
 
         if (failedUploads.length > 0) {
           console.error('Some motor components files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} motor components file(s)`, { id: loadingToastId });
+          const errorMsg = failedUploads[0]?.error || 'Unknown error';
+          toast.error(`Failed to upload ${failedUploads.length} motor components file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
         }
 
         uploadedData.motor_components = successfulUploads.map((r, i) => ({
@@ -195,7 +195,8 @@ export default function ElectricSurfacePumpTeardownForm() {
 
         if (failedUploads.length > 0) {
           console.error('Some wet-end files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s)`, { id: loadingToastId });
+          const errorMsg = failedUploads[0]?.error || 'Unknown error';
+          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
         }
 
         uploadedData.wet_end = successfulUploads.map((r, i) => ({
@@ -330,9 +331,10 @@ export default function ElectricSurfacePumpTeardownForm() {
                       return;
                     }
 
-                    // Compress if enabled
-                    if (enableCompression) {
-                      const loadingToast = toast.loading('Compressing image...');
+                    // Automatically compress if file is larger than 2MB
+                    const compressionThreshold = 2 * 1024 * 1024; // 2MB
+                    if (file.size > compressionThreshold) {
+                      const loadingToast = toast.loading('Compressing large image...');
 
                       try {
                         const compressedFile = await compressImage(file);
@@ -351,7 +353,7 @@ export default function ElectricSurfacePumpTeardownForm() {
                         setAttachments([...attachments, { file, title: '' }]);
                       }
                     } else {
-                      // Use original file
+                      // Use original file (already under 2MB)
                       setAttachments([...attachments, { file, title: '' }]);
                       toast.success('Image added');
                     }
@@ -558,30 +560,6 @@ export default function ElectricSurfacePumpTeardownForm() {
                   </tbody>
                 </table>
               </div>
-          </div>
-        </div>
-
-        {/* Section: Attachment Settings */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Attachment Settings</h3>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableCompression}
-                onChange={(e) => setEnableCompression(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Compress images before upload (recommended for slow connections)
-              </span>
-            </label>
-            <p className="text-xs text-gray-500 mt-2 ml-6">
-              By default, images are uploaded in original quality. Enable compression if you have a slow internet connection.
-            </p>
           </div>
         </div>
 

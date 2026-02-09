@@ -28,7 +28,6 @@ export default function SubmersiblePumpTeardownForm() {
   const [preTeardownAttachments, setPreTeardownAttachments] = useState<{ file: File; title: string }[]>([]);
   const [wetEndAttachments, setWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
   const [motorAttachments, setMotorAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [enableCompression, setEnableCompression] = useState(false);
 
   // Calculate total payload size
   const calculateTotalSize = () => {
@@ -199,7 +198,8 @@ export default function SubmersiblePumpTeardownForm() {
 
         if (failedUploads.length > 0) {
           console.error('Some pre-teardown files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} pre-teardown file(s)`, { id: loadingToastId });
+          const errorMsg = failedUploads[0]?.error || 'Unknown error';
+          toast.error(`Failed to upload ${failedUploads.length} pre-teardown file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
         }
 
         uploadedData.pre_teardown = successfulUploads.map((r, i) => ({
@@ -226,7 +226,8 @@ export default function SubmersiblePumpTeardownForm() {
 
         if (failedUploads.length > 0) {
           console.error('Some wet-end files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s)`, { id: loadingToastId });
+          const errorMsg = failedUploads[0]?.error || 'Unknown error';
+          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
         }
 
         uploadedData.wet_end = successfulUploads.map((r, i) => ({
@@ -253,7 +254,8 @@ export default function SubmersiblePumpTeardownForm() {
 
         if (failedUploads.length > 0) {
           console.error('Some motor files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} motor file(s)`, { id: loadingToastId });
+          const errorMsg = failedUploads[0]?.error || 'Unknown error';
+          toast.error(`Failed to upload ${failedUploads.length} motor file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
         }
 
         uploadedData.motor = successfulUploads.map((r, i) => ({
@@ -389,9 +391,10 @@ export default function SubmersiblePumpTeardownForm() {
                       return;
                     }
 
-                    // Compress if enabled
-                    if (enableCompression) {
-                      const loadingToast = toast.loading('Compressing image...');
+                    // Automatically compress if file is larger than 2MB
+                    const compressionThreshold = 2 * 1024 * 1024; // 2MB
+                    if (file.size > compressionThreshold) {
+                      const loadingToast = toast.loading('Compressing large image...');
 
                       try {
                         const compressedFile = await compressImage(file);
@@ -410,7 +413,7 @@ export default function SubmersiblePumpTeardownForm() {
                         setAttachments([...attachments, { file, title: '' }]);
                       }
                     } else {
-                      // Use original file
+                      // Use original file (already under 2MB)
                       setAttachments([...attachments, { file, title: '' }]);
                       toast.success('Image added');
                     }
@@ -614,30 +617,6 @@ export default function SubmersiblePumpTeardownForm() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Section: Attachment Settings */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Attachment Settings</h3>
-          </div>
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enableCompression}
-                onChange={(e) => setEnableCompression(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <span className="ml-2 text-sm text-gray-700">
-                Compress images before upload (recommended for slow connections)
-              </span>
-            </label>
-            <p className="text-xs text-gray-500 mt-2 ml-6">
-              By default, images are uploaded in original quality. Enable compression if you have a slow internet connection.
-            </p>
           </div>
         </div>
 

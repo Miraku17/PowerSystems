@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
-import { buildStoragePath, validateFileType, validateFileSize } from '@/lib/uploadHelpers';
+import apiClient from '@/lib/axios';
+import { validateFileType, validateFileSize } from '@/lib/uploadHelpers';
 
 interface UploadOptions {
   bucket: string;
@@ -74,35 +74,30 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
         };
       }
 
-      // Build storage path
-      const category = pathPrefix.split('/').pop() || 'misc';
-      const storagePath = buildStoragePath(category, file.name);
-
       // Update progress - starting
       setUploadProgress(prev => ({ ...prev, [index]: 0 }));
       onProgress?.(index, 0);
 
-      // Upload file to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from(bucket)
-        .upload(storagePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
+      // Upload file via API route (uses service role, bypasses RLS)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('pathPrefix', pathPrefix);
+      formData.append('bucket', bucket);
 
-      if (error) {
-        console.error(`Upload error for ${file.name}:`, error);
+      const response = await apiClient.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        signal: abortSignal,
+      });
+
+      if (!response.data.success) {
         return {
           success: false,
-          error: error.message || 'Upload failed',
+          error: response.data.error || 'Upload failed',
           fileName: file.name,
         };
       }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(data.path);
 
       // Update progress - complete
       setUploadProgress(prev => ({ ...prev, [index]: 100 }));
@@ -110,15 +105,15 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
 
       return {
         success: true,
-        url: urlData.publicUrl,
-        path: data.path,
+        url: response.data.url,
+        path: response.data.path,
         fileName: file.name,
       };
     } catch (error: any) {
       console.error(`Upload error for ${file.name}:`, error);
       return {
         success: false,
-        error: error.message || 'Upload failed',
+        error: error.response?.data?.error || error.message || 'Upload failed',
         fileName: file.name,
       };
     }

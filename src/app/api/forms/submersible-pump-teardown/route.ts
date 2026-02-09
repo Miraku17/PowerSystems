@@ -4,6 +4,10 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 
+// Increase body size limit to 50MB for this route (signatures + images)
+export const maxDuration = 60; // Max execution time in seconds
+export const dynamic = 'force-dynamic';
+
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -93,15 +97,22 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 
     const buffer = Buffer.from(base64Image, 'base64');
 
+    // Determine content type from the base64 string
+    const contentType = base64Data.match(/data:(image\/[a-z]+);/)?.[1] || 'image/png';
+
+    // Update filename extension based on content type
+    const extension = contentType.split('/')[1];
+    const updatedFileName = fileName.replace(/\.[^.]+$/, `.${extension}`);
+
     const { data, error } = await serviceSupabase.storage
       .from('signatures')
-      .upload(fileName, buffer, {
-        contentType: 'image/png',
+      .upload(updatedFileName, buffer, {
+        contentType: contentType,
         upsert: true
       });
 
     if (error) {
-      console.error(`Error uploading ${fileName}:`, error);
+      console.error(`Error uploading ${updatedFileName}:`, error);
       return '';
     }
 

@@ -38,7 +38,8 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
 
   const handleEnd = () => {
     if (sigCanvas.current) {
-      const signature = sigCanvas.current.toDataURL('image/png');
+      // Use JPEG with 0.7 quality for better compression (reduces size by ~70%)
+      const signature = sigCanvas.current.toDataURL('image/jpeg', 0.7);
       onChange(signature);
     }
   };

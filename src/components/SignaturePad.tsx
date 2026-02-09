@@ -37,10 +37,28 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
   };
 
   const handleEnd = () => {
-    if (sigCanvas.current) {
-      // Use JPEG with 0.7 quality for better compression (reduces size by ~70%)
-      const signature = sigCanvas.current.toDataURL('image/jpeg', 0.7);
-      onChange(signature);
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      // Get the canvas element
+      const canvas = sigCanvas.current.getCanvas();
+
+      // Create a new canvas with white background
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      if (tempCtx) {
+        // Fill with white background
+        tempCtx.fillStyle = '#FFFFFF';
+        tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+
+        // Draw the signature on top
+        tempCtx.drawImage(canvas, 0, 0);
+
+        // Convert to JPEG with white background for better compression
+        const signature = tempCanvas.toDataURL('image/jpeg', 0.8);
+        onChange(signature);
+      }
     }
   };
 
@@ -49,13 +67,15 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
       <label className="block text-sm font-semibold text-gray-700 mb-2">
         {label}
       </label>
-      <div className="border-2 border-gray-300 rounded-lg bg-white relative">
+      <div className="border-2 border-gray-300 rounded-lg bg-white relative touch-none">
         <SignatureCanvas
           ref={sigCanvas}
           canvasProps={{
             className: 'w-full h-32 rounded-lg cursor-crosshair',
+            style: { touchAction: 'none' },
           }}
           onEnd={handleEnd}
+          backgroundColor="rgb(255, 255, 255)"
         />
         <button
           type="button"

@@ -130,12 +130,38 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
     const serviceSupabase = supabase;
 
-    const getString = (key: string) => formData.get(key) as string || '';
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
+
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      // New format: JSON with pre-uploaded file URLs
+      jsonBody = await request.json();
+    } else {
+      // Old format: FormData with files
+      formData = await request.formData();
+    }
+
+    const getString = (key: string) => {
+      if (isNewFormat) {
+        return jsonBody[key] || '';
+      }
+      return formData!.get(key) as string || '';
+    };
+
     const getBoolean = (key: string) => {
-      const val = formData.get(key) as string;
+      if (isNewFormat) {
+        const val = jsonBody[key];
+        if (val === true || val === 'true') return true;
+        if (val === false || val === 'false') return false;
+        return null;
+      }
+      const val = formData!.get(key) as string;
       if (val === 'true') return true;
       if (val === 'false') return false;
       return null;
@@ -222,12 +248,26 @@ export const POST = withAuth(async (request, { user }) => {
     const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
 
     // Handle Attachment Uploads
-    const preTeardownFiles = formData.getAll('pre_teardown_files') as File[];
-    const preTeardownTitles = formData.getAll('pre_teardown_titles') as string[];
-    const wetEndFiles = formData.getAll('wet_end_files') as File[];
-    const wetEndTitles = formData.getAll('wet_end_titles') as string[];
-    const motorFiles = formData.getAll('motor_files') as File[];
-    const motorTitles = formData.getAll('motor_titles') as string[];
+    let preTeardownFiles: File[] = [];
+    let preTeardownTitles: string[] = [];
+    let wetEndFiles: File[] = [];
+    let wetEndTitles: string[] = [];
+    let motorFiles: File[] = [];
+    let motorTitles: string[] = [];
+    let uploadedAttachments: any = null;
+
+    if (isNewFormat) {
+      // New format: URLs are already in the JSON body
+      uploadedAttachments = jsonBody.uploaded_attachments ? JSON.parse(jsonBody.uploaded_attachments) : null;
+    } else {
+      // Old format: Files from FormData
+      preTeardownFiles = formData!.getAll('pre_teardown_files') as File[];
+      preTeardownTitles = formData!.getAll('pre_teardown_titles') as string[];
+      wetEndFiles = formData!.getAll('wet_end_files') as File[];
+      wetEndTitles = formData!.getAll('wet_end_titles') as string[];
+      motorFiles = formData!.getAll('motor_files') as File[];
+      motorTitles = formData!.getAll('motor_titles') as string[];
+    }
 
     // Process Signatures
     const timestamp = Date.now();
@@ -351,142 +391,206 @@ export const POST = withAuth(async (request, { user }) => {
       return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 
-    // Upload attachments
+    // Insert attachments
     if (data && data[0]) {
       const formId = data[0].id;
 
-      // Upload pre-teardown photos
-      for (let i = 0; i < preTeardownFiles.length; i++) {
-        const file = preTeardownFiles[i];
-        const title = preTeardownTitles[i] || '';
-
-        if (file && file.size > 0) {
-          const filename = `submersible/teardown/pre-teardown/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into attachments table
+      if (isNewFormat && uploadedAttachments) {
+        // New format: Insert URLs that were uploaded directly to storage
+        // Pre-teardown attachments
+        for (const attachment of uploadedAttachments.pre_teardown || []) {
           const { error: attachmentError } = await supabase
             .from('submersible_pump_teardown_attachments')
             .insert([
               {
                 report_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
+                file_url: attachment.url,
+                file_name: attachment.title || attachment.fileName,
+                file_type: attachment.fileType,
+                file_size: attachment.fileSize,
                 attachment_category: 'pre_teardown',
               },
             ]);
 
           if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            console.error(`Error inserting attachment record:`, attachmentError);
           }
         }
-      }
 
-      // Upload wet end photos
-      for (let i = 0; i < wetEndFiles.length; i++) {
-        const file = wetEndFiles[i];
-        const title = wetEndTitles[i] || '';
-
-        if (file && file.size > 0) {
-          const filename = `submersible/teardown/wet-end/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
+        // Wet end attachments
+        for (const attachment of uploadedAttachments.wet_end || []) {
           const { error: attachmentError } = await supabase
             .from('submersible_pump_teardown_attachments')
             .insert([
               {
                 report_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
+                file_url: attachment.url,
+                file_name: attachment.title || attachment.fileName,
+                file_type: attachment.fileType,
+                file_size: attachment.fileSize,
                 attachment_category: 'wet_end',
               },
             ]);
 
           if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            console.error(`Error inserting attachment record:`, attachmentError);
           }
         }
-      }
 
-      // Upload motor photos
-      for (let i = 0; i < motorFiles.length; i++) {
-        const file = motorFiles[i];
-        const title = motorTitles[i] || '';
-
-        if (file && file.size > 0) {
-          const filename = `submersible/teardown/motor/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
+        // Motor attachments
+        for (const attachment of uploadedAttachments.motor || []) {
           const { error: attachmentError } = await supabase
             .from('submersible_pump_teardown_attachments')
             .insert([
               {
                 report_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
+                file_url: attachment.url,
+                file_name: attachment.title || attachment.fileName,
+                file_type: attachment.fileType,
+                file_size: attachment.fileSize,
                 attachment_category: 'motor',
               },
             ]);
 
           if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            console.error(`Error inserting attachment record:`, attachmentError);
+          }
+        }
+      } else {
+        // Old format: Upload files to storage from FormData
+        // Upload pre-teardown photos
+        for (let i = 0; i < preTeardownFiles.length; i++) {
+          const file = preTeardownFiles[i];
+          const title = preTeardownTitles[i] || '';
+
+          if (file && file.size > 0) {
+            const filename = `submersible/teardown/pre-teardown/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            // Insert into attachments table
+            const { error: attachmentError } = await supabase
+              .from('submersible_pump_teardown_attachments')
+              .insert([
+                {
+                  report_id: formId,
+                  file_url: fileUrl,
+                  file_name: title || file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                  attachment_category: 'pre_teardown',
+                },
+              ]);
+
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
+          }
+        }
+
+        // Upload wet end photos
+        for (let i = 0; i < wetEndFiles.length; i++) {
+          const file = wetEndFiles[i];
+          const title = wetEndTitles[i] || '';
+
+          if (file && file.size > 0) {
+            const filename = `submersible/teardown/wet-end/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            const { error: attachmentError } = await supabase
+              .from('submersible_pump_teardown_attachments')
+              .insert([
+                {
+                  report_id: formId,
+                  file_url: fileUrl,
+                  file_name: title || file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                  attachment_category: 'wet_end',
+                },
+              ]);
+
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
+          }
+        }
+
+        // Upload motor photos
+        for (let i = 0; i < motorFiles.length; i++) {
+          const file = motorFiles[i];
+          const title = motorTitles[i] || '';
+
+          if (file && file.size > 0) {
+            const filename = `submersible/teardown/motor/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            const { error: attachmentError } = await supabase
+              .from('submersible_pump_teardown_attachments')
+              .insert([
+                {
+                  report_id: formId,
+                  file_url: fileUrl,
+                  file_name: title || file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                  attachment_category: 'motor',
+                },
+              ]);
+
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
           }
         }
       }

@@ -77,44 +77,59 @@ export function useOfflineSubmit() {
     try {
       if (isOnline) {
         // Online: Submit directly
-        const formDataToSubmit = new FormData();
-
-        // Append all form fields
-        Object.entries(formData).forEach(([key, value]) => {
-          if (value !== null && value !== undefined) {
-            formDataToSubmit.append(key, String(value));
-          }
-        });
-
-        // Append additional mapped fields
-        Object.entries(additionalFields).forEach(([key, value]) => {
-          formDataToSubmit.append(key, value);
-        });
-
-        // Append standard attachments
-        attachments.forEach((attachment) => {
-          formDataToSubmit.append('attachment_files', attachment.file);
-          formDataToSubmit.append('attachment_titles', attachment.title);
-        });
-
-        // Append grouped attachments with custom field names
-        attachmentGroups.forEach((group) => {
-          group.attachments.forEach((attachment) => {
-            formDataToSubmit.append(`${group.fieldName}_files`, attachment.file);
-            formDataToSubmit.append(`${group.fieldName}_titles`, attachment.title);
-          });
-        });
-
         const endpoint = formTypeEndpoints[formType];
         if (!endpoint) {
           throw new Error(`Unknown form type: ${formType}`);
         }
 
-        await apiClient.post(endpoint, formDataToSubmit, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
+        // Check if using new format (uploaded_attachments exists = client-side upload already done)
+        const isNewFormat = 'uploaded_attachments' in formData;
+
+        if (isNewFormat) {
+          // New format: Send JSON with pre-uploaded URLs
+          const jsonData = { ...formData, ...additionalFields };
+
+          await apiClient.post(endpoint, jsonData, {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+        } else {
+          // Old format: Send FormData with files
+          const formDataToSubmit = new FormData();
+
+          // Append all form fields
+          Object.entries(formData).forEach(([key, value]) => {
+            if (value !== null && value !== undefined) {
+              formDataToSubmit.append(key, String(value));
+            }
+          });
+
+          // Append additional mapped fields
+          Object.entries(additionalFields).forEach(([key, value]) => {
+            formDataToSubmit.append(key, value);
+          });
+
+          // Append standard attachments
+          attachments.forEach((attachment) => {
+            formDataToSubmit.append('attachment_files', attachment.file);
+            formDataToSubmit.append('attachment_titles', attachment.title);
+          });
+
+          // Append grouped attachments with custom field names
+          attachmentGroups.forEach((group) => {
+            group.attachments.forEach((attachment) => {
+              formDataToSubmit.append(`${group.fieldName}_files`, attachment.file);
+              formDataToSubmit.append(`${group.fieldName}_titles`, attachment.title);
+            });
+          });
+
+          await apiClient.post(endpoint, formDataToSubmit, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+        }
 
         toast.success('Form submitted successfully!', { id: loadingToastId });
         onSuccess?.();

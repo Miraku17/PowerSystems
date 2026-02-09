@@ -8,6 +8,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useSubmersiblePumpTeardownFormStore } from "@/stores/submersiblePumpTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 
 interface User {
   id: string;
@@ -21,9 +22,38 @@ export default function SubmersiblePumpTeardownForm() {
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
 
+  // Supabase upload hook
+  const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
+
   const [preTeardownAttachments, setPreTeardownAttachments] = useState<{ file: File; title: string }[]>([]);
   const [wetEndAttachments, setWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
   const [motorAttachments, setMotorAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [enableCompression, setEnableCompression] = useState(false);
+
+  // Calculate total payload size
+  const calculateTotalSize = () => {
+    const attachmentsSize = [
+      ...preTeardownAttachments,
+      ...wetEndAttachments,
+      ...motorAttachments
+    ].reduce((total, att) => total + att.file.size, 0);
+
+    // Estimate signature sizes (base64 strings are ~1.33x the actual size)
+    const signatureFields = [
+      formData.teardowned_by_signature,
+      formData.checked_approved_by_signature,
+      formData.noted_by_signature,
+      formData.acknowledged_by_signature
+    ];
+    const signaturesSize = signatureFields.reduce((total, sig) => {
+      if (sig && sig.startsWith('data:image')) {
+        return total + (sig.length * 0.75); // Rough estimate
+      }
+      return total;
+    }, 0);
+
+    return (attachmentsSize + signaturesSize) / 1024 / 1024; // Convert to MB
+  };
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
 
@@ -77,24 +107,184 @@ export default function SubmersiblePumpTeardownForm() {
     setFormData({ [name]: signature });
   };
 
+  // Compress image before adding to attachments
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // Max dimensions (reduce file size significantly)
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1920;
+
+          let width = img.width;
+          let height = img.height;
+
+          // Calculate new dimensions while maintaining aspect ratio
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Convert to JPEG with 0.8 quality for good compression
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Failed to compress image'));
+              }
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    await submit({
-      formType: 'submersible-pump-teardown',
-      formData: formData as unknown as Record<string, unknown>,
-      attachmentGroups: [
-        { fieldName: 'pre_teardown', attachments: preTeardownAttachments },
-        { fieldName: 'wet_end', attachments: wetEndAttachments },
-        { fieldName: 'motor', attachments: motorAttachments },
-      ],
-      onSuccess: () => {
-        setPreTeardownAttachments([]);
-        setWetEndAttachments([]);
-        setMotorAttachments([]);
-        resetFormData();
-      },
-    });
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const loadingToastId = toast.loading('Uploading images to storage...');
+
+      const uploadedData: {
+        pre_teardown: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
+        wet_end: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
+        motor: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
+      } = {
+        pre_teardown: [],
+        wet_end: [],
+        motor: []
+      };
+
+      // Upload pre-teardown attachments
+      if (preTeardownAttachments.length > 0) {
+        const results = await uploadFiles(
+          preTeardownAttachments.map(a => a.file),
+          {
+            bucket: 'service-reports',
+            pathPrefix: 'submersible/teardown/pre-teardown'
+          }
+        );
+
+        const successfulUploads = results.filter(r => r.success);
+        const failedUploads = results.filter(r => !r.success);
+
+        if (failedUploads.length > 0) {
+          console.error('Some pre-teardown files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} pre-teardown file(s)`, { id: loadingToastId });
+        }
+
+        uploadedData.pre_teardown = successfulUploads.map((r, i) => ({
+          url: r.url!,
+          title: preTeardownAttachments[i].title,
+          fileName: preTeardownAttachments[i].file.name,
+          fileType: preTeardownAttachments[i].file.type,
+          fileSize: preTeardownAttachments[i].file.size
+        }));
+      }
+
+      // Upload wet-end attachments
+      if (wetEndAttachments.length > 0) {
+        const results = await uploadFiles(
+          wetEndAttachments.map(a => a.file),
+          {
+            bucket: 'service-reports',
+            pathPrefix: 'submersible/teardown/wet-end'
+          }
+        );
+
+        const successfulUploads = results.filter(r => r.success);
+        const failedUploads = results.filter(r => !r.success);
+
+        if (failedUploads.length > 0) {
+          console.error('Some wet-end files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s)`, { id: loadingToastId });
+        }
+
+        uploadedData.wet_end = successfulUploads.map((r, i) => ({
+          url: r.url!,
+          title: wetEndAttachments[i].title,
+          fileName: wetEndAttachments[i].file.name,
+          fileType: wetEndAttachments[i].file.type,
+          fileSize: wetEndAttachments[i].file.size
+        }));
+      }
+
+      // Upload motor attachments
+      if (motorAttachments.length > 0) {
+        const results = await uploadFiles(
+          motorAttachments.map(a => a.file),
+          {
+            bucket: 'service-reports',
+            pathPrefix: 'submersible/teardown/motor'
+          }
+        );
+
+        const successfulUploads = results.filter(r => r.success);
+        const failedUploads = results.filter(r => !r.success);
+
+        if (failedUploads.length > 0) {
+          console.error('Some motor files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} motor file(s)`, { id: loadingToastId });
+        }
+
+        uploadedData.motor = successfulUploads.map((r, i) => ({
+          url: r.url!,
+          title: motorAttachments[i].title,
+          fileName: motorAttachments[i].file.name,
+          fileType: motorAttachments[i].file.type,
+          fileSize: motorAttachments[i].file.size
+        }));
+      }
+
+      toast.success('Images uploaded successfully', { id: loadingToastId });
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'submersible-pump-teardown',
+        formData: {
+          ...formData,
+          uploaded_attachments: JSON.stringify(uploadedData)
+        } as unknown as Record<string, unknown>,
+        onSuccess: () => {
+          setPreTeardownAttachments([]);
+          setWetEndAttachments([]);
+          setMotorAttachments([]);
+          resetFormData();
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -184,14 +374,47 @@ export default function SubmersiblePumpTeardownForm() {
                 type="file"
                 accept="image/*"
                 className="sr-only"
-                onChange={(e) => {
+                onChange={async (e) => {
                   if (e.target.files && e.target.files[0]) {
                     const file = e.target.files[0];
                     if (!file.type.startsWith('image/')) {
                       toast.error('Please select only image files');
                       return;
                     }
-                    setAttachments([...attachments, { file, title: '' }]);
+
+                    // Check file size
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                      toast.error('File size exceeds 10MB limit');
+                      return;
+                    }
+
+                    // Compress if enabled
+                    if (enableCompression) {
+                      const loadingToast = toast.loading('Compressing image...');
+
+                      try {
+                        const compressedFile = await compressImage(file);
+                        const originalSize = (file.size / 1024 / 1024).toFixed(2);
+                        const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2);
+
+                        setAttachments([...attachments, { file: compressedFile, title: '' }]);
+
+                        toast.success(
+                          `Image compressed: ${originalSize}MB → ${compressedSize}MB`,
+                          { id: loadingToast, duration: 2000 }
+                        );
+                      } catch (error) {
+                        console.error('Error compressing image:', error);
+                        toast.error('Failed to compress image, using original', { id: loadingToast });
+                        setAttachments([...attachments, { file, title: '' }]);
+                      }
+                    } else {
+                      // Use original file
+                      setAttachments([...attachments, { file, title: '' }]);
+                      toast.success('Image added');
+                    }
+
                     e.target.value = '';
                   }
                 }}
@@ -394,6 +617,30 @@ export default function SubmersiblePumpTeardownForm() {
           </div>
         </div>
 
+        {/* Section: Attachment Settings */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Attachment Settings</h3>
+          </div>
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+            <label className="flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={enableCompression}
+                onChange={(e) => setEnableCompression(e.target.checked)}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">
+                Compress images before upload (recommended for slow connections)
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 mt-2 ml-6">
+              By default, images are uploaded in original quality. Enable compression if you have a slow internet connection.
+            </p>
+          </div>
+        </div>
+
         {/* Section: Pre-Teardown Photos */}
         <div>
           <div className="flex items-center mb-4">
@@ -583,23 +830,88 @@ export default function SubmersiblePumpTeardownForm() {
           </div>
         </div>
 
-        <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4 pt-6 pb-12">
-          <button type="button" onClick={resetFormData} className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base">
-            Clear Form
-          </button>
-          <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base" disabled={isSubmitting}>
-            <span className="mr-2">Submit Teardown Report</span>
-            {isSubmitting ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            )}
-          </button>
+        <div className="flex flex-col space-y-4 pt-6 pb-12">
+          {/* Upload Progress Indicator */}
+          {isUploading && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-blue-700">Uploading images...</span>
+                <button
+                  type="button"
+                  onClick={cancelUpload}
+                  className="text-xs text-red-600 hover:text-red-800 font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="space-y-2">
+                {Object.entries(uploadProgress).map(([index, progress]) => {
+                  const fileIndex = parseInt(index);
+                  const allAttachments = [...preTeardownAttachments, ...wetEndAttachments, ...motorAttachments];
+                  const file = allAttachments[fileIndex];
+                  return (
+                    <div key={index} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-700 truncate max-w-xs">{file?.file.name || 'File'}</span>
+                        <span className="text-blue-600 font-medium">{progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1.5">
+                        <div
+                          className="bg-blue-600 h-1.5 rounded-full transition-all"
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Attachment Count Info (replaces old payload size indicator) */}
+          {!isUploading && (
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Attachments Ready</span>
+                <span className="text-sm font-bold text-blue-600">
+                  {preTeardownAttachments.length + wetEndAttachments.length + motorAttachments.length} file(s)
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
+                <div className="text-center">
+                  <p className="text-gray-500">Pre-Teardown</p>
+                  <p className="font-bold text-gray-700">{preTeardownAttachments.length}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-500">Wet End</p>
+                  <p className="font-bold text-gray-700">{wetEndAttachments.length}</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-500">Motor</p>
+                  <p className="font-bold text-gray-700">{motorAttachments.length}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4">
+            <button type="button" onClick={resetFormData} className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base">
+              Clear Form
+            </button>
+            <button type="submit" className="w-full md:w-auto bg-[#2B4C7E] hover:bg-[#1A2F4F] text-white font-bold py-2 px-4 md:py-3 md:px-10 rounded-lg shadow-md transition duration-150 flex items-center justify-center text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed" disabled={isSubmitting || isUploading}>
+              <span className="mr-2">Submit Teardown Report</span>
+              {isSubmitting ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
       </form>
       <ConfirmationModal

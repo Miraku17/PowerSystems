@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 
 interface EditElectricSurfacePumpTeardownProps {
   data: Record<string, any>;
@@ -116,6 +117,12 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
+  const [newMotorComponentsAttachments, setNewMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [newWetEndAttachments, setNewWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
+
+  // Supabase upload hook
+  const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -157,8 +164,77 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
     const loadingToast = toast.loading("Saving changes...");
 
     try {
+      // 1. Update form data
       const response = await apiClient.patch(`/forms/electric-surface-pump-teardown?id=${recordId}`, formData);
+
       if (response.status === 200) {
+        // 2. Handle attachments if there are changes
+        const hasNewAttachments = newMotorComponentsAttachments.length > 0 || newWetEndAttachments.length > 0;
+        const hasDeletedAttachments = attachmentsToDelete.length > 0;
+
+        if (hasNewAttachments || hasDeletedAttachments) {
+          toast.loading('Uploading new images...', { id: loadingToast });
+
+          // Upload new attachments
+          const uploadedData: {
+            motor_components: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
+            wet_end: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
+          } = {
+            motor_components: [],
+            wet_end: []
+          };
+
+          // Upload motor components attachments
+          if (newMotorComponentsAttachments.length > 0) {
+            const results = await uploadFiles(
+              newMotorComponentsAttachments.map(a => a.file),
+              {
+                bucket: 'service-reports',
+                pathPrefix: 'electric-surface-pump/teardown/motor-components'
+              }
+            );
+
+            uploadedData.motor_components = results
+              .filter(r => r.success)
+              .map((r, i) => ({
+                url: r.url!,
+                title: newMotorComponentsAttachments[i].title,
+                fileName: newMotorComponentsAttachments[i].file.name,
+                fileType: newMotorComponentsAttachments[i].file.type,
+                fileSize: newMotorComponentsAttachments[i].file.size
+              }));
+          }
+
+          // Upload wet end attachments
+          if (newWetEndAttachments.length > 0) {
+            const results = await uploadFiles(
+              newWetEndAttachments.map(a => a.file),
+              {
+                bucket: 'service-reports',
+                pathPrefix: 'electric-surface-pump/teardown/wet-end'
+              }
+            );
+
+            uploadedData.wet_end = results
+              .filter(r => r.success)
+              .map((r, i) => ({
+                url: r.url!,
+                title: newWetEndAttachments[i].title,
+                fileName: newWetEndAttachments[i].file.name,
+                fileType: newWetEndAttachments[i].file.type,
+                fileSize: newWetEndAttachments[i].file.size
+              }));
+          }
+
+          // Submit attachment changes to API
+          await apiClient.post('/forms/electric-surface-pump-teardown/attachments', {
+            report_id: recordId,
+            attachments_to_delete: attachmentsToDelete,
+            existing_attachments: existingAttachments,
+            uploaded_attachments: uploadedData
+          });
+        }
+
         toast.success("Report updated successfully!", { id: loadingToast });
         onSaved();
         onClose();
@@ -174,6 +250,227 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const motorComponentsAttachments = existingAttachments.filter(a => a.attachment_category === 'motor_components');
   const wetEndAttachments = existingAttachments.filter(a => a.attachment_category === 'wet_end');
 
+  const handleDeleteAttachment = (attachmentId: string) => {
+    setAttachmentsToDelete([...attachmentsToDelete, attachmentId]);
+    setExistingAttachments(existingAttachments.filter(att => att.id !== attachmentId));
+  };
+
+  // Compress image if it's larger than 2MB
+  const compressImage = async (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const MAX_WIDTH = 1920;
+          const MAX_HEIGHT = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Failed to compress image'));
+              }
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
+  const renderNewAttachmentUpload = (
+    newAttachments: { file: File; title: string }[],
+    setNewAttachments: React.Dispatch<React.SetStateAction<{ file: File; title: string }[]>>,
+    inputId: string
+  ) => (
+    <div className="mt-4">
+      {newAttachments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+          {newAttachments.map((attachment, index) => {
+            const previewUrl = URL.createObjectURL(attachment.file);
+            return (
+              <div key={index} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="aspect-video bg-gray-100 relative">
+                  <img
+                    src={previewUrl}
+                    alt={attachment.file.name}
+                    className="w-full h-full object-cover"
+                    onLoad={() => URL.revokeObjectURL(previewUrl)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNewAttachments(newAttachments.filter((_, i) => i !== index))}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    title="Remove attachment"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                  <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded">
+                    New
+                  </div>
+                </div>
+                <div className="p-3 bg-white">
+                  <input
+                    type="text"
+                    placeholder="Enter image title"
+                    value={attachment.title}
+                    onChange={(e) => {
+                      const updated = [...newAttachments];
+                      updated[index].title = e.target.value;
+                      setNewAttachments(updated);
+                    }}
+                    className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
+        <div className="space-y-1 text-center">
+          <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <div className="flex text-sm text-gray-600">
+            <label htmlFor={inputId} className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
+              <span>Upload an image</span>
+              <input
+                id={inputId}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={async (e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    if (!file.type.startsWith('image/')) {
+                      toast.error('Please select only image files');
+                      return;
+                    }
+
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    if (file.size > maxSize) {
+                      toast.error('File size exceeds 10MB limit');
+                      return;
+                    }
+
+                    // Automatically compress if file is larger than 2MB
+                    const compressionThreshold = 2 * 1024 * 1024;
+                    if (file.size > compressionThreshold) {
+                      const loadingToast = toast.loading('Compressing large image...');
+                      try {
+                        const compressedFile = await compressImage(file);
+                        setNewAttachments([...newAttachments, { file: compressedFile, title: '' }]);
+                        toast.success('Image compressed and added', { id: loadingToast });
+                      } catch (error) {
+                        toast.error('Failed to compress image, using original', { id: loadingToast });
+                        setNewAttachments([...newAttachments, { file, title: '' }]);
+                      }
+                    } else {
+                      setNewAttachments([...newAttachments, { file, title: '' }]);
+                      toast.success('Image added');
+                    }
+
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </label>
+            <p className="pl-1">or drag and drop</p>
+          </div>
+          <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderAttachmentsWithUpload = (
+    attachmentList: Attachment[],
+    title: string,
+    newAttachments: { file: File; title: string }[],
+    setNewAttachments: React.Dispatch<React.SetStateAction<{ file: File; title: string }[]>>,
+    inputId: string
+  ) => {
+    return (
+      <div>
+        <div className="flex items-center mb-4">
+          <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+          <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4>
+        </div>
+
+        {/* Existing Attachments */}
+        {attachmentList.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+            {attachmentList.map((attachment) => (
+              <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="aspect-video bg-gray-100 relative">
+                  <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteAttachment(attachment.id)}
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                    title="Delete attachment"
+                  >
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="p-3 bg-white">
+                  <input
+                    type="text"
+                    value={attachment.file_name || ''}
+                    onChange={(e) => {
+                      const updatedAttachments = existingAttachments.map((att) =>
+                        att.id === attachment.id ? { ...att, file_name: e.target.value } : att
+                      );
+                      setExistingAttachments(updatedAttachments);
+                    }}
+                    className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2"
+                    placeholder="Enter image title"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* New Attachments Upload Section */}
+        {renderNewAttachmentUpload(newAttachments, setNewAttachments, inputId)}
+      </div>
+    );
+  };
+
   const renderAttachments = (attachmentList: Attachment[], title: string) => {
     if (attachmentList.length === 0) return null;
     return (
@@ -181,7 +478,17 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
         <div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {attachmentList.map((attachment) => (
-            <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm relative">
+              <button
+                type="button"
+                onClick={() => handleDeleteAttachment(attachment.id)}
+                className="absolute top-2 right-2 z-10 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                title="Delete attachment"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
               <div className="aspect-video bg-gray-100 relative">
                 <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
               </div>
@@ -337,7 +644,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
             </div>
 
             {/* Motor Components Teardown Photos */}
-            {renderAttachments(motorComponentsAttachments, "Motor Components Teardown Photos")}
+            {renderAttachmentsWithUpload(motorComponentsAttachments, "Motor Components Teardown Photos", newMotorComponentsAttachments, setNewMotorComponentsAttachments, "edit-motor-components-upload")}
 
             {/* Wet End Components Evaluation */}
             <div>
@@ -380,7 +687,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
             </div>
 
             {/* Wet End Teardown Photos */}
-            {renderAttachments(wetEndAttachments, "Wet End Teardown Photos")}
+            {renderAttachmentsWithUpload(wetEndAttachments, "Wet End Teardown Photos", newWetEndAttachments, setNewWetEndAttachments, "edit-wet-end-upload")}
 
             {/* Signatures */}
             <div>

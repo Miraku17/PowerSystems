@@ -567,19 +567,33 @@ export const GET = withAuth(async (request, { user, params }) => {
     renderEvaluationTable("Wet End Components Evaluation", wetEndComponents, wetEndComponentsImg);
 
     // Fetch and display attachments
-    const { data: attachments } = await supabase
+    const { data: attachments, error: attachError } = await supabase
       .from("electric_surface_pump_teardown_attachments")
       .select("*")
       .eq("report_id", id)
       .order("attachment_category", { ascending: true })
       .order("created_at", { ascending: true });
 
+    if (attachError) {
+      console.error("Error fetching attachments:", attachError);
+    }
+
+    console.log(`Total attachments found: ${attachments?.length || 0}`);
+
     if (attachments && attachments.length > 0) {
       const motorComponentsAttachments = attachments.filter(a => a.attachment_category === "motor_components");
       const wetEndAttachments = attachments.filter(a => a.attachment_category === "wet_end");
 
+      console.log(`Motor Components Attachments: ${motorComponentsAttachments.length}`);
+      console.log(`Wet End Attachments: ${wetEndAttachments.length}`);
+
       const renderAttachmentSection = async (title: string, sectionAttachments: any[]) => {
-        if (sectionAttachments.length === 0) return;
+        console.log(`Rendering attachment section: ${title}, count: ${sectionAttachments.length}`);
+
+        if (sectionAttachments.length === 0) {
+          console.log(`Skipping ${title} - no attachments`);
+          return;
+        }
 
         addSection(title);
 
@@ -593,11 +607,25 @@ export const GET = withAuth(async (request, { user, params }) => {
 
           const renderAttachment = async (attachment: any, xStart: number) => {
             try {
+              console.log(`Fetching image from: ${attachment.file_url}`);
               const imgResponse = await fetch(attachment.file_url);
+
+              if (!imgResponse.ok) {
+                console.error(`Failed to fetch image: ${attachment.file_url}, status: ${imgResponse.status}`);
+                return 0;
+              }
+
               let contentType = imgResponse.headers.get("content-type") || "";
+              console.log(`Content-Type for ${attachment.file_name}: ${contentType}`);
+
               const arrayBuffer = await imgResponse.arrayBuffer();
               const buffer = Buffer.from(arrayBuffer);
               const imgBase64 = buffer.toString("base64");
+
+              if (!imgBase64 || imgBase64.length === 0) {
+                console.error(`Empty image data for: ${attachment.file_url}`);
+                return 0;
+              }
 
               const fileUrl = attachment.file_url.toLowerCase();
               let imageFormat: "JPEG" | "PNG" | "GIF" | "WEBP" = "JPEG";

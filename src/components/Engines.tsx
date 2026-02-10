@@ -21,6 +21,7 @@ import { CompanyCardsGridSkeleton } from "./Skeletons";
 import CustomSelect from "./CustomSelect";
 import ConfirmationModal from "./ConfirmationModal";
 import Image from "next/image";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EnginesProps {
   companyId?: string;
@@ -39,6 +40,8 @@ export default function Engines({
   const [selectedEngine, setSelectedEngine] = useState<Engine | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { canWrite, canDelete } = usePermissions();
 
   // Confirmation modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -289,13 +292,15 @@ export default function Engines({
               className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
             />
           </div>
-          <button
-            onClick={handleOpenCreateModal}
-            className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add Engine
-          </button>
+          {canWrite("products") && (
+            <button
+              onClick={handleOpenCreateModal}
+              className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Add Engine
+            </button>
+          )}
         </div>
 
         {/* Filters */}
@@ -361,20 +366,26 @@ export default function Engines({
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent z-10 opacity-60" />
                 
                 {/* Actions Overlay */}
-                <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button
-                    onClick={() => handleOpenEditModal(engine)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(engine.id)}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition-colors shadow-sm"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                {(canWrite("products") || canDelete("products")) && (
+                  <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {canWrite("products") && (
+                      <button
+                        onClick={() => handleOpenEditModal(engine)}
+                        className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                    {canDelete("products") && (
+                      <button
+                        onClick={() => handleDelete(engine.id)}
+                        className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition-colors shadow-sm"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {engine.imageUrl ? (
                   <Image

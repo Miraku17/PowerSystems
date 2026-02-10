@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 interface JobOrderRequestFormData {
   // Header / Basic Information
-  shop_field_jo_number: string;
+  // shop_field_jo_number is auto-generated from jo_number (SERIAL) on the backend
   date_prepared: string;
 
   // Customer Information
@@ -69,7 +69,7 @@ interface JobOrderRequestFormStore {
 
 const initialFormData: JobOrderRequestFormData = {
   // Header / Basic Information
-  shop_field_jo_number: "",
+  // shop_field_jo_number is auto-generated
   date_prepared: "",
 
   // Customer Information

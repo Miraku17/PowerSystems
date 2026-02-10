@@ -347,11 +347,10 @@ export default function Users() {
                       Name
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Email
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Address
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Position
@@ -397,21 +396,21 @@ export default function Users() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {user.username}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500 flex items-center">
                             <EnvelopeIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                             {user.email}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-500 max-w-xs truncate">
+                            {user.address || "—"}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPositionBadgeColor(user.position?.name)}`}
                           >
-                            {user.position?.display_name || "No Position"}
+                            {user.position?.name || "No Position"}
                           </span>
                         </td>
                         {(canWrite("user_creation") || canDelete("user_creation")) && (
@@ -661,7 +660,7 @@ export default function Users() {
                     <option value="">Select a position</option>
                     {positions.map((pos) => (
                       <option key={pos.id} value={pos.id}>
-                        {pos.display_name}
+                        {pos.name}
                       </option>
                     ))}
                   </select>

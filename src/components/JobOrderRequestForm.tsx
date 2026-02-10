@@ -24,6 +24,23 @@ export default function JobOrderRequestForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [nextJoNumber, setNextJoNumber] = useState<string>("Loading...");
+
+  useEffect(() => {
+    const fetchNextJoNumber = async () => {
+      try {
+        const response = await apiClient.get('/forms/job-order-request/next-number');
+        if (response.data.success) {
+          setNextJoNumber(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch next JO number", error);
+        setNextJoNumber("—");
+      }
+    };
+
+    fetchNextJoNumber();
+  }, []);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -88,20 +105,24 @@ export default function JobOrderRequestForm() {
       formType: 'job-order-request',
       formData: formData as unknown as Record<string, unknown>,
       attachments,
-      onSuccess: () => {
+      onSuccess: async () => {
         setAttachments([]);
         resetFormData();
+        // Refresh next JO number for the next submission
+        try {
+          const response = await apiClient.get('/forms/job-order-request/next-number');
+          if (response.data.success) {
+            setNextJoNumber(response.data.data);
+          }
+        } catch (error) {
+          console.error("Failed to refresh next JO number", error);
+        }
       },
     });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!formData.shop_field_jo_number || formData.shop_field_jo_number.trim() === '') {
-      toast.error('J.O. Number is required');
-      return;
-    }
 
     if (!formData.full_customer_name || formData.full_customer_name.trim() === '') {
       toast.error('Customer Name is required');
@@ -135,7 +156,17 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Job Order Information</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleChange} required />
+            <div className="flex flex-col w-full">
+              <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+                SHOP/FIELD J.O. NO.
+              </label>
+              <input
+                type="text"
+                value={nextJoNumber}
+                disabled
+                className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md block p-2.5 cursor-not-allowed font-semibold"
+              />
+            </div>
             <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleChange} />
           </div>
         </div>

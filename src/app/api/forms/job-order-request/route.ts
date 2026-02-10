@@ -88,8 +88,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     const getString = (key: string) => formData.get(key) as string || '';
 
-    // Extract all fields
-    const shop_field_jo_number = getString('shop_field_jo_number');
+    // Extract all fields (shop_field_jo_number is now auto-generated from jo_number)
     const date_prepared = getString('date_prepared');
     const full_customer_name = getString('full_customer_name');
     const address = getString('address');
@@ -170,7 +169,6 @@ export const POST = withAuth(async (request, { user }) => {
       .from("job_order_request_form")
       .insert([
         {
-          shop_field_jo_number,
           date_prepared: date_prepared || null,
           full_customer_name,
           address,
@@ -220,6 +218,16 @@ export const POST = withAuth(async (request, { user }) => {
     if (error) {
       console.error("Error inserting data:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Auto-set shop_field_jo_number from jo_number (SERIAL)
+    if (data && data[0]) {
+      const joNumber = `JO-${String(data[0].jo_number).padStart(4, '0')}`;
+      await supabase
+        .from("job_order_request_form")
+        .update({ shop_field_jo_number: joNumber })
+        .eq("id", data[0].id);
+      data[0].shop_field_jo_number = joNumber;
     }
 
     // Upload attachments

@@ -17,13 +17,18 @@ async function fetchPermissions(): Promise<Permission[]> {
 export function usePermissions() {
   const {
     data: permissions = [],
-    isLoading,
+    isLoading: queryLoading,
+    isFetching,
     error,
   } = useQuery<Permission[]>({
     queryKey: ["permissions", "me"],
     queryFn: fetchPermissions,
     staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
   });
+
+  // Treat as loading if the query is loading OR if fetching with no cached data yet
+  const isLoading = queryLoading || (isFetching && permissions.length === 0);
 
   const hasPermission = (module: string, action: string): boolean => {
     return permissions.some(

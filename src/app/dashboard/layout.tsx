@@ -24,8 +24,9 @@ import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
+import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -53,6 +54,9 @@ export default function DashboardLayout({
   // Auth store actions
   const setAuthUser = useAuthStore((state) => state.setUser);
   const clearAuthUser = useAuthStore((state) => state.clearUser);
+
+  // Permissions
+  const { canAccess } = usePermissions();
 
   // Load companies and forms on mount
   useEffect(() => {
@@ -213,22 +217,34 @@ export default function DashboardLayout({
       href: "/dashboard/pending-forms",
     },
     {
+      name: "Pending JO Requests",
+      icon: ShieldCheckIcon,
+      href: "/dashboard/pending-jo-requests",
+    },
+    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
     },
   ];
 
-  const navigation =
-    userRole === "user"
-      ? allNavigation.filter(
-          (item) =>
-            item.href === "/dashboard/fill-up-form" ||
-            item.href === "/dashboard/daily-time-sheet" ||
-            item.href === "/dashboard/records" ||
-            item.href === "/dashboard/pending-forms"
-        )
-      : allNavigation;
+  const navigation = allNavigation.filter((item: any) => {
+    // Permission-gated items: only show if user has the required permission
+    if (item.permission) {
+      return canAccess(item.permission.module);
+    }
+    // Role-based filtering for regular users
+    if (userRole === "user") {
+      return (
+        item.href === "/dashboard/fill-up-form" ||
+        item.href === "/dashboard/daily-time-sheet" ||
+        item.href === "/dashboard/records" ||
+        item.href === "/dashboard/pending-forms" ||
+        item.href === "/dashboard/pending-jo-requests"
+      );
+    }
+    return true;
+  });
 
   // Redirect restricted users
   useEffect(() => {
@@ -237,7 +253,8 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/fill-up-form") ||
         pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
-        pathname.startsWith("/dashboard/pending-forms");
+        pathname.startsWith("/dashboard/pending-forms") ||
+        pathname.startsWith("/dashboard/pending-jo-requests");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

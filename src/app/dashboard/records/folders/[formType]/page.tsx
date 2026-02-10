@@ -64,6 +64,22 @@ interface FormRecord {
   };
 }
 
+function ApprovalStatusBadge({ status }: { status?: string }) {
+  const config: Record<string, { label: string; color: string }> = {
+    pending_level_1: { label: "Pending Level 1", color: "bg-yellow-100 text-yellow-800" },
+    pending_level_2: { label: "Pending Level 2", color: "bg-blue-100 text-blue-800" },
+    pending_level_3: { label: "Pending Level 3", color: "bg-purple-100 text-purple-800" },
+    approved: { label: "Approved", color: "bg-green-100 text-green-800" },
+    rejected: { label: "Rejected", color: "bg-red-100 text-red-800" },
+  };
+  const { label, color } = config[status || ""] || { label: status || "—", color: "bg-gray-100 text-gray-800" };
+  return (
+    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 export default function FormRecordsPage() {
   const router = useRouter();
   const params = useParams();
@@ -418,6 +434,9 @@ export default function FormRecordsPage() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{serialNoLabel}</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Created</th>
+                    {normalizedFormType === "job-order-request" && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Approval Status</th>
+                    )}
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
@@ -433,6 +452,11 @@ export default function FormRecordsPage() {
                           {new Date(record.dateCreated).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                         </div>
                       </td>
+                      {normalizedFormType === "job-order-request" && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <ApprovalStatusBadge status={record.data?.approval_status} />
+                        </td>
+                      )}
                       <td className="px-6 py-4 text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
                           <button
@@ -442,7 +466,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && (
+                          {canEditRecord(record.created_by) && !(normalizedFormType === "job-order-request" && record.data?.approval_status === "approved" && !isAdmin()) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -504,6 +528,13 @@ export default function FormRecordsPage() {
                     </div>
                   </div>
 
+                  {normalizedFormType === "job-order-request" && (
+                    <div className="mb-4">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Approval Status</p>
+                      <ApprovalStatusBadge status={record.data?.approval_status} />
+                    </div>
+                  )}
+
                   <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
                      <div className="flex gap-3">
                         <button
@@ -515,7 +546,7 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canEditRecord(record.created_by) && (
+                        {canEditRecord(record.created_by) && !(normalizedFormType === "job-order-request" && record.data?.approval_status === "approved" && !isAdmin()) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"

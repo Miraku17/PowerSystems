@@ -1,8 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { usePermissions } from "@/hooks/usePermissions";
-import { DocumentTextIcon } from "@heroicons/react/24/outline";
 import DeutzServiceForm from "@/components/DeutzServiceForm";
 import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
 import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommissioningForm";
@@ -20,7 +18,6 @@ import JobOrderRequestForm from "@/components/JobOrderRequestForm";
 import CustomSelect from "@/components/CustomSelect";
 
 const FillUpFormPage = () => {
-  const { canAccess, isLoading: permissionsLoading } = usePermissions();
   const [activeForm, setActiveForm] = useState<string>("job-order-request");
 
   const renderContent = () => {
@@ -74,20 +71,6 @@ const FillUpFormPage = () => {
     { value: "engine-inspection-receiving", label: "Engine Inspection / Receiving Report" },
     { value: "components-teardown-measuring", label: "Components Teardown Measuring Report" },
   ];
-
-  if (permissionsLoading) {
-    return <div className="p-8">Loading...</div>;
-  }
-
-  if (!canAccess("fill_up_forms")) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <DocumentTextIcon className="h-16 w-16 text-gray-300 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-700">Access Denied</h2>
-        <p className="text-gray-500 mt-2">You do not have permission to access fill up forms.</p>
-      </div>
-    );
-  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">

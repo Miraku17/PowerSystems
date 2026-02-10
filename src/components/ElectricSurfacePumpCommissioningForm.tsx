@@ -8,6 +8,8 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useElectricSurfacePumpCommissioningFormStore } from "@/stores/electricSurfacePumpCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import JobOrderAutocomplete from './JobOrderAutocomplete';
+import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 
 interface User {
   id: string;
@@ -24,6 +26,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const approvedJOs = useApprovedJobOrders();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -129,7 +132,18 @@ export default function ElectricSurfacePumpCommissioningForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Job Reference</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} />
+            <JobOrderAutocomplete
+              label="Job Order"
+              value={formData.job_order}
+              onChange={(value) => setFormData({ job_order: value })}
+              onSelect={(jo) => setFormData({
+                job_order: jo.shop_field_jo_number || "",
+                customer: jo.full_customer_name || "",
+                address: jo.address || "",
+              })}
+              jobOrders={approvedJOs}
+              required
+            />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />
           </div>
         </div>

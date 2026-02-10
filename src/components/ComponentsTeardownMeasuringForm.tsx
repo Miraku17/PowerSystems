@@ -17,6 +17,8 @@ import {
   type PistonCylinderHeadDistanceMeta,
 } from '@/stores/componentsTeardownMeasuringFormStore';
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import JobOrderAutocomplete from './JobOrderAutocomplete';
+import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 
 interface User {
   id: string;
@@ -37,6 +39,7 @@ export default function ComponentsTeardownMeasuringForm() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const approvedJOs = useApprovedJobOrders();
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -1160,14 +1163,16 @@ export default function ComponentsTeardownMeasuringForm() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1">Job Order No. *</label>
-                  <input
-                    type="text"
-                    name="job_order_no"
+                  <JobOrderAutocomplete
+                    label="Job Order No."
                     value={formData.job_order_no}
-                    onChange={handleChange}
+                    onChange={(value) => setFormData({ job_order_no: value } as any)}
+                    onSelect={(jo) => setFormData({
+                      job_order_no: jo.shop_field_jo_number || "",
+                      customer: jo.full_customer_name || "",
+                    } as any)}
+                    jobOrders={approvedJOs}
                     required
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
               </div>

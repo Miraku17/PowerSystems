@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import JobOrderAutocomplete from './JobOrderAutocomplete';
 
 interface EditDailyTimeSheetProps {
   data: Record<string, any>;
@@ -126,68 +127,6 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
   );
 };
 
-const JobOrderAutocomplete = ({ label, value, onChange, onSelect, jobOrders, required = false }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  onSelect: (jo: any) => void;
-  jobOrders: any[];
-  required?: boolean;
-}) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filteredJOs = jobOrders.filter((jo) => {
-    const search = (value || "").toLowerCase();
-    return (
-      (jo.shop_field_jo_number || "").toLowerCase().includes(search) ||
-      (jo.full_customer_name || "").toLowerCase().includes(search)
-    );
-  });
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => { onChange(e.target.value); setShowDropdown(true); }}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-          placeholder="Search by JO number or customer name"
-          autoComplete="off"
-        />
-        {showDropdown && filteredJOs.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {filteredJOs.map((jo) => (
-              <div
-                key={jo.id}
-                onClick={() => { onSelect(jo); setShowDropdown(false); }}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="font-semibold">{jo.shop_field_jo_number}</div>
-                <div className="text-xs text-gray-500">{jo.full_customer_name}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 

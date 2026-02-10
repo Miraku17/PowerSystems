@@ -126,6 +126,69 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
   );
 };
 
+const JobOrderAutocomplete = ({ label, value, onChange, onSelect, jobOrders, required = false }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (jo: any) => void;
+  jobOrders: any[];
+  required?: boolean;
+}) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredJOs = jobOrders.filter((jo) => {
+    const search = (value || "").toLowerCase();
+    return (
+      (jo.shop_field_jo_number || "").toLowerCase().includes(search) ||
+      (jo.full_customer_name || "").toLowerCase().includes(search)
+    );
+  });
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder="Search by JO number or customer name"
+          autoComplete="off"
+        />
+        {showDropdown && filteredJOs.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredJOs.map((jo) => (
+              <div
+                key={jo.id}
+                onClick={() => { onSelect(jo); setShowDropdown(false); }}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-semibold">{jo.shop_field_jo_number}</div>
+                <div className="text-xs text-gray-500">{jo.full_customer_name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
@@ -136,6 +199,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
+  const [approvedJOs, setApprovedJOs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -193,9 +257,21 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       }
     };
 
+    const fetchApprovedJOs = async () => {
+      try {
+        const response = await apiClient.get('/forms/job-order-request/approved');
+        if (response.data.success) {
+          setApprovedJOs(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch approved job orders", error);
+      }
+    };
+
     fetchUsers();
     fetchAttachments();
     fetchEntries();
+    fetchApprovedJOs();
 
     // Also check if entries are in data object
     if (data.daily_time_sheet_entries && Array.isArray(data.daily_time_sheet_entries)) {
@@ -243,6 +319,16 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
 
   const handleSignatureChange = (name: string, signature: string) => {
     setFormData((prev) => ({ ...prev, [name]: signature }));
+  };
+
+  const handleJobOrderSelect = (jo: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      job_number: jo.shop_field_jo_number || "",
+      customer: jo.full_customer_name || "",
+      address: jo.address || "",
+      job_order_request_id: jo.id || "",
+    }));
   };
 
   const addEntry = () => {
@@ -341,8 +427,14 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Basic Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <JobOrderAutocomplete
+                  label="Job No."
+                  value={formData.job_number || ''}
+                  onChange={(value) => handleFieldChange('job_number', value)}
+                  onSelect={handleJobOrderSelect}
+                  jobOrders={approvedJOs}
+                />
                 <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
-                <Input label="Job No." name="job_number" value={formData.job_number} onChange={handleFieldChange} />
                 <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
                 <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>

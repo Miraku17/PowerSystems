@@ -105,6 +105,7 @@ export const POST = withAuth(async (request, { user }) => {
     const service_coordinator = getString('service_coordinator');
     const approved_by_service = getString('approved_by_service');
     const service_manager = getString('service_manager');
+    const job_order_request_id = getString('job_order_request_id');
     const status = getString('status') || 'PENDING';
     const entriesJson = getString('entries');
 
@@ -135,6 +136,7 @@ export const POST = withAuth(async (request, { user }) => {
       .insert([
         {
           job_number,
+          job_order_request_id: job_order_request_id || null,
           date: date || null,
           customer,
           address,

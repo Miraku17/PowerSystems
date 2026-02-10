@@ -24,6 +24,7 @@ import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
+import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
 import { CloudArrowUpIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
@@ -54,6 +55,7 @@ export default function DashboardLayout({
   // Auth store actions
   const setAuthUser = useAuthStore((state) => state.setUser);
   const clearAuthUser = useAuthStore((state) => state.clearUser);
+  const queryClient = useQueryClient();
 
   // Permissions
   const { canAccess } = usePermissions();
@@ -170,6 +172,8 @@ export default function DashboardLayout({
       localStorage.removeItem("user");
       // Clear auth store
       clearAuthUser();
+      // Clear TanStack Query cache so stale data doesn't persist across accounts
+      queryClient.clear();
       // Clear authToken cookie
       document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       // Redirect to login page
@@ -222,6 +226,11 @@ export default function DashboardLayout({
       href: "/dashboard/pending-jo-requests",
     },
     {
+      name: "Pending DTS",
+      icon: ClockIcon,
+      href: "/dashboard/pending-dts",
+    },
+    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
@@ -240,7 +249,8 @@ export default function DashboardLayout({
         item.href === "/dashboard/daily-time-sheet" ||
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
-        item.href === "/dashboard/pending-jo-requests"
+        item.href === "/dashboard/pending-jo-requests" ||
+        item.href === "/dashboard/pending-dts"
       );
     }
     return true;
@@ -254,7 +264,8 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
-        pathname.startsWith("/dashboard/pending-jo-requests");
+        pathname.startsWith("/dashboard/pending-jo-requests") ||
+        pathname.startsWith("/dashboard/pending-dts");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

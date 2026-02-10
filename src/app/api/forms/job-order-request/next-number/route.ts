@@ -6,25 +6,40 @@ export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
 
-    // Get the current next value from the sequence without consuming it
-    const { data, error } = await supabase.rpc("get_next_jo_number");
+    // Try the RPC function first (reads sequence without consuming)
+    const { data: rpcData, error: rpcError } = await supabase.rpc("get_next_jo_number");
 
-    if (error) {
-      console.error("Error fetching next JO number:", error);
-      // Fallback: query the max jo_number and add 1
-      const { data: maxData, error: maxError } = await supabase
-        .from("job_order_request_form")
-        .select("jo_number")
-        .order("jo_number", { ascending: false })
-        .limit(1)
-        .single();
+    if (!rpcError && rpcData != null) {
+      const joNumber = `JO-${String(rpcData).padStart(4, "0")}`;
+      return NextResponse.json({ success: true, data: joNumber });
+    }
 
-      const nextNumber = maxError || !maxData ? 1 : (maxData.jo_number || 0) + 1;
+    // Fallback: read the sequence's current value directly
+    // The sequence name for a SERIAL column is: {table}_{column}_seq
+    const { data: seqData, error: seqError } = await supabase
+      .rpc("get_sequence_last_value", {
+        seq_name: "job_order_request_form_jo_number_seq",
+      });
+
+    if (!seqError && seqData != null) {
+      // last_value is the last value returned by the sequence
+      // next insert will use last_value + 1
+      const nextNumber = Number(seqData) + 1;
       const joNumber = `JO-${String(nextNumber).padStart(4, "0")}`;
       return NextResponse.json({ success: true, data: joNumber });
     }
 
-    const joNumber = `JO-${String(data).padStart(4, "0")}`;
+    // Final fallback: query max jo_number from all rows (including soft-deleted)
+    // to stay in sync with the sequence
+    const { data: maxData, error: maxError } = await supabase
+      .from("job_order_request_form")
+      .select("jo_number")
+      .order("jo_number", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const nextNumber = maxError || !maxData ? 1 : (maxData.jo_number || 0) + 1;
+    const joNumber = `JO-${String(nextNumber).padStart(4, "0")}`;
     return NextResponse.json({ success: true, data: joNumber });
   } catch (error: any) {
     return NextResponse.json(

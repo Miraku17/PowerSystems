@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User } from "@/types";
+import { User, Position } from "@/types";
 import { userService } from "@/services";
+import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { useUserFormStore } from "@/stores/userFormStore";
 import {
@@ -36,6 +37,25 @@ const getAvatarColor = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const getPositionBadgeColor = (positionName: string | undefined) => {
+  switch (positionName) {
+    case "Super Admin":
+      return "bg-red-100 text-red-800";
+    case "Admin 1":
+      return "bg-green-100 text-green-800";
+    case "Admin 2":
+      return "bg-yellow-100 text-yellow-800";
+    case "Super User":
+      return "bg-purple-100 text-purple-800";
+    case "User 1":
+      return "bg-blue-100 text-blue-800";
+    case "User 2":
+      return "bg-indigo-100 text-indigo-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
+};
+
 const Avatar = ({ name }: { name: string }) => {
   const initials = name
     .split(" ")
@@ -64,6 +84,7 @@ export default function Users() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [positions, setPositions] = useState<Position[]>([]);
 
   // Confirmation modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -88,7 +109,8 @@ export default function Users() {
     username: "",
     address: "",
     phone: "",
-    role: "user" as "user" | "admin",
+    position_id: "",
+    // role: "user" as "user" | "admin", // commented out - now using position_id
   });
 
   // Combined form data for create mode
@@ -126,9 +148,10 @@ export default function Users() {
     }
   };
 
-  // Load users on mount
+  // Load users and positions on mount
   useEffect(() => {
     loadUsers();
+    loadPositions();
   }, []);
 
   const loadUsers = async () => {
@@ -142,6 +165,15 @@ export default function Users() {
       setUsers([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadPositions = async () => {
+    try {
+      const response = await apiClient.get("/positions");
+      setPositions(response.data.data || []);
+    } catch (error) {
+      console.error("Error loading positions:", error);
     }
   };
 
@@ -162,7 +194,8 @@ export default function Users() {
       username: user.username,
       address: user.address,
       phone: user.phone,
-      role: user.role,
+      position_id: user.position_id || "",
+      // role: user.role, // commented out - now using position_id
     });
     setShowModal(true);
   };
@@ -303,7 +336,7 @@ export default function Users() {
                       Email
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Role
+                      Position
                     </th>
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Actions
@@ -356,13 +389,9 @@ export default function Users() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.role === "admin"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPositionBadgeColor(user.position?.name)}`}
                           >
-                            {user.role}
+                            {user.position?.display_name || "No Position"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -567,7 +596,8 @@ export default function Users() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                {/* Role dropdown commented out - now using position_id */}
+                {/* <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
                     Role
                   </label>
@@ -583,6 +613,27 @@ export default function Users() {
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                  </select>
+                </div> */}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Position
+                  </label>
+                  <select
+                    required
+                    value={currentFormData.position_id}
+                    onChange={(e) =>
+                      updateFormData({ position_id: e.target.value })
+                    }
+                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                  >
+                    <option value="">Select a position</option>
+                    {positions.map((pos) => (
+                      <option key={pos.id} value={pos.id}>
+                        {pos.display_name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

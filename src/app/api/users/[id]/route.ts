@@ -6,7 +6,7 @@ import { withAuth } from "@/lib/auth-middleware";
 export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const { id } = await params;
-    const { firstname, lastname, username, address, phone, role } =
+    const { firstname, lastname, username, address, phone, position_id } =
       await request.json();
 
     if (!id) {
@@ -29,7 +29,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
     const { data, error } = await supabase
       .from("users")
-      .update({ firstname, lastname, username, address, phone, role })
+      .update({ firstname, lastname, username, address, phone, position_id })
       .eq("id", id)
       .select();
 

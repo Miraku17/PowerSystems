@@ -8,7 +8,8 @@ interface UserFormData {
   username: string;
   address: string;
   phone: string;
-  role: "user" | "admin";
+  position_id: string;
+  // role: "user" | "admin"; // commented out - now using position_id
 }
 
 interface UserFormStore {
@@ -24,7 +25,8 @@ const initialFormData: UserFormData = {
   username: "",
   address: "",
   phone: "",
-  role: "user",
+  position_id: "",
+  // role: "user", // commented out - now using position_id
 };
 
 export const useUserFormStore = create<UserFormStore>()(

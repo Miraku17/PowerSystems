@@ -45,6 +45,7 @@ export function usePermissions() {
 
   const canRead = (module: string) => hasPermission(module, "read");
   const canWrite = (module: string) => hasPermission(module, "write");
+  const canEdit = (module: string) => hasPermission(module, "edit");
   const canDelete = (module: string) => hasPermission(module, "delete");
   const canAccess = (module: string) => hasPermission(module, "access");
 
@@ -56,6 +57,7 @@ export function usePermissions() {
     getScope,
     canRead,
     canWrite,
+    canEdit,
     canDelete,
     canAccess,
   };

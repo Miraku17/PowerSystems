@@ -41,7 +41,7 @@ export default function Pumps({
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { canWrite, canDelete } = usePermissions();
+  const { canWrite, canEdit, canDelete } = usePermissions();
 
   // Confirmation modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -349,9 +349,9 @@ export default function Pumps({
                 <div className="absolute inset-0 bg-gradient-to-b from-black/30 to-transparent z-10 opacity-60" />
 
                 {/* Actions Overlay */}
-                {(canWrite("products") || canDelete("products")) && (
+                {(canEdit("products") || canDelete("products")) && (
                   <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {canWrite("products") && (
+                    {canEdit("products") && (
                       <button
                         onClick={() => handleOpenEditModal(pump)}
                         className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"

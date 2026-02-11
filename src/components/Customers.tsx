@@ -75,7 +75,7 @@ export default function Customers() {
 
   // Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useCustomerFormStore();
-  const { canWrite, canDelete } = usePermissions();
+  const { canWrite, canEdit, canDelete } = usePermissions();
 
   // Local state for edit mode (not persisted)
   const [editFormData, setEditFormData] = useState({
@@ -321,7 +321,7 @@ export default function Customers() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {canWrite("customer_management") && (
+                            {canEdit("customer_management") && (
                               <button
                                 onClick={() => handleOpenEditModal(customer)}
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -371,7 +371,7 @@ export default function Customers() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      {canWrite("customer_management") && (
+                      {canEdit("customer_management") && (
                         <button
                           onClick={() => handleOpenEditModal(customer)}
                           className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"

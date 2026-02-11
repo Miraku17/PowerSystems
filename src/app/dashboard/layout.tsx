@@ -59,7 +59,7 @@ export default function DashboardLayout({
   const queryClient = useQueryClient();
 
   // Permissions
-  const { canAccess } = usePermissions();
+  const { canAccess, canRead } = usePermissions();
 
   // Load companies and forms on mount
   useEffect(() => {
@@ -195,6 +195,7 @@ export default function DashboardLayout({
       href: "/dashboard/products",
       hasSubmenu: true,
       submenuType: "products",
+      permissionModule: "products",
     },
     {
       name: "Companies",
@@ -202,6 +203,7 @@ export default function DashboardLayout({
       href: "/dashboard/companies",
       hasSubmenu: true,
       submenuType: "companies",
+      permissionModule: "company",
     },
 
     {
@@ -250,6 +252,10 @@ export default function DashboardLayout({
     // Permission-gated items: only show if user has the required permission
     if (item.permission) {
       return canAccess(item.permission.module);
+    }
+    // Permission-module gated items: only show if user has read access
+    if (item.permissionModule) {
+      return canRead(item.permissionModule);
     }
     // Role-based filtering for regular users
     if (userRole === "user") {

@@ -29,7 +29,7 @@ export default function Companies({
   setCompanies,
   onCompanyClick,
 }: CompaniesProps) {
-  const { canWrite, canDelete } = usePermissions();
+  const { canWrite, canEdit, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -239,9 +239,9 @@ export default function Companies({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
                 {/* Actions Overlay */}
-                {(canWrite("company") || canDelete("company")) && (
+                {(canEdit("company") || canDelete("company")) && (
                   <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    {canWrite("company") && (
+                    {canEdit("company") && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

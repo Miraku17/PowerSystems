@@ -29,7 +29,7 @@ export const GET = withAuth(async (request, { user }) => {
         id: record.id,
         companyFormId: null,
         job_order: record.shop_field_jo_number,
-        data: { ...record, approval_status: approval.approval_status },
+        data: { ...record }, // Don't overwrite approval_status - use the actual database value
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,

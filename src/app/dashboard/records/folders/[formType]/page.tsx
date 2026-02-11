@@ -12,6 +12,9 @@ import {
   PrinterIcon,
   PencilIcon,
   TrashIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
@@ -57,6 +60,14 @@ interface FormRecord {
   dateCreated: string;
   dateUpdated: string;
   created_by?: string;
+  approval?: {
+    approval_id: string | null;
+    approval_status: string;
+    level1_status: string;
+    level2_status: string;
+    level1_remarks: string | null;
+    level2_remarks: string | null;
+  };
   companyForm: {
     id: string;
     name: string;
@@ -64,16 +75,69 @@ interface FormRecord {
   };
 }
 
+// Form types that use the centralized approvals table (not JO Request or DTS)
+const SERVICE_REPORT_FORM_TYPES = [
+  "deutz-commissioning", "deutz-service",
+  "submersible-pump-service", "submersible-pump-commissioning", "submersible-pump-teardown",
+  "engine-surface-pump-service", "engine-surface-pump-commissioning",
+  "electric-surface-pump-service", "electric-surface-pump-commissioning", "electric-surface-pump-teardown",
+  "engine-inspection-receiving", "engine-teardown", "components-teardown-measuring",
+];
+
 function ApprovalStatusBadge({ status }: { status?: string }) {
-  const config: Record<string, { label: string; color: string }> = {
-    pending: { label: "Pending", color: "bg-yellow-100 text-yellow-800" },
-    "in-progress": { label: "In Progress", color: "bg-blue-100 text-blue-800" },
-    completed: { label: "Completed", color: "bg-green-100 text-green-800" },
+  const config: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+    pending_level_1: {
+      label: "Pending Level 1",
+      color: "bg-amber-50 text-amber-700 border border-amber-200",
+      icon: <ClockIcon className="h-3.5 w-3.5" />
+    },
+    pending_level_2: {
+      label: "Pending Level 2",
+      color: "bg-orange-50 text-orange-700 border border-orange-200",
+      icon: <ClockIcon className="h-3.5 w-3.5" />
+    },
+    pending_level_3: {
+      label: "Pending Level 3",
+      color: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+      icon: <ClockIcon className="h-3.5 w-3.5" />
+    },
+    pending: {
+      label: "Pending",
+      color: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+      icon: <ClockIcon className="h-3.5 w-3.5" />
+    },
+    approved: {
+      label: "Approved",
+      color: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+      icon: <CheckCircleIcon className="h-3.5 w-3.5" />
+    },
+    rejected: {
+      label: "Rejected",
+      color: "bg-rose-50 text-rose-700 border border-rose-200",
+      icon: <XCircleIcon className="h-3.5 w-3.5" />
+    },
+    "in-progress": {
+      label: "In Progress",
+      color: "bg-blue-50 text-blue-700 border border-blue-200",
+      icon: <ClockIcon className="h-3.5 w-3.5" />
+    },
+    completed: {
+      label: "Completed",
+      color: "bg-green-50 text-green-700 border border-green-200",
+      icon: <CheckCircleIcon className="h-3.5 w-3.5" />
+    },
   };
-  const { label, color } = config[status || ""] || { label: status || "—", color: "bg-gray-100 text-gray-800" };
+
+  const statusConfig = config[status || ""] || {
+    label: status || "Unknown",
+    color: "bg-gray-50 text-gray-600 border border-gray-200",
+    icon: <ClockIcon className="h-3.5 w-3.5" />
+  };
+
   return (
-    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${color}`}>
-      {label}
+    <span className={`px-2.5 py-1 inline-flex items-center gap-1.5 text-xs font-medium rounded-full ${statusConfig.color}`}>
+      {statusConfig.icon}
+      {statusConfig.label}
     </span>
   );
 }
@@ -82,6 +146,7 @@ export default function FormRecordsPage() {
   const router = useRouter();
   const params = useParams();
   const formType = params.formType as string;
+  const normalizedFormType = formType?.toLowerCase();
 
   const [records, setRecords] = useState<FormRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +154,15 @@ export default function FormRecordsPage() {
   const [selectedRecord, setSelectedRecord] = useState<FormRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<FormRecord | null>(null);
+
+  // Approval state
+  const [approvalProcessing, setApprovalProcessing] = useState<string | null>(null);
+  const [rejectModal, setRejectModal] = useState<{ approvalId: string; label: string } | null>(null);
+  const [rejectNotes, setRejectNotes] = useState("");
+  const [userPosition, setUserPosition] = useState<string | null>(null);
+
+  // Check if this form type uses the centralized approvals table
+  const isServiceReport = SERVICE_REPORT_FORM_TYPES.includes(normalizedFormType);
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
@@ -124,9 +198,6 @@ export default function FormRecordsPage() {
     "service": { endpoint: "/forms/deutz-service", name: "Deutz Service Report" },
   };
 
-  // Normalize form type to lowercase
-  const normalizedFormType = formType?.toLowerCase();
-
   useEffect(() => {
     loadRecords();
   }, [formType]);
@@ -152,6 +223,72 @@ export default function FormRecordsPage() {
       setRecords([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch user position for approval permissions
+  useEffect(() => {
+    if (isServiceReport) {
+      apiClient.get("/auth/position").then((res) => {
+        if (res.data?.success) {
+          setUserPosition(res.data.positionName || null);
+        }
+      }).catch(() => {});
+    }
+  }, [isServiceReport]);
+
+  // Check if user can approve at the current level for a given record
+  const canApproveRecord = (record: FormRecord) => {
+    if (!isServiceReport || !record.approval?.approval_id) return false;
+    const { level1_status, level2_status, level1_remarks, level2_remarks } = record.approval;
+    // Check if rejected
+    if (level1_remarks?.startsWith("REJECTED:") || level2_remarks?.startsWith("REJECTED:")) return false;
+    // Check if fully completed
+    if (level1_status === "completed" && level2_status === "completed" && !level1_remarks?.startsWith("REJECTED:")) return false;
+
+    if (userPosition === "Super Admin") return true;
+    if (userPosition === "Admin 2" && level1_status === "pending") return true;
+    if (userPosition === "Admin 1" && level1_status === "completed" && level2_status === "pending") return true;
+    return false;
+  };
+
+  const handleApproveRecord = async (approvalId: string) => {
+    setApprovalProcessing(approvalId);
+    try {
+      const response = await apiClient.post(`/approvals/${approvalId}`, { action: "approve" });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to approve");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to approve");
+    } finally {
+      setApprovalProcessing(null);
+    }
+  };
+
+  const handleRejectRecord = async () => {
+    if (!rejectModal) return;
+    setApprovalProcessing(rejectModal.approvalId);
+    try {
+      const response = await apiClient.post(`/approvals/${rejectModal.approvalId}`, {
+        action: "reject",
+        notes: rejectNotes,
+      });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setRejectModal(null);
+        setRejectNotes("");
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to reject");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to reject");
+    } finally {
+      setApprovalProcessing(null);
     }
   };
 
@@ -450,6 +587,9 @@ export default function FormRecordsPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <ApprovalStatusBadge status={record.data?.approval_status} />
+                        {record.data?.approval_status === "in-progress" && (
+                          <p className="text-[10px] text-gray-400 mt-1">Both levels approved</p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
                         <div className="flex items-center justify-end space-x-2">
@@ -460,7 +600,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && !(record.data?.approval_status === "completed" && !isAdmin()) && (
+                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !isAdmin()) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -476,6 +616,29 @@ export default function FormRecordsPage() {
                           >
                             <PrinterIcon className="h-4 w-4" />
                           </button>
+                          {canApproveRecord(record) && record.approval?.approval_id && (
+                            <>
+                              <button
+                                onClick={() => handleApproveRecord(record.approval!.approval_id!)}
+                                disabled={approvalProcessing === record.approval!.approval_id}
+                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Approve"
+                              >
+                                <CheckCircleIcon className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => setRejectModal({
+                                  approvalId: record.approval!.approval_id!,
+                                  label: getJobOrder(record),
+                                })}
+                                disabled={approvalProcessing === record.approval!.approval_id}
+                                className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                                title="Reject"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
                           {isAdmin() && (
                             <button
                               onClick={() => setRecordToDelete(record)}
@@ -525,6 +688,9 @@ export default function FormRecordsPage() {
                   <div className="mb-4">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Approval Status</p>
                     <ApprovalStatusBadge status={record.data?.approval_status} />
+                    {record.data?.approval_status === "in-progress" && (
+                      <p className="text-[10px] text-gray-400 mt-1">Both levels approved</p>
+                    )}
                   </div>
 
                   <div className="pt-4 border-t border-gray-100 flex justify-between items-center">
@@ -538,7 +704,30 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canEditRecord(record.created_by) && !(record.data?.approval_status === "completed" && !isAdmin()) && (
+                        {canApproveRecord(record) && record.approval?.approval_id && (
+                          <>
+                            <button
+                              onClick={() => handleApproveRecord(record.approval!.approval_id!)}
+                              disabled={approvalProcessing === record.approval!.approval_id}
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Approve"
+                            >
+                              <CheckCircleIcon className="h-5 w-5" />
+                            </button>
+                            <button
+                              onClick={() => setRejectModal({
+                                approvalId: record.approval!.approval_id!,
+                                label: getJobOrder(record),
+                              })}
+                              disabled={approvalProcessing === record.approval!.approval_id}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Reject"
+                            >
+                              <XCircleIcon className="h-5 w-5" />
+                            </button>
+                          </>
+                        )}
+                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !isAdmin()) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -916,6 +1105,74 @@ export default function FormRecordsPage() {
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
         />
+      )}
+
+      {/* Reject Modal for Service Report Approvals */}
+      {rejectModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setRejectModal(null);
+              setRejectNotes("");
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100">
+                  <XCircleIcon className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Reject Service Report</h3>
+              </div>
+              <button
+                onClick={() => {
+                  setRejectModal(null);
+                  setRejectNotes("");
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Rejecting <span className="font-semibold">{rejectModal.label}</span>. Please provide a reason:
+              </p>
+              <textarea
+                value={rejectNotes}
+                onChange={(e) => setRejectNotes(e.target.value)}
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
+                placeholder="Enter reason for rejection..."
+              />
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setRejectModal(null);
+                  setRejectNotes("");
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectRecord}
+                disabled={approvalProcessing === rejectModal.approvalId}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {approvalProcessing === rejectModal.approvalId ? "Rejecting..." : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

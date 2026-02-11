@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -249,6 +249,8 @@ export const POST = withAuth(async (request, { user }) => {
 
     if (data && data[0]) {
       await supabase.from('audit_logs').insert({ table_name: 'engine_surface_pump_commissioning_report', record_id: data[0].id, action: 'CREATE', old_data: null, new_data: data[0], performed_by: user.id, performed_at: new Date().toISOString() });
+
+      await createApprovalRecord(supabase, 'engine_surface_pump_commissioning_report', data[0].id, user.id);
     }
 
     return NextResponse.json({ message: "Report submitted successfully", data }, { status: 201 });

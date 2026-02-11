@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // --- GET: Fetch all components teardown measuring reports ---
 export const GET = withAuth(async (request, { user }) => {
@@ -466,6 +466,8 @@ export const POST = withAuth(async (request, { user }) => {
       performed_by: user.id,
       performed_at: new Date().toISOString(),
     });
+
+    await createApprovalRecord(supabase, 'components_teardown_measuring_report', reportId, user.id);
 
     return NextResponse.json(
       { message: "Components Teardown Measuring Report submitted successfully", data: mainData },

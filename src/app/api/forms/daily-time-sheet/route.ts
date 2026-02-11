@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -21,19 +20,30 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const approvalMap = await getApprovalsByTable(supabase, "daily_time_sheet");
-
     const formRecords = data.map((record: any) => {
-      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      // DTS uses its own approval_status column (pending_level_1, pending_level_2, approved)
+      // Map DTS-specific statuses to display-friendly values
+      let displayStatus = record.approval_status || "pending";
+      if (displayStatus === "approved") displayStatus = "approved";
+      else if (displayStatus === "rejected") displayStatus = "rejected";
+      else if (displayStatus.startsWith("pending_level_")) displayStatus = displayStatus;
+
       return {
         id: record.id,
         companyFormId: null,
         job_order: record.job_number,
-        data: { ...record, approval_status: approval.approval_status },
+        data: { ...record, approval_status: displayStatus },
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
-        approval,
+        approval: {
+          approval_id: null,
+          approval_status: displayStatus,
+          level1_status: record.level_1_approved_by ? "completed" : "pending",
+          level2_status: record.level_2_approved_by ? "completed" : "pending",
+          level1_remarks: record.level_1_notes,
+          level2_remarks: record.level_2_notes,
+        },
         companyForm: {
           id: "daily-time-sheet",
           name: "Daily Time Sheet",

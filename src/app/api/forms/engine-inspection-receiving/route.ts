@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { SECTION_DEFINITIONS } from "@/stores/engineInspectionReceivingFormStore";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -300,6 +300,8 @@ export const POST = withAuth(async (request, { user }) => {
       performed_by: user.id,
       performed_at: new Date().toISOString(),
     });
+
+    await createApprovalRecord(supabase, 'engine_inspection_receiving_report', reportId, user.id);
 
     return NextResponse.json(
       { message: "Engine Inspection / Receiving Report submitted successfully", data: mainData },

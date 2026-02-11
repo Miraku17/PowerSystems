@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // Increase body size limit to 50MB for this route (signatures + images)
 export const maxDuration = 60; // Max execution time in seconds
@@ -613,6 +613,8 @@ export const POST = withAuth(async (request, { user }) => {
         performed_by: user.id,
         performed_at: new Date().toISOString(),
       });
+
+      await createApprovalRecord(supabase, 'submersible_pump_teardown_report', data[0].id, user.id);
     }
 
     return NextResponse.json(

@@ -115,9 +115,9 @@ AS $$
 BEGIN
   NEW.updated_at = now();
 
-  -- Both levels completed = overall completed
+  -- Both levels approved = in-progress (user will manually complete later)
   IF NEW.level1_status = 'completed' AND NEW.level2_status = 'completed' THEN
-    NEW.status = 'completed';
+    NEW.status = 'in-progress';
   -- Any level started = overall in-progress
   ELSIF NEW.level1_status = 'in-progress' OR NEW.level1_status = 'completed'
      OR NEW.level2_status = 'in-progress' THEN

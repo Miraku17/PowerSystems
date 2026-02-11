@@ -1,435 +1,524 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
-  UsersIcon,
-  BuildingOfficeIcon,
-  CogIcon,
-  DocumentTextIcon,
-  ArrowTrendingUpIcon,
   ArrowPathIcon,
-  BoltIcon,
-  DocumentPlusIcon,
+  DocumentTextIcon,
+  CloudArrowUpIcon,
+  ClipboardDocumentCheckIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
-import { StatCardSkeleton } from "@/components/Skeletons";
 import {
-  AreaChart,
-  Area,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
 } from "recharts";
+import { StatCardSkeleton } from "@/components/Skeletons";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { getPendingSubmissions } from "@/lib/offlineDb";
+import { usePendingCount } from "@/stores/syncStore";
 
-interface DashboardStats {
-  totalCustomers: number;
-  totalProducts: number;
-  totalCompanies: number;
-  totalForms: number;
+interface FormCounts {
+  "job-order-request": number;
+  "daily-time-sheet": number;
+  "deutz-service": number;
+  "deutz-commissioning": number;
+  "submersible-pump-commissioning": number;
+  "submersible-pump-service": number;
+  "submersible-pump-teardown": number;
+  "electric-surface-pump-commissioning": number;
+  "electric-surface-pump-service": number;
+  "engine-surface-pump-service": number;
+  "engine-surface-pump-commissioning": number;
+  "engine-teardown": number;
+  "electric-surface-pump-teardown": number;
+  "engine-inspection-receiving": number;
+  "components-teardown-measuring": number;
 }
 
-interface OverviewData {
-  counts: {
-    customers: number;
-    engines: number;
-    companies: number;
-    forms: number;
-  };
-  monthlyData: any[];
+interface PendingApprovals {
+  jobOrders: number;
+  timesheets: number;
 }
 
-interface ApiResponse {
-  success: boolean;
-  data: OverviewData;
-}
+const formTypeConfig: Record<
+  keyof FormCounts,
+  { name: string; category: string }
+> = {
+  "job-order-request": { name: "Job Order Requests", category: "Orders" },
+  "daily-time-sheet": { name: "Daily Time Sheets", category: "Time Tracking" },
+  "deutz-commissioning": {
+    name: "Deutz Commissioning",
+    category: "Commissioning",
+  },
+  "deutz-service": { name: "Deutz Service", category: "Service" },
+  "submersible-pump-commissioning": {
+    name: "Submersible Pump Commissioning",
+    category: "Commissioning",
+  },
+  "submersible-pump-service": {
+    name: "Submersible Pump Service",
+    category: "Service",
+  },
+  "submersible-pump-teardown": {
+    name: "Submersible Pump Teardown",
+    category: "Teardown",
+  },
+  "electric-surface-pump-commissioning": {
+    name: "Electric Surface Pump Commissioning",
+    category: "Commissioning",
+  },
+  "electric-surface-pump-service": {
+    name: "Electric Surface Pump Service",
+    category: "Service",
+  },
+  "engine-surface-pump-service": {
+    name: "Engine Surface Pump Service",
+    category: "Service",
+  },
+  "engine-surface-pump-commissioning": {
+    name: "Engine Surface Pump Commissioning",
+    category: "Commissioning",
+  },
+  "engine-teardown": { name: "Engine Teardown", category: "Teardown" },
+  "electric-surface-pump-teardown": {
+    name: "Electric Surface Pump Teardown",
+    category: "Teardown",
+  },
+  "engine-inspection-receiving": {
+    name: "Engine Inspection/Receiving",
+    category: "Inspection",
+  },
+  "components-teardown-measuring": {
+    name: "Components Teardown/Measuring",
+    category: "Analysis",
+  },
+};
 
-// Custom Tooltip Component for Charts
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-3 border border-slate-100 shadow-xl rounded-lg ring-1 ring-black/5">
-        <p className="text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wider">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-            <span className="text-slate-600 font-medium">{entry.name}:</span>
-            <span className="font-bold text-slate-900">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
+const CATEGORY_COLORS: Record<string, string> = {
+  Orders: "#2B4C7E",
+  "Time Tracking": "#4A6FA5",
+  Commissioning: "#1A2F4F",
+  Service: "#607D8B",
+  Teardown: "#D32F2F",
+  Inspection: "#455A64",
+  Analysis: "#4A6FA5",
+};
+
+const CATEGORY_BG_CLASSES: Record<string, string> = {
+  Orders: "bg-[#2B4C7E]",
+  "Time Tracking": "bg-[#4A6FA5]",
+  Commissioning: "bg-[#1A2F4F]",
+  Service: "bg-[#607D8B]",
+  Teardown: "bg-[#D32F2F]",
+  Inspection: "bg-[#455A64]",
+  Analysis: "bg-[#4A6FA5]",
 };
 
 export default function OverviewPage() {
   const [isLoading, setIsLoading] = useState(true);
-  const [stats, setStats] = useState<DashboardStats>({
-    totalCustomers: 0,
-    totalProducts: 0,
-    totalCompanies: 0,
-    totalForms: 0,
+  const [formCounts, setFormCounts] = useState<FormCounts | null>(null);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApprovals>({
+    jobOrders: 0,
+    timesheets: 0,
   });
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
+  const [offlineForms, setOfflineForms] = useState(0);
+  const pendingCount = usePendingCount();
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [pendingCount]);
 
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
 
-      // Fetch overview data from backend
-      const response = await apiClient.get<ApiResponse>("/overview");
-      const overviewData = response.data.data;
+      const countsResponse = await apiClient.get("/forms/counts");
+      setFormCounts(countsResponse.data.counts);
 
-      setStats({
-        totalCustomers: overviewData.counts.customers || 0,
-        totalProducts: overviewData.counts.engines || 0,
-        totalCompanies: overviewData.counts.companies || 0,
-        totalForms: overviewData.counts.forms || 0,
-      });
+      try {
+        const [joResponse, dtsResponse] = await Promise.all([
+          apiClient.get("/forms/job-order-request/pending"),
+          apiClient.get("/forms/daily-time-sheet/pending"),
+        ]);
+        setPendingApprovals({
+          jobOrders: joResponse.data.data?.length || 0,
+          timesheets: dtsResponse.data.data?.length || 0,
+        });
+      } catch (err) {
+        console.error("Error fetching pending approvals:", err);
+      }
 
-      setMonthlyData(overviewData.monthlyData);
+      try {
+        const pendingSubmissions = await getPendingSubmissions();
+        setOfflineForms(pendingSubmissions.length);
+      } catch (err) {
+        console.error("Error fetching offline forms:", err);
+      }
     } catch (error) {
       console.error("Error loading dashboard data:", error);
-      toast.error("Failed to load dashboard statistics");
+      toast.error("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const statCards = [
-    {
-      title: "Total Customers",
-      value: stats.totalCustomers,
-      icon: UsersIcon,
-      trend: "+12%",
-      link: "/dashboard/customers",
-      iconColor: "text-blue-600",
-      iconBg: "bg-blue-50",
-      trendColor: "text-emerald-600 bg-emerald-50",
-    },
-    {
-      title: "Active Engines",
-      value: stats.totalProducts,
-      icon: CogIcon,
-      trend: "+5%",
-      link: "/dashboard/products",
-      iconColor: "text-emerald-600",
-      iconBg: "bg-emerald-50",
-      trendColor: "text-emerald-600 bg-emerald-50",
-    },
-    {
-      title: "Partner Companies",
-      value: stats.totalCompanies,
-      icon: BuildingOfficeIcon,
-      trend: "+2%",
-      link: "/dashboard/companies",
-      iconColor: "text-indigo-600",
-      iconBg: "bg-indigo-50",
-      trendColor: "text-emerald-600 bg-emerald-50",
-    },
-  ];
+  const totalForms = formCounts
+    ? Object.values(formCounts).reduce((sum, count) => sum + count, 0)
+    : 0;
+
+  const categoryTotals = formCounts
+    ? Object.entries(formCounts).reduce(
+        (acc, [key, count]) => {
+          const category = formTypeConfig[key as keyof FormCounts].category;
+          acc[category] = (acc[category] || 0) + count;
+          return acc;
+        },
+        {} as Record<string, number>,
+      )
+    : {};
+
+  const chartData = useMemo(
+    () =>
+      Object.entries(categoryTotals)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({
+          name,
+          value,
+          color: CATEGORY_COLORS[name] || "#94a3b8",
+        })),
+    [categoryTotals],
+  );
+
+  const pieData = useMemo(
+    () =>
+      Object.entries(categoryTotals)
+        .sort((a, b) => b[1] - a[1])
+        .map(([name, value]) => ({
+          name,
+          value,
+          fill: CATEGORY_COLORS[name] || "#94a3b8",
+        })),
+    [categoryTotals],
+  );
 
   return (
-    <div className="space-y-8 animate-fadeIn max-w-[1600px] mx-auto p-2 sm:p-4">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200/60">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-[#0f172a] tracking-tight">
-            Dashboard Overview
-          </h1>
-          <p className="text-slate-500 mt-2 text-sm max-w-2xl leading-relaxed">
-            Monitor key metrics, track performance, and manage your operations efficiently from one central hub.
+          <h1 className="text-2xl font-semibold text-[#1A2F4F]">Overview</h1>
+          <p className="text-sm text-[#607D8B] mt-1">
+            Form submissions and pending approvals
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50/50 border border-emerald-100 rounded-full">
-            <div className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </div>
-            <span className="text-xs font-semibold text-emerald-700">
-              System Operational
-            </span>
-          </div>
-          <button
-            onClick={loadDashboardData}
-            className="p-2 text-slate-400 hover:text-[#2B4C7E] hover:bg-slate-50 rounded-lg transition-all duration-200 border border-transparent hover:border-slate-200"
-            title="Refresh Data"
-          >
-            <ArrowPathIcon
-              className={`h-5 w-5 ${isLoading ? "animate-spin" : ""}`}
-            />
-          </button>
-        </div>
+        <button
+          onClick={loadDashboardData}
+          disabled={isLoading}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-[#4A6FA5] hover:text-[#1A2F4F] bg-white border border-slate-200 rounded-lg hover:border-[#4A6FA5]/30 transition-colors disabled:opacity-50"
+        >
+          <ArrowPathIcon
+            className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+          />
+          Refresh
+        </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {isLoading ? (
           <>
             <StatCardSkeleton />
             <StatCardSkeleton />
             <StatCardSkeleton />
+            <StatCardSkeleton />
           </>
         ) : (
-          statCards.map((stat, index) => (
+          <>
             <Link
-              href={stat.link}
-              key={index}
-              className="group relative bg-white rounded-2xl p-6 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] hover:shadow-[0_8px_30px_-4px_rgba(6,81,237,0.12)] border border-slate-100 transition-all duration-300 hover:-translate-y-1"
-              style={{ animationDelay: `${index * 100}ms` }}
+              href="/dashboard/records/folders"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-[#4A6FA5]/30 hover:shadow-sm transition-all group"
             >
-              <div className="flex items-start justify-between mb-6">
-                <div
-                  className={`p-3.5 rounded-xl ${stat.iconBg} ${stat.iconColor} ring-1 ring-inset ring-black/5`}
-                >
-                  <stat.icon className="h-6 w-6" />
-                </div>
-                <div className={`flex items-center space-x-1 text-xs font-bold px-2.5 py-1 rounded-full ${stat.trendColor}`}>
-                  <ArrowTrendingUpIcon className="h-3 w-3" />
-                  <span>{stat.trend}</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-[#2B4C7E]/8 rounded-lg">
+                  <DocumentTextIcon className="h-5 w-5 text-[#2B4C7E]" />
                 </div>
               </div>
-
-              <div>
-                <p className="text-sm font-medium text-slate-500 mb-1">
-                  {stat.title}
-                </p>
-                <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
-                  {stat.value}
-                </h3>
-              </div>
-              
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <p className="text-sm font-medium text-[#607D8B]">Total Forms</p>
+              <p className="text-3xl font-semibold text-[#1A2F4F] mt-1 tabular-nums">
+                {totalForms}
+              </p>
+              <p className="text-xs text-slate-400 mt-2 group-hover:text-[#2B4C7E] transition-colors">
+                View all records &rarr;
+              </p>
             </Link>
-          ))
+
+            <Link
+              href="/dashboard/pending-forms"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-[#4A6FA5]/30 hover:shadow-sm transition-all group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-amber-500/8 rounded-lg">
+                  <CloudArrowUpIcon className="h-5 w-5 text-amber-600" />
+                </div>
+                {offlineForms > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full">
+                    {offlineForms}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-medium text-[#607D8B]">
+                Pending Offline
+              </p>
+              <p className="text-3xl font-semibold text-[#1A2F4F] mt-1 tabular-nums">
+                {offlineForms}
+              </p>
+              <p className="text-xs text-slate-400 mt-2 group-hover:text-[#2B4C7E] transition-colors">
+                Sync forms &rarr;
+              </p>
+            </Link>
+
+            <Link
+              href="/dashboard/pending-jo-requests"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-[#4A6FA5]/30 hover:shadow-sm transition-all group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-[#4A6FA5]/8 rounded-lg">
+                  <ClipboardDocumentCheckIcon className="h-5 w-5 text-[#4A6FA5]" />
+                </div>
+                {pendingApprovals.jobOrders > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 text-xs font-semibold bg-[#2B4C7E]/10 text-[#2B4C7E] rounded-full">
+                    {pendingApprovals.jobOrders}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-medium text-[#607D8B]">Pending JO</p>
+              <p className="text-3xl font-semibold text-[#1A2F4F] mt-1 tabular-nums">
+                {pendingApprovals.jobOrders}
+              </p>
+              <p className="text-xs text-slate-400 mt-2 group-hover:text-[#2B4C7E] transition-colors">
+                Review requests &rarr;
+              </p>
+            </Link>
+
+            <Link
+              href="/dashboard/pending-dts"
+              className="bg-white border border-slate-200 rounded-xl p-5 hover:border-[#4A6FA5]/30 hover:shadow-sm transition-all group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-[#455A64]/8 rounded-lg">
+                  <ClockIcon className="h-5 w-5 text-[#455A64]" />
+                </div>
+                {pendingApprovals.timesheets > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 text-xs font-semibold bg-[#455A64]/10 text-[#455A64] rounded-full">
+                    {pendingApprovals.timesheets}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-medium text-[#607D8B]">Pending DTS</p>
+              <p className="text-3xl font-semibold text-[#1A2F4F] mt-1 tabular-nums">
+                {pendingApprovals.timesheets}
+              </p>
+              <p className="text-xs text-slate-400 mt-2 group-hover:text-[#2B4C7E] transition-colors">
+                Review timesheets &rarr;
+              </p>
+            </Link>
+          </>
         )}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Activity Chart (Takes up 2/3) */}
-        <div
-          className="lg:col-span-2 bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 p-6 sm:p-8 animate-slideUp"
-          style={{ animationDelay: "200ms" }}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">
-                Activity Trends
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">
-                Visualizing form creation versus new customer acquisition over time.
-              </p>
-            </div>
-            {/* <select className="text-sm border-slate-200 rounded-lg text-slate-600 focus:ring-[#2B4C7E] focus:border-[#2B4C7E] bg-slate-50 py-2 pl-3 pr-8 shadow-sm">
-              <option>Last 6 Months</option>
-              <option>Last Year</option>
-            </select> */}
-          </div>
-
-          <div className="h-[350px] w-full">
-            {isLoading ? (
-              <div className="h-full w-full bg-slate-50 rounded-xl animate-pulse flex items-center justify-center text-slate-400">
-                <span className="flex items-center gap-2 text-sm font-medium">
-                   <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                   Loading Chart Data...
-                </span>
-              </div>
-            ) : (
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Bar Chart */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[#1A2F4F] uppercase tracking-wide mb-4">
+            Submissions by Category
+          </h2>
+          {isLoading ? (
+            <div className="h-[240px] bg-slate-50 rounded-lg animate-pulse" />
+          ) : (
+            <div className="h-[240px]">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={monthlyData}
-                  margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                <BarChart
+                  data={chartData}
+                  margin={{ top: 4, right: 4, bottom: 0, left: -20 }}
                 >
-                  <defs>
-                    <linearGradient id="colorForms" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2B4C7E" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#2B4C7E" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient
-                      id="colorCustomers"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop offset="5%" stopColor="#4A6FA5" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#4A6FA5" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f1f5f9"
-                    vertical={false}
-                  />
                   <XAxis
-                    dataKey="month"
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: "#607D8B" }}
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
-                    dy={10}
+                    interval={0}
+                    angle={-35}
+                    textAnchor="end"
+                    height={60}
                   />
                   <YAxis
+                    tick={{ fontSize: 11, fill: "#607D8B" }}
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: "#64748b", fontSize: 12, fontWeight: 500 }}
+                    allowDecimals={false}
                   />
-                  <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                  <Area
-                    type="monotone"
-                    dataKey="forms"
-                    stroke="#2B4C7E"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorForms)"
-                    name="Forms Created"
-                    activeDot={{ r: 6, strokeWidth: 0, fill: '#2B4C7E' }}
+                  <Tooltip
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                    }}
+                    cursor={{ fill: "rgba(43,76,126,0.04)" }}
                   />
-                  <Area
-                    type="monotone"
-                    dataKey="customers"
-                    stroke="#4A6FA5"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#colorCustomers)"
-                    name="New Customers"
-                    activeDot={{ r: 6, strokeWidth: 0, fill: '#4A6FA5' }}
-                  />
-                </AreaChart>
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={32}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={index} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column - Quick Stats & Distribution */}
-        <div className="space-y-8">
-          {/* Quick Actions Card */}
-          <div
-            className="group relative overflow-hidden bg-[#2B4C7E] rounded-2xl p-6 sm:p-8 shadow-xl text-white animate-slideUp ring-1 ring-white/10"
-            style={{ animationDelay: "300ms" }}
-          >
-             {/* Decorative Background */}
-             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:bg-white/20 transition-all duration-700" />
-             <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-[#4A6FA5]/50 rounded-full blur-2xl" />
-
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-lg flex items-center tracking-tight">
-                    <BoltIcon className="h-5 w-5 mr-2 text-yellow-300" />
-                    Quick Actions
-                </h3>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                <Link
-                    href="/dashboard/customers"
-                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 hover:border-white/20 transition-all duration-300 group/item"
-                >
-                    <div className="p-2 bg-blue-500/20 rounded-lg mb-3 group-hover/item:scale-110 transition-transform duration-300">
-                        <UsersIcon className="h-6 w-6 text-blue-100" />
-                    </div>
-                    <span className="text-xs font-semibold text-blue-50">New Customer</span>
-                </Link>
-                <Link
-                    href="/dashboard/fill-up-form"
-                    className="flex flex-col items-center justify-center p-4 rounded-xl bg-white/10 hover:bg-white/20 border border-white/5 hover:border-white/20 transition-all duration-300 group/item"
-                >
-                    <div className="p-2 bg-purple-500/20 rounded-lg mb-3 group-hover/item:scale-110 transition-transform duration-300">
-                        <DocumentPlusIcon className="h-6 w-6 text-purple-100" />
-                    </div>
-                    <span className="text-xs font-semibold text-purple-50">Fill Form</span>
-                </Link>
-                </div>
-            </div>
-          </div>
-
-          {/* Distribution Chart */}
-          <div
-            className="bg-white rounded-2xl shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07)] border border-slate-100 p-6 animate-slideUp flex flex-col h-[320px]"
-            style={{ animationDelay: "400ms" }}
-          >
-            <div className="mb-4">
-                 <h3 className="font-bold text-slate-900">Entity Distribution</h3>
-                 <p className="text-xs text-slate-500">Breakdown of system records</p>
-            </div>
-            
-            <div className="flex-1 w-full min-h-0">
-              {isLoading ? (
-                <div className="h-full w-full bg-slate-50 rounded-xl animate-pulse" />
-              ) : (
+        {/* Donut Chart */}
+        <div className="bg-white border border-slate-200 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[#1A2F4F] uppercase tracking-wide mb-4">
+            Category Distribution
+          </h2>
+          {isLoading ? (
+            <div className="h-[240px] bg-slate-50 rounded-lg animate-pulse" />
+          ) : (
+            <div className="flex items-center gap-4 h-[240px]">
+              <div className="w-1/2 h-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      {
-                        name: "Customers",
-                        count: stats.totalCustomers,
-                        fill: "#2B4C7E", // Primary Blue
-                      },
-                      {
-                        name: "Engines",
-                        count: stats.totalProducts,
-                        fill: "#4A6FA5", // Lighter Blue
-                      },
-                      {
-                        name: "Companies",
-                        count: stats.totalCompanies,
-                        fill: "#64748b", // Slate
-                      },
-                    ]}
-                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                    barSize={45}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#f1f5f9"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "#64748b", fontWeight: 500 }}
-                      dy={10}
-                    />
-                     <YAxis
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fill: "#64748b", fontSize: 11 }}
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                      stroke="none"
                     />
                     <Tooltip
-                      cursor={{ fill: "#f8fafc" }}
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          return (
-                            <div className="bg-slate-800 text-white text-xs font-medium rounded-lg py-1.5 px-3 shadow-xl">
-                              {`${payload[0].value} ${payload[0].payload.name}`}
-                            </div>
-                          );
-                        }
-                        return null;
+                      contentStyle={{
+                        fontSize: 12,
+                        borderRadius: 8,
+                        border: "1px solid #e2e8f0",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                       }}
                     />
-                    <Bar 
-                        dataKey="count" 
-                        radius={[6, 6, 0, 0]} 
-                        animationDuration={1500}
-                    />
-                  </BarChart>
+                  </PieChart>
                 </ResponsiveContainer>
-              )}
+              </div>
+              <div className="w-1/2 space-y-2">
+                {pieData.map((entry) => (
+                  <div
+                    key={entry.name}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
+                        style={{ backgroundColor: entry.fill }}
+                      />
+                      <span className="text-[#455A64] truncate text-xs">
+                        {entry.name}
+                      </span>
+                    </div>
+                    <span className="text-[#1A2F4F] font-medium tabular-nums ml-2 text-xs">
+                      {entry.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
+      </div>
+
+      {/* Forms Table */}
+      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-[#1A2F4F] uppercase tracking-wide">
+            All Forms
+          </h2>
+        </div>
+
+        {isLoading ? (
+          <div className="p-5 space-y-3">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="h-12 bg-slate-50 rounded-lg animate-pulse"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50/80">
+                  <th className="text-left text-xs font-medium text-[#607D8B] uppercase tracking-wider px-5 py-3">
+                    Form Name
+                  </th>
+                  <th className="text-left text-xs font-medium text-[#607D8B] uppercase tracking-wider px-5 py-3 hidden sm:table-cell">
+                    Category
+                  </th>
+                  <th className="text-right text-xs font-medium text-[#607D8B] uppercase tracking-wider px-5 py-3">
+                    Count
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {formCounts &&
+                  Object.entries(formCounts)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([formType, count]) => {
+                      const config =
+                        formTypeConfig[formType as keyof FormCounts];
+                      return (
+                        <tr
+                          key={formType}
+                          className="group hover:bg-slate-50/60 transition-colors"
+                        >
+                          <td className="px-5 py-3.5">
+                            <Link
+                              href={`/dashboard/records/folders/${formType}`}
+                              className="text-sm font-medium text-[#1A2F4F] group-hover:text-[#2B4C7E] transition-colors"
+                            >
+                              {config.name}
+                            </Link>
+                          </td>
+                          <td className="px-5 py-3.5 hidden sm:table-cell">
+                            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#607D8B]">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full ${CATEGORY_BG_CLASSES[config.category] || "bg-slate-400"}`}
+                              />
+                              {config.category}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3.5 text-right">
+                            <span className="text-sm font-semibold text-[#1A2F4F] tabular-nums">
+                              {count}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

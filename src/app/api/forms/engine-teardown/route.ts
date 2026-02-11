@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -747,8 +747,11 @@ export const POST = withAuth(async (request, { user }) => {
 
     if (fetchError) {
       console.error("Error fetching complete report:", fetchError);
+      await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
       return NextResponse.json({ success: true, data: reportData }, { status: 201 });
     }
+
+    await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
 
     return NextResponse.json({ success: true, data: completeReport }, { status: 201 });
   } catch (error: any) {

@@ -45,14 +45,32 @@ export async function getApprovalsByTable(
 
   const map: Record<string, ApprovalStatus> = {};
   for (const row of data || []) {
+    const l1 = row.level1_status || "pending";
+    const l2 = row.level2_status || "pending";
+    const l1Rejected = row.level1_remarks?.startsWith("REJECTED:");
+    const l2Rejected = row.level2_remarks?.startsWith("REJECTED:");
+
+    // Compute display status from level statuses
+    let displayStatus = "pending_level_1";
+    if (l1Rejected || l2Rejected) {
+      displayStatus = "rejected";
+    } else if (l1 === "completed" && l2 === "completed") {
+      // Both levels approved — user will manually complete later
+      displayStatus = "in-progress";
+    } else if (l1 === "completed" && l2 !== "completed") {
+      displayStatus = "pending_level_2";
+    } else if (row.status === "completed") {
+      displayStatus = "completed";
+    }
+
     map[row.report_id] = {
       approval_id: row.approval_id,
-      approval_status: row.status || "pending",
-      level1_status: row.level1_status || "pending",
+      approval_status: displayStatus,
+      level1_status: l1,
       level1_approved_by: row.level1_approved_by,
       level1_approved_at: row.level1_approved_at,
       level1_remarks: row.level1_remarks,
-      level2_status: row.level2_status || "pending",
+      level2_status: l2,
       level2_approved_by: row.level2_approved_by,
       level2_approved_at: row.level2_approved_at,
       level2_remarks: row.level2_remarks,
@@ -70,4 +88,21 @@ export function getApprovalForRecord(
   recordId: string
 ): ApprovalStatus {
   return approvalMap[recordId] || DEFAULT_APPROVAL;
+}
+
+/**
+ * Create an approval record for a newly submitted service report.
+ * Called from form POST routes after successful insert.
+ */
+export async function createApprovalRecord(
+  supabase: SupabaseClient,
+  reportTable: string,
+  reportId: string,
+  requestedBy: string
+) {
+  return supabase.from("approvals").insert({
+    report_table: reportTable,
+    report_id: String(reportId),
+    requested_by: requestedBy,
+  });
 }

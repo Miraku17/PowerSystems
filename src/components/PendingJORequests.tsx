@@ -11,6 +11,8 @@ import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "./Skeletons";
 import ViewJobOrderRequest from "./ViewJobOrderRequest";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
 
 interface PendingJO {
   id: string;
@@ -42,6 +44,8 @@ export default function PendingJORequests() {
   const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
   const [viewData, setViewData] = useState<Record<string, any> | null>(null);
   const [loadingView, setLoadingView] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 5;
 
   const fetchPending = async () => {
     try {
@@ -62,6 +66,10 @@ export default function PendingJORequests() {
   useEffect(() => {
     fetchPending();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleApprove = async (id: string) => {
     setProcessing(id);
@@ -155,6 +163,28 @@ export default function PendingJORequests() {
       (r.requester_address || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push("ellipsis");
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push("ellipsis");
+      pages.push(totalPages);
+    }
+    return pages;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -194,78 +224,78 @@ export default function PendingJORequests() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   JO Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                   Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                   Requester
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                   Branch
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                   Approval Trail
-                </th>
+                </TableHead>
                 {!meta?.isRequester && (
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <TableHead className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Actions
-                  </th>
+                  </TableHead>
                 )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan={meta?.isRequester ? 7 : 8}>
+                <TableRow>
+                  <TableCell colSpan={meta?.isRequester ? 7 : 8}>
                     <TableSkeleton rows={5} />
-                  </td>
-                </tr>
-              ) : filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => {
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRecords.length > 0 ? (
+                paginatedRecords.map((record) => {
                   const badge = getStatusBadge(record.approval_status);
                   return (
-                    <tr
+                    <TableRow
                       key={record.id}
-                      className="hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="hover:bg-blue-50/50 transition-all duration-200 cursor-pointer group"
                       onClick={() => handleViewRecord(record.id)}
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {record.jo_number || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {record.full_customer_name || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell">
                         {formatDate(record.date_prepared || record.created_at)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden md:table-cell">
                         {record.requester_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">
                         {record.requester_address || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
                         >
                           {badge.label}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${record.level_1_approved_by_name ? (record.level_1_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
@@ -289,9 +319,9 @@ export default function PendingJORequests() {
                             </span>
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
                       {!meta?.isRequester && (
-                        <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
+                        <TableCell className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                           {record.approval_status === `pending_level_${meta?.approvalLevel}` || (meta?.approvalLevel === 0 && record.approval_status.startsWith("pending_level_")) ? (
                             <div className="flex items-center justify-end gap-2">
                               <button
@@ -319,21 +349,68 @@ export default function PendingJORequests() {
                           ) : (
                             <span className="text-xs text-gray-400">—</span>
                           )}
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan={meta?.isRequester ? 7 : 8} className="px-6 py-10 text-center text-gray-500">
-                    No JO requests found.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={meta?.isRequester ? 7 : 8} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                        <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 font-medium">No JO requests found</p>
+                      <p className="text-sm text-gray-400">Try adjusting your search criteria</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    style={{ cursor: currentPage === 1 ? "not-allowed" : "pointer", opacity: currentPage === 1 ? 0.5 : 1 }}
+                    aria-disabled={currentPage === 1}
+                  />
+                </PaginationItem>
+                {getPageNumbers().map((page, idx) =>
+                  page === "ellipsis" ? (
+                    <PaginationItem key={`ellipsis-${idx}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        isActive={currentPage === page}
+                        onClick={() => setCurrentPage(page)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  )
+                )}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    style={{ cursor: currentPage === totalPages ? "not-allowed" : "pointer", opacity: currentPage === totalPages ? 0.5 : 1 }}
+                    aria-disabled={currentPage === totalPages}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* View JO Request Modal */}

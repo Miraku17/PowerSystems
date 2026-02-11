@@ -10,6 +10,8 @@ import {
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "./Skeletons";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
 
 interface PendingApproval {
   id: string;
@@ -40,6 +42,8 @@ export default function PendingServiceReports() {
   const [rejectModal, setRejectModal] = useState<{ id: string; label: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 5;
 
   const fetchPending = async () => {
     try {
@@ -60,6 +64,10 @@ export default function PendingServiceReports() {
   useEffect(() => {
     fetchPending();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   const handleApprove = async (id: string) => {
     setProcessing(id);
@@ -141,6 +149,77 @@ export default function PendingServiceReports() {
       (r.requester_address || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  const renderPaginationItems = () => {
+    const items: React.ReactNode[] = [];
+
+    // Always show first page
+    items.push(
+      <PaginationItem key={1}>
+        <PaginationLink
+          onClick={() => setCurrentPage(1)}
+          isActive={currentPage === 1}
+          style={{ cursor: "pointer" }}
+        >
+          1
+        </PaginationLink>
+      </PaginationItem>
+    );
+
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="start-ellipsis">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Pages adjacent to current
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            onClick={() => setCurrentPage(i)}
+            isActive={currentPage === i}
+            style={{ cursor: "pointer" }}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="end-ellipsis">
+          <PaginationEllipsis />
+        </PaginationItem>
+      );
+    }
+
+    // Always show last page if more than 1 page
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key={totalPages}>
+          <PaginationLink
+            onClick={() => setCurrentPage(totalPages)}
+            isActive={currentPage === totalPages}
+            style={{ cursor: "pointer" }}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>
+      );
+    }
+
+    return items;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -180,83 +259,83 @@ export default function PendingServiceReports() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Form Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   JO Number
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                   Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden sm:table-cell">
                   Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden md:table-cell">
                   Requester
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                   Branch
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                </TableHead>
+                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
                   Approval Trail
-                </th>
+                </TableHead>
                 {!meta?.isRequester && (
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <TableHead className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Actions
-                  </th>
+                  </TableHead>
                 )}
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white divide-y divide-gray-200">
               {loading ? (
-                <tr>
-                  <td colSpan={meta?.isRequester ? 8 : 9}>
+                <TableRow>
+                  <TableCell colSpan={meta?.isRequester ? 8 : 9}>
                     <TableSkeleton rows={5} />
-                  </td>
-                </tr>
-              ) : filteredRecords.length > 0 ? (
-                filteredRecords.map((record) => {
+                  </TableCell>
+                </TableRow>
+              ) : paginatedRecords.length > 0 ? (
+                paginatedRecords.map((record) => {
                   const badge = getStatusBadge(record);
                   return (
-                    <tr
+                    <TableRow
                       key={record.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-blue-50/50 transition-all duration-200 group"
                     >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                         {record.form_type_label}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {record.job_order_no || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden sm:table-cell">
                         {record.customer_name || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden sm:table-cell">
                         {formatDate(record.date_created)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden md:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 hidden md:table-cell">
                         {record.requester_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">
                         {record.requester_address || "-"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
                         >
                           {badge.label}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
+                      </TableCell>
+                      <TableCell className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
                         <div className="space-y-1">
                           <div className="flex items-center gap-1.5">
                             <span className={`w-2 h-2 rounded-full ${record.level1_approved_by_name ? (record.level1_remarks?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
@@ -273,9 +352,9 @@ export default function PendingServiceReports() {
                             </span>
                           </div>
                         </div>
-                      </td>
+                      </TableCell>
                       {!meta?.isRequester && (
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <TableCell className="px-6 py-4 whitespace-nowrap text-right">
                           {(() => {
                             const canAct =
                               (meta?.approvalLevel === 0 && (record.level1_status === "pending" || (record.level1_status === "completed" && record.level2_status === "pending"))) ||
@@ -309,21 +388,52 @@ export default function PendingServiceReports() {
                               <span className="text-xs text-gray-400">—</span>
                             );
                           })()}
-                        </td>
+                        </TableCell>
                       )}
-                    </tr>
+                    </TableRow>
                   );
                 })
               ) : (
-                <tr>
-                  <td colSpan={meta?.isRequester ? 8 : 9} className="px-6 py-10 text-center text-gray-500">
-                    No service reports found.
-                  </td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={meta?.isRequester ? 8 : 9} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center space-y-3">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                        <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 font-medium">No service reports found</p>
+                      <p className="text-sm text-gray-400">Try adjusting your search criteria</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
+
+        {/* Pagination */}
+        {!loading && totalPages > 1 && (
+          <div className="border-t border-gray-200 bg-gray-50 px-6 py-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    style={{ cursor: currentPage === 1 ? "not-allowed" : "pointer" }}
+                    className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+                {renderPaginationItems()}
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    style={{ cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}
+                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* Reject Modal */}

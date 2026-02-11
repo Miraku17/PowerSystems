@@ -17,10 +17,10 @@ interface EditEngineSurfacePumpCommissioningProps {
 interface User { id: string; fullName: string; }
 interface Attachment { id: string; file_url: string; file_name: string; created_at: string; }
 
-const Input = ({ label, name, value, type = "text", onChange }: { label: string; name: string; value: any; type?: string; onChange: (name: string, value: any) => void; }) => (
+const Input = ({ label, name, value, type = "text", disabled = false, onChange }: { label: string; name: string; value: any; type?: string; disabled?: boolean; onChange: (name: string, value: any) => void; }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    <input type={type} name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm" />
+    <input type={type} name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} disabled={disabled} className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`} />
   </div>
 );
 
@@ -92,7 +92,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-8 bg-gray-50/50">
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto space-y-8">
-            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} /><Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date?.split("T")[0] || ""} onChange={handleChange} /></div></div>
+            <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} disabled /><Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date?.split("T")[0] || ""} onChange={handleChange} /></div></div>
 
             <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Basic Information</h4></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} /><Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} /><Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} /><Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date?.split("T")[0] || ""} onChange={handleChange} /><div className="lg:col-span-2"><Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} /></div><Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} /><Input label="Email/Contact" name="email_or_contact" value={formData.email_or_contact} onChange={handleChange} /><div className="lg:col-span-4"><Input label="Address" name="address" value={formData.address} onChange={handleChange} /></div></div></div>
 

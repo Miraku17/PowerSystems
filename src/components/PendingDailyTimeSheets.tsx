@@ -21,6 +21,12 @@ interface PendingDTS {
   approval_status: string;
   requester_name: string;
   requester_address: string;
+  level_1_approved_by_name: string | null;
+  level_1_approved_at: string | null;
+  level_1_notes: string | null;
+  level_2_approved_by_name: string | null;
+  level_2_approved_at: string | null;
+  level_2_notes: string | null;
 }
 
 export default function PendingDailyTimeSheets() {
@@ -127,17 +133,6 @@ export default function PendingDailyTimeSheets() {
     }
   };
 
-  const getLevelLabel = (status: string) => {
-    switch (status) {
-      case "pending_level_1":
-        return "Level 1 (Admin 2)";
-      case "pending_level_2":
-        return "Level 2 (Admin 1)";
-      default:
-        return "-";
-    }
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -160,7 +155,7 @@ export default function PendingDailyTimeSheets() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Pending Daily Time Sheets</h1>
+          <h1 className="text-2xl font-bold text-gray-800">DTS Requests</h1>
           <p className="text-sm text-gray-500 mt-1">
             {meta?.isRequester
               ? "Track the approval status of your Daily Time Sheets."
@@ -189,7 +184,7 @@ export default function PendingDailyTimeSheets() {
           />
         </div>
         <span className="text-sm text-gray-500">
-          {filteredRecords.length} pending record{filteredRecords.length !== 1 ? "s" : ""}
+          {filteredRecords.length} record{filteredRecords.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -215,10 +210,10 @@ export default function PendingDailyTimeSheets() {
                   Branch
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Level
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                  Approval Trail
                 </th>
                 {!meta?.isRequester && (
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -258,9 +253,6 @@ export default function PendingDailyTimeSheets() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                         {record.requester_address || "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {getLevelLabel(record.approval_status)}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
@@ -268,31 +260,53 @@ export default function PendingDailyTimeSheets() {
                           {badge.label}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${record.level_1_approved_by_name ? (record.level_1_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
+                            <span className="text-gray-400">L1:</span>
+                            <span className={record.level_1_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
+                              {record.level_1_approved_by_name || "Pending"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${record.level_2_approved_by_name ? (record.level_2_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
+                            <span className="text-gray-400">L2:</span>
+                            <span className={record.level_2_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
+                              {record.level_2_approved_by_name || "Pending"}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
                       {!meta?.isRequester && (
                         <td className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleApprove(record.id)}
-                              disabled={processing === record.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <CheckCircleIcon className="h-4 w-4" />
-                              Approve
-                            </button>
-                            <button
-                              onClick={() =>
-                                setRejectModal({
-                                  id: record.id,
-                                  jobNumber: record.job_number || record.id,
-                                })
-                              }
-                              disabled={processing === record.id}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <XCircleIcon className="h-4 w-4" />
-                              Reject
-                            </button>
-                          </div>
+                          {record.approval_status === `pending_level_${meta?.approvalLevel}` || (meta?.approvalLevel === 0 && record.approval_status.startsWith("pending_level_")) ? (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleApprove(record.id)}
+                                disabled={processing === record.id}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <CheckCircleIcon className="h-4 w-4" />
+                                Approve
+                              </button>
+                              <button
+                                onClick={() =>
+                                  setRejectModal({
+                                    id: record.id,
+                                    jobNumber: record.job_number || record.id,
+                                  })
+                                }
+                                disabled={processing === record.id}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
                         </td>
                       )}
                     </tr>
@@ -301,7 +315,7 @@ export default function PendingDailyTimeSheets() {
               ) : (
                 <tr>
                   <td colSpan={meta?.isRequester ? 7 : 8} className="px-6 py-10 text-center text-gray-500">
-                    No pending Daily Time Sheets found.
+                    No Daily Time Sheets found.
                   </td>
                 </tr>
               )}

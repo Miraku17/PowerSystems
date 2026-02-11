@@ -55,24 +55,19 @@ export const GET = withAuth(async (request, { user }) => {
       .is("deleted_at", null);
 
     if (isRequester) {
-      // Regular users see their own JOs that are not yet fully approved
-      query = query
-        .eq("created_by", user.id)
-        .in("approval_status", [
-          "pending_level_1",
-          "pending_level_2",
-          "pending_level_3",
-          "rejected",
-        ]);
+      // Regular users see all their own JO requests
+      query = query.eq("created_by", user.id);
     } else if (approvalLevel === 0) {
-      // Super Admin sees all non-approved/non-rejected
-      query = query.in("approval_status", [
-        "pending_level_1",
-        "pending_level_2",
-        "pending_level_3",
-      ]);
-    } else {
-      query = query.eq("approval_status", `pending_level_${approvalLevel}`);
+      // Super Admin sees all
+    } else if (approvalLevel === 1) {
+      // Admin 2: records they need to act on OR have already acted on (level 1)
+      query = query.or("approval_status.eq.pending_level_1,level_1_approved_by.not.is.null");
+    } else if (approvalLevel === 2) {
+      // Super User: records they need to act on OR have already acted on (level 2)
+      query = query.or("approval_status.eq.pending_level_2,level_2_approved_by.not.is.null");
+    } else if (approvalLevel === 3) {
+      // Admin 1: records they need to act on OR have already acted on (level 3)
+      query = query.or("approval_status.eq.pending_level_3,level_3_approved_by.not.is.null");
     }
 
     query = query.order("created_at", { ascending: false });
@@ -96,6 +91,27 @@ export const GET = withAuth(async (request, { user }) => {
       });
     }
 
+    // Collect all unique approver IDs to resolve names in one query
+    const approverIds = new Set<string>();
+    filteredData.forEach((r: any) => {
+      if (r.level_1_approved_by) approverIds.add(r.level_1_approved_by);
+      if (r.level_2_approved_by) approverIds.add(r.level_2_approved_by);
+      if (r.level_3_approved_by) approverIds.add(r.level_3_approved_by);
+    });
+
+    let approverNames: Record<string, string> = {};
+    if (approverIds.size > 0) {
+      const { data: approvers } = await supabase
+        .from("users")
+        .select("id, firstname, lastname")
+        .in("id", Array.from(approverIds));
+      if (approvers) {
+        approverNames = Object.fromEntries(
+          approvers.map((u: any) => [u.id, `${u.firstname} ${u.lastname}`])
+        );
+      }
+    }
+
     // Map to frontend format
     const records = filteredData.map((record: any) => ({
       id: record.id,
@@ -109,12 +125,15 @@ export const GET = withAuth(async (request, { user }) => {
         : "Unknown",
       requester_address: record.requester?.address || "",
       level_1_approved_by: record.level_1_approved_by,
+      level_1_approved_by_name: approverNames[record.level_1_approved_by] || null,
       level_1_approved_at: record.level_1_approved_at,
       level_1_notes: record.level_1_notes,
       level_2_approved_by: record.level_2_approved_by,
+      level_2_approved_by_name: approverNames[record.level_2_approved_by] || null,
       level_2_approved_at: record.level_2_approved_at,
       level_2_notes: record.level_2_notes,
       level_3_approved_by: record.level_3_approved_by,
+      level_3_approved_by_name: approverNames[record.level_3_approved_by] || null,
       level_3_approved_at: record.level_3_approved_at,
       level_3_notes: record.level_3_notes,
     }));

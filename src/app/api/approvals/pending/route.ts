@@ -89,21 +89,16 @@ export const GET = withAuth(async (request, { user }) => {
       .in("report_table", SERVICE_REPORT_TABLES);
 
     if (isRequester) {
-      // Regular users see their own approvals that are not yet completed
-      query = query
-        .eq("requested_by", user.id)
-        .in("status", ["pending", "in-progress"]);
+      // Regular users see all their own service report approvals
+      query = query.eq("requested_by", user.id);
     } else if (approvalLevel === 0) {
-      // Super Admin sees all non-completed
-      query = query.in("status", ["pending", "in-progress"]);
+      // Super Admin sees all
     } else if (approvalLevel === 1) {
-      // Admin 2: Level 1 pending
-      query = query.eq("level1_status", "pending");
+      // Admin 2: records they need to act on OR have already acted on (level 1)
+      query = query.or("level1_status.eq.pending,level1_status.eq.completed");
     } else if (approvalLevel === 2) {
-      // Admin 1: Level 2 pending (Level 1 must be completed)
-      query = query
-        .eq("level1_status", "completed")
-        .eq("level2_status", "pending");
+      // Admin 1: records they need to act on OR have already acted on (level 2)
+      query = query.or("level2_status.eq.pending,level2_status.eq.completed").eq("level1_status", "completed");
     }
 
     query = query.order("created_at", { ascending: false });
@@ -128,14 +123,26 @@ export const GET = withAuth(async (request, { user }) => {
       });
     }
 
-    // Filter out rejected records (remarks starting with "REJECTED:")
-    // for non-requesters (they shouldn't see already-acted-on records)
-    if (!isRequester) {
-      filteredData = filteredData.filter((approval: any) => {
-        const l1Rejected = approval.level1_remarks?.startsWith("REJECTED:");
-        const l2Rejected = approval.level2_remarks?.startsWith("REJECTED:");
-        return !l1Rejected && !l2Rejected;
-      });
+    // No longer filtering out rejected records — show full history
+
+    // Collect all unique approver IDs to resolve names in one query
+    const approverIds = new Set<string>();
+    filteredData.forEach((r: any) => {
+      if (r.level1_approved_by) approverIds.add(r.level1_approved_by);
+      if (r.level2_approved_by) approverIds.add(r.level2_approved_by);
+    });
+
+    let approverNames: Record<string, string> = {};
+    if (approverIds.size > 0) {
+      const { data: approvers } = await supabase
+        .from("users")
+        .select("id, firstname, lastname")
+        .in("id", Array.from(approverIds));
+      if (approvers) {
+        approverNames = Object.fromEntries(
+          approvers.map((u: any) => [u.id, `${u.firstname} ${u.lastname}`])
+        );
+      }
     }
 
     // Now fetch form details for each approval to get JO number, customer, date
@@ -179,8 +186,10 @@ export const GET = withAuth(async (request, { user }) => {
           status: approval.status,
           level1_status: approval.level1_status,
           level1_remarks: approval.level1_remarks,
+          level1_approved_by_name: approverNames[approval.level1_approved_by] || null,
           level2_status: approval.level2_status,
           level2_remarks: approval.level2_remarks,
+          level2_approved_by_name: approverNames[approval.level2_approved_by] || null,
           requester_name: approval.requester
             ? `${approval.requester.firstname} ${approval.requester.lastname}`
             : "Unknown",

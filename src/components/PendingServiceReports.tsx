@@ -23,8 +23,10 @@ interface PendingApproval {
   status: string;
   level1_status: string;
   level1_remarks: string | null;
+  level1_approved_by_name: string | null;
   level2_status: string;
   level2_remarks: string | null;
+  level2_approved_by_name: string | null;
   requester_name: string;
   requester_address: string;
   is_rejected: boolean;
@@ -121,17 +123,6 @@ export default function PendingServiceReports() {
     return { label: record.status, color: "bg-gray-100 text-gray-800" };
   };
 
-  const getLevelLabel = (record: PendingApproval) => {
-    if (record.is_rejected) return "Rejected";
-    if (record.level1_status === "completed" && record.level2_status === "completed")
-      return "Fully Approved";
-    if (record.level1_status === "pending") return "Level 1 (Admin 2)";
-    if (record.level1_status === "completed" && record.level2_status === "pending")
-      return "Level 2 (Admin 1)";
-    if (record.status === "completed") return "Completed";
-    return "-";
-  };
-
   const formatDate = (dateString: string) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -155,7 +146,7 @@ export default function PendingServiceReports() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Pending Service Reports</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Service Reports</h1>
           <p className="text-sm text-gray-500 mt-1">
             {meta?.isRequester
               ? "Track the approval status of your submitted service reports."
@@ -184,7 +175,7 @@ export default function PendingServiceReports() {
           />
         </div>
         <span className="text-sm text-gray-500">
-          {filteredRecords.length} pending report{filteredRecords.length !== 1 ? "s" : ""}
+          {filteredRecords.length} report{filteredRecords.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -213,10 +204,10 @@ export default function PendingServiceReports() {
                   Branch
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Level
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">
+                  Approval Trail
                 </th>
                 {!meta?.isRequester && (
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -258,46 +249,66 @@ export default function PendingServiceReports() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">
                         {record.requester_address || "-"}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {getLevelLabel(record)}
-                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
                         >
                           {badge.label}
                         </span>
-                        {record.level1_status === "completed" && record.level2_status === "completed" && !record.is_rejected && record.status !== "completed" && (
-                          <p className="text-[10px] text-gray-400 mt-1">Both levels approved</p>
-                        )}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${record.level1_approved_by_name ? (record.level1_remarks?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
+                            <span className="text-gray-400">L1:</span>
+                            <span className={record.level1_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
+                              {record.level1_approved_by_name || "Pending"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${record.level2_approved_by_name ? (record.level2_remarks?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
+                            <span className="text-gray-400">L2:</span>
+                            <span className={record.level2_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
+                              {record.level2_approved_by_name || "Pending"}
+                            </span>
+                          </div>
+                        </div>
                       </td>
                       {!meta?.isRequester && (
                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                          {!record.is_rejected && record.status !== "completed" && (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleApprove(record.id)}
-                                disabled={processing === record.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <CheckCircleIcon className="h-4 w-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setRejectModal({
-                                    id: record.id,
-                                    label: record.job_order_no || record.form_type_label,
-                                  })
-                                }
-                                disabled={processing === record.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <XCircleIcon className="h-4 w-4" />
-                                Reject
-                              </button>
-                            </div>
-                          )}
+                          {(() => {
+                            const canAct =
+                              (meta?.approvalLevel === 0 && (record.level1_status === "pending" || (record.level1_status === "completed" && record.level2_status === "pending"))) ||
+                              (meta?.approvalLevel === 1 && record.level1_status === "pending") ||
+                              (meta?.approvalLevel === 2 && record.level1_status === "completed" && record.level2_status === "pending");
+                            return canAct ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleApprove(record.id)}
+                                  disabled={processing === record.id}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <CheckCircleIcon className="h-4 w-4" />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setRejectModal({
+                                      id: record.id,
+                                      label: record.job_order_no || record.form_type_label,
+                                    })
+                                  }
+                                  disabled={processing === record.id}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  <XCircleIcon className="h-4 w-4" />
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">—</span>
+                            );
+                          })()}
                         </td>
                       )}
                     </tr>
@@ -306,7 +317,7 @@ export default function PendingServiceReports() {
               ) : (
                 <tr>
                   <td colSpan={meta?.isRequester ? 8 : 9} className="px-6 py-10 text-center text-gray-500">
-                    No pending service reports found.
+                    No service reports found.
                   </td>
                 </tr>
               )}

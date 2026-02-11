@@ -225,17 +225,17 @@ export default function DashboardLayout({
       href: "/dashboard/pending-forms",
     },
     {
-      name: "Pending JO Requests",
+      name: "JO Requests",
       icon: ShieldCheckIcon,
       href: "/dashboard/pending-jo-requests",
     },
     {
-      name: "Pending DTS",
+      name: "DTS Requests",
       icon: ClockIcon,
       href: "/dashboard/pending-dts",
     },
     {
-      name: "Pending Service Reports",
+      name: "Service Reports",
       icon: ShieldCheckIcon,
       href: "/dashboard/pending-service-reports",
     },

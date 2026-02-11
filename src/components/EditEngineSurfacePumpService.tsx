@@ -32,12 +32,14 @@ const Input = ({
   name,
   value,
   type = "text",
+  disabled = false,
   onChange,
 }: {
   label: string;
   name: string;
   value: any;
   type?: string;
+  disabled?: boolean;
   onChange: (name: string, value: any) => void;
 }) => (
   <div className="flex flex-col w-full">
@@ -49,7 +51,8 @@ const Input = ({
       name={name}
       value={value || ""}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
     />
   </div>
 );
@@ -328,7 +331,7 @@ export default function EditEngineSurfacePumpService({
             {/* Job Reference Emphasis */}
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} />
+                <Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} disabled />
                 <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date?.split("T")[0] || ""} onChange={handleChange} />
               </div>
             </div>

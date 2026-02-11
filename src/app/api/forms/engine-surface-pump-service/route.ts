@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -21,21 +22,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_order,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "engine-surface-pump-service",
-        name: "Engine Driven Surface Pump Service Report",
-        formType: "engine-surface-pump-service",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "engine_surface_pump_service_report");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_order,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "engine-surface-pump-service",
+          name: "Engine Driven Surface Pump Service Report",
+          formType: "engine-surface-pump-service",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {

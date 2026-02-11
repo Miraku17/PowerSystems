@@ -29,7 +29,7 @@ interface Attachment {
 }
 
 // Helper Components
-const Input = ({ label, name, value, type = "text", className = "", step, onChange }: { label: string; name: string; value: any; type?: string; className?: string; step?: string; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, type = "text", className = "", step, onChange, disabled = false }: { label: string; name: string; value: any; type?: string; className?: string; step?: string; onChange: (name: string, value: any) => void; disabled?: boolean }) => (
   <div className={`flex flex-col w-full ${className}`}>
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
@@ -37,8 +37,9 @@ const Input = ({ label, name, value, type = "text", className = "", step, onChan
       name={name}
       value={value || ''}
       step={step}
+      disabled={disabled}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      className={`w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
     />
   </div>
 );

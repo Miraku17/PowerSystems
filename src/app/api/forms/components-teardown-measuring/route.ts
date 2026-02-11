@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
+import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 // --- GET: Fetch all components teardown measuring reports ---
 export const GET = withAuth(async (request, { user }) => {
@@ -21,20 +22,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_order_no,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "components-teardown-measuring",
-        name: "Components Teardown Measuring Report",
-        formType: "components-teardown-measuring",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "components_teardown_measuring_report");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_order_no,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "components-teardown-measuring",
+          name: "Components Teardown Measuring Report",
+          formType: "components-teardown-measuring",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {

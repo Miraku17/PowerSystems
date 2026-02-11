@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -20,21 +21,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "daily-time-sheet",
-        name: "Daily Time Sheet",
-        formType: "daily-time-sheet",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "daily_time_sheet");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_number,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "daily-time-sheet",
+          name: "Daily Time Sheet",
+          formType: "daily-time-sheet",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {

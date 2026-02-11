@@ -182,7 +182,51 @@ END;
 $$;
 
 -- ============================================
--- 5. VIEWS: Pending approvals per level
+-- 5. HELPER: Batch get approval statuses
+-- ============================================
+
+CREATE OR REPLACE FUNCTION public.get_approvals_for_table(
+  p_report_table text
+)
+RETURNS TABLE (
+  report_id text,
+  approval_id uuid,
+  status text,
+  level1_status text,
+  level1_approved_by uuid,
+  level1_approved_at timestamptz,
+  level1_remarks text,
+  level2_status text,
+  level2_approved_by uuid,
+  level2_approved_at timestamptz,
+  level2_remarks text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT DISTINCT ON (a.report_id)
+    a.report_id,
+    a.id AS approval_id,
+    a.status,
+    a.level1_status,
+    a.level1_approved_by,
+    a.level1_approved_at,
+    a.level1_remarks,
+    a.level2_status,
+    a.level2_approved_by,
+    a.level2_approved_at,
+    a.level2_remarks
+  FROM public.approvals a
+  WHERE a.report_table = p_report_table
+  ORDER BY a.report_id, a.created_at DESC;
+END;
+$$;
+
+-- ============================================
+-- 6. VIEWS: Pending approvals per level
 -- ============================================
 
 CREATE OR REPLACE VIEW public.pending_level1_approvals AS

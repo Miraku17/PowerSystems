@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -20,21 +21,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.shop_field_jo_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "job-order-request",
-        name: "Job Order Request Form",
-        formType: "job-order-request",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "job_order_request_form");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.shop_field_jo_number,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "job-order-request",
+          name: "Job Order Request Form",
+          formType: "job-order-request",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {

@@ -1,7 +1,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
-import { isUserAdmin } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -76,10 +76,10 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     }
 
     // Permission check - only admins can delete
-    const adminCheck = await isUserAdmin(serviceSupabase, user.id);
-    if (!adminCheck) {
+    const canDelete = await hasPermission(serviceSupabase, user.id, "form_records", "delete");
+    if (!canDelete) {
       return NextResponse.json(
-        { error: "Only administrators can delete records" },
+        { error: "You do not have permission to delete records" },
         { status: 403 }
       );
     }

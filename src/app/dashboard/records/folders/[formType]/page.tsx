@@ -51,6 +51,7 @@ import EditJobOrderRequest from "@/components/EditJobOrderRequest";
 import ViewDailyTimeSheet from "@/components/ViewDailyTimeSheet";
 import EditDailyTimeSheet from "@/components/EditDailyTimeSheet";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface FormRecord {
   id: string;
@@ -170,7 +171,7 @@ export default function FormRecordsPage() {
 
   // Get permission check functions from auth store
   const canEditRecord = useAuthStore((state) => state.canEditRecord);
-  const isAdmin = useAuthStore((state) => state.isAdmin);
+  const { canDelete: canDeletePermission, canWrite: canWritePermission } = usePermissions();
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -600,7 +601,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !isAdmin()) && (
+                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -639,7 +640,7 @@ export default function FormRecordsPage() {
                               </button>
                             </>
                           )}
-                          {isAdmin() && (
+                          {canDeletePermission("form_records") && (
                             <button
                               onClick={() => setRecordToDelete(record)}
                               className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -727,7 +728,7 @@ export default function FormRecordsPage() {
                             </button>
                           </>
                         )}
-                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !isAdmin()) && (
+                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -743,7 +744,7 @@ export default function FormRecordsPage() {
                         >
                           <PrinterIcon className="h-5 w-5" />
                         </button>
-                        {isAdmin() && (
+                        {canDeletePermission("form_records") && (
                           <button
                             onClick={() => setRecordToDelete(record)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"

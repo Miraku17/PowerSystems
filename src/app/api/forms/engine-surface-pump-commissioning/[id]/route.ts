@@ -1,7 +1,7 @@
 import { getServiceSupabase } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import { withAuth } from "@/lib/auth-middleware";
-import { isUserAdmin } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
 
 export const DELETE = withAuth(async (request, { user, params }) => {
   try {
@@ -21,8 +21,13 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     if (fetchError) return NextResponse.json({ error: fetchError.message }, { status: 500 });
     if (record.deleted_at) return NextResponse.json({ error: "Record is already deleted" }, { status: 400 });
 
-    const adminCheck = await isUserAdmin(serviceSupabase, user.id);
-    if (!adminCheck) return NextResponse.json({ error: "Only administrators can delete records" }, { status: 403 });
+    const canDelete = await hasPermission(serviceSupabase, user.id, "form_records", "delete");
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "You do not have permission to delete records" },
+        { status: 403 }
+      );
+    }
 
     const { data, error } = await serviceSupabase
       .from("engine_surface_pump_commissioning_report")

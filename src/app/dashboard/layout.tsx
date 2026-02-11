@@ -50,6 +50,7 @@ export default function DashboardLayout({
   const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("user");
+  const [userPosition, setUserPosition] = useState<string>("");
   const [userLoading, setUserLoading] = useState(true);
 
   // Auth store actions
@@ -86,6 +87,9 @@ export default function DashboardLayout({
 
       if (user && user.role) {
         setUserRole(user.role);
+      }
+      if (user && user.position) {
+        setUserPosition(user.position);
       }
     }
     setUserLoading(false);
@@ -550,7 +554,7 @@ export default function DashboardLayout({
                 <p className="text-sm font-semibold text-white truncate leading-tight">
                   {userName}
                 </p>
-                <p className="text-[11px] text-blue-200/60 truncate capitalize mt-0.5">{userRole}</p>
+                <p className="text-[11px] text-blue-200/60 truncate mt-0.5">{userPosition}</p>
               </div>
             )}
             {!sidebarCollapsed && (

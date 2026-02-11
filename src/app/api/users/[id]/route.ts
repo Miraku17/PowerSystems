@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 // PUT handler for updating a user
 export const PUT = withAuth(async (request, { user, params }) => {
@@ -16,16 +17,18 @@ export const PUT = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Optional: Add authorization logic here.
-    // For example, allow only admins or the user themselves to update the profile.
-    // if (user.id !== id && !user.isAdmin) { // Assuming an 'isAdmin' property
-    //   return NextResponse.json(
-    //     { success: false, message: "You are not authorized to perform this action" },
-    //     { status: 403 }
-    //   );
-    // }
-
     const supabase = getServiceSupabase();
+
+    // Only users with user_creation write permission can update other users
+    if (user.id !== id) {
+      const canWrite = await hasPermission(supabase, user.id, "user_creation", "write");
+      if (!canWrite) {
+        return NextResponse.json(
+          { success: false, message: "You do not have permission to update users" },
+          { status: 403 }
+        );
+      }
+    }
 
     const { data, error } = await supabase
       .from("users")
@@ -76,15 +79,16 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Optional: Add authorization logic here (e.g., only admins).
-    // if (!user.isAdmin) {
-    //   return NextResponse.json(
-    //     { success: false, message: "You are not authorized to perform this action" },
-    //     { status: 403 }
-    //   );
-    // }
-
     const supabase = getServiceSupabase();
+
+    // Only users with user_creation delete permission can delete users
+    const canDelete = await hasPermission(supabase, user.id, "user_creation", "delete");
+    if (!canDelete) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to delete users" },
+        { status: 403 }
+      );
+    }
 
     // First, delete from the public 'users' table
     const { error: publicUserError } = await supabase

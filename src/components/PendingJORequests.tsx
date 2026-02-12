@@ -7,6 +7,7 @@ import {
   XMarkIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "./Skeletons";
@@ -42,8 +43,7 @@ export default function PendingJORequests() {
   const [rejectModal, setRejectModal] = useState<{ id: string; joNumber: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
-  const [viewData, setViewData] = useState<Record<string, any> | null>(null);
-  const [loadingView, setLoadingView] = useState(false);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
@@ -113,20 +113,20 @@ export default function PendingJORequests() {
     }
   };
 
-  const handleViewRecord = async (id: string) => {
-    setLoadingView(true);
-    try {
-      const response = await apiClient.get(`/forms/job-order-request/${id}`);
+  const { data: viewData, isFetching: loadingView } = useQuery({
+    queryKey: ["jo-request-detail", selectedRecordId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/forms/job-order-request/${selectedRecordId}`);
       if (response.data.success) {
-        setViewData(response.data.data);
-      } else {
-        toast.error("Failed to load JO request details");
+        return response.data.data;
       }
-    } catch (error) {
-      toast.error("Failed to load JO request details");
-    } finally {
-      setLoadingView(false);
-    }
+      throw new Error("Failed to load JO request details");
+    },
+    enabled: !!selectedRecordId,
+  });
+
+  const handleViewRecord = (id: string) => {
+    setSelectedRecordId(id);
   };
 
   const getStatusBadge = (status: string) => {
@@ -414,10 +414,10 @@ export default function PendingJORequests() {
       </div>
 
       {/* View JO Request Modal */}
-      {viewData && (
+      {viewData && selectedRecordId && (
         <ViewJobOrderRequest
           data={viewData}
-          onClose={() => setViewData(null)}
+          onClose={() => setSelectedRecordId(null)}
         />
       )}
 

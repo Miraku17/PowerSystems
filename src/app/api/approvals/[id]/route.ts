@@ -9,9 +9,9 @@ export const POST = withAuth(async (request, { params, user }) => {
     const body = await request.json();
     const { action, notes } = body;
 
-    if (!action || !["approve", "reject", "close"].includes(action)) {
+    if (!action || !["approve", "reject", "close", "complete"].includes(action)) {
       return NextResponse.json(
-        { success: false, message: "Invalid action. Must be 'approve', 'reject', or 'close'" },
+        { success: false, message: "Invalid action. Must be 'approve', 'reject', 'close', or 'complete'" },
         { status: 400 }
       );
     }
@@ -50,10 +50,14 @@ export const POST = withAuth(async (request, { params, user }) => {
         canApproveLevel = 0; // can approve any level
         break;
       default:
-        return NextResponse.json(
-          { success: false, message: "You do not have approval permissions" },
-          { status: 403 }
-        );
+        // Regular users can only use the "complete" action
+        if (action !== "complete") {
+          return NextResponse.json(
+            { success: false, message: "You do not have approval permissions" },
+            { status: 403 }
+          );
+        }
+        break;
     }
 
     // Fetch the approval record
@@ -68,6 +72,58 @@ export const POST = withAuth(async (request, { params, user }) => {
         { success: false, message: "Approval record not found" },
         { status: 404 }
       );
+    }
+
+    // Handle "complete" action — only the requester (creator) can mark as completed
+    if (action === "complete") {
+      if (approval.requested_by !== user.id) {
+        return NextResponse.json(
+          { success: false, message: "Only the creator of this form can mark it as completed" },
+          { status: 403 }
+        );
+      }
+
+      // Must be in-progress (both levels approved, not rejected)
+      const l1Rejected = approval.level1_remarks?.startsWith("REJECTED:");
+      const l2Rejected = approval.level2_remarks?.startsWith("REJECTED:");
+      if (approval.status !== "in-progress" || l1Rejected || l2Rejected) {
+        return NextResponse.json(
+          { success: false, message: "Only in-progress service forms can be marked as completed" },
+          { status: 400 }
+        );
+      }
+
+      const now = new Date().toISOString();
+      const { data: completedRecord, error: completeError } = await supabase
+        .from("approvals")
+        .update({ status: "completed" })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (completeError) {
+        console.error("Error completing approval:", completeError);
+        return NextResponse.json(
+          { success: false, message: completeError.message },
+          { status: 500 }
+        );
+      }
+
+      await supabase.from("audit_logs").insert({
+        table_name: "approvals",
+        record_id: id,
+        action: "COMPLETE",
+        old_data: { status: approval.status },
+        new_data: { status: "completed" },
+        performed_by: user.id,
+        performed_at: now,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Service report marked as completed",
+        data: completedRecord,
+      });
     }
 
     // Handle "close" action — Admin 2 (same branch) or Super Admin only

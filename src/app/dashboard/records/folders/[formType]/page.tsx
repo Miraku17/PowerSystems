@@ -165,6 +165,7 @@ export default function FormRecordsPage() {
   const [approvalProcessing, setApprovalProcessing] = useState<string | null>(null);
   const [rejectModal, setRejectModal] = useState<{ approvalId: string; label: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
+  const [completeModal, setCompleteModal] = useState<{ approvalId: string; label: string } | null>(null);
   const [userPosition, setUserPosition] = useState<string | null>(null);
 
   // Check if this form type uses the centralized approvals table
@@ -293,6 +294,36 @@ export default function FormRecordsPage() {
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to reject");
+    } finally {
+      setApprovalProcessing(null);
+    }
+  };
+
+  const canCompleteRecord = (record: FormRecord) => {
+    if (!isServiceReport || !record.approval?.approval_id) return false;
+    const { level1_status, level2_status, level1_remarks, level2_remarks } = record.approval;
+    if (level1_remarks?.startsWith("REJECTED:") || level2_remarks?.startsWith("REJECTED:")) return false;
+    if (level1_status !== "completed" || level2_status !== "completed") return false;
+    if (record.data?.approval_status !== "in-progress") return false;
+    // Only the creator can mark as completed
+    const currentUser = useAuthStore.getState().user;
+    return currentUser?.id === record.created_by;
+  };
+
+  const handleCompleteRecord = async () => {
+    if (!completeModal) return;
+    setApprovalProcessing(completeModal.approvalId);
+    try {
+      const response = await apiClient.post(`/approvals/${completeModal.approvalId}`, { action: "complete" });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        setCompleteModal(null);
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to mark as completed");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to mark as completed");
     } finally {
       setApprovalProcessing(null);
     }
@@ -632,7 +663,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
+                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "closed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -670,6 +701,16 @@ export default function FormRecordsPage() {
                                 <XCircleIcon className="h-4 w-4" />
                               </button>
                             </>
+                          )}
+                          {canCompleteRecord(record) && record.approval?.approval_id && (
+                            <button
+                              onClick={() => setCompleteModal({ approvalId: record.approval!.approval_id!, label: record.data?.job_order_no || record.data?.job_order || normalizedFormType })}
+                              disabled={approvalProcessing === record.approval!.approval_id}
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Mark as Completed"
+                            >
+                              <CheckCircleIcon className="h-4 w-4" />
+                            </button>
                           )}
                           {canCloseRecord(record) && record.approval?.approval_id && (
                             <button
@@ -769,6 +810,16 @@ export default function FormRecordsPage() {
                             </button>
                           </>
                         )}
+                        {canCompleteRecord(record) && record.approval?.approval_id && (
+                          <button
+                            onClick={() => setCompleteModal({ approvalId: record.approval!.approval_id!, label: record.data?.job_order_no || record.data?.job_order || normalizedFormType })}
+                            disabled={approvalProcessing === record.approval!.approval_id}
+                            className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Mark as Completed"
+                          >
+                            <CheckCircleIcon className="h-5 w-5" />
+                          </button>
+                        )}
                         {canCloseRecord(record) && record.approval?.approval_id && (
                           <button
                             onClick={() => handleCloseRecord(record.approval!.approval_id!)}
@@ -779,7 +830,7 @@ export default function FormRecordsPage() {
                             <CheckCircleIcon className="h-5 w-5" />
                           </button>
                         )}
-                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
+                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "closed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -1221,6 +1272,58 @@ export default function FormRecordsPage() {
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {approvalProcessing === rejectModal.approvalId ? "Rejecting..." : "Reject"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Confirmation Modal */}
+      {completeModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCompleteModal(null);
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-emerald-100">
+                  <CheckCircleIcon className="h-6 w-6 text-emerald-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Mark as Completed</h3>
+              </div>
+              <button
+                onClick={() => setCompleteModal(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600">
+                Are you sure you want to mark <span className="font-semibold">{completeModal.label}</span> as completed?
+              </p>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setCompleteModal(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCompleteRecord}
+                disabled={approvalProcessing === completeModal.approvalId}
+                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {approvalProcessing === completeModal.approvalId ? "Completing..." : "Confirm"}
               </button>
             </div>
           </div>

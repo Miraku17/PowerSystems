@@ -190,6 +190,7 @@ export const GET = withAuth(async (request, { user }) => {
           level2_status: approval.level2_status,
           level2_remarks: approval.level2_remarks,
           level2_approved_by_name: approverNames[approval.level2_approved_by] || null,
+          requested_by: approval.requested_by,
           requester_name: approval.requester
             ? `${approval.requester.firstname} ${approval.requester.lastname}`
             : "Unknown",

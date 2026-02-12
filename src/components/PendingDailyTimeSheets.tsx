@@ -7,6 +7,7 @@ import {
   XMarkIcon,
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
+import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "./Skeletons";
@@ -39,8 +40,7 @@ export default function PendingDailyTimeSheets() {
   const [rejectModal, setRejectModal] = useState<{ id: string; jobNumber: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
-  const [viewData, setViewData] = useState<Record<string, any> | null>(null);
-  const [loadingView, setLoadingView] = useState(false);
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
@@ -110,20 +110,20 @@ export default function PendingDailyTimeSheets() {
     }
   };
 
-  const handleViewRecord = async (id: string) => {
-    setLoadingView(true);
-    try {
-      const response = await apiClient.get(`/forms/daily-time-sheet/${id}`);
+  const { data: viewData, isFetching: loadingView } = useQuery({
+    queryKey: ["dts-detail", selectedRecordId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/forms/daily-time-sheet/${selectedRecordId}`);
       if (response.data.success) {
-        setViewData(response.data.data);
-      } else {
-        toast.error("Failed to load Daily Time Sheet details");
+        return response.data.data;
       }
-    } catch (error) {
-      toast.error("Failed to load Daily Time Sheet details");
-    } finally {
-      setLoadingView(false);
-    }
+      throw new Error("Failed to load Daily Time Sheet details");
+    },
+    enabled: !!selectedRecordId,
+  });
+
+  const handleViewRecord = (id: string) => {
+    setSelectedRecordId(id);
   };
 
   const getStatusBadge = (status: string) => {
@@ -414,10 +414,10 @@ export default function PendingDailyTimeSheets() {
       </div>
 
       {/* View DTS Modal */}
-      {viewData && (
+      {viewData && selectedRecordId && (
         <ViewDailyTimeSheet
           data={viewData}
-          onClose={() => setViewData(null)}
+          onClose={() => setSelectedRecordId(null)}
         />
       )}
 

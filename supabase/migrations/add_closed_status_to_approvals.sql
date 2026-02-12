@@ -19,8 +19,8 @@ AS $$
 BEGIN
   NEW.updated_at = now();
 
-  -- Preserve closed status (only set via explicit close action)
-  IF NEW.status = 'closed' THEN
+  -- Preserve completed/closed status (only set via explicit user actions)
+  IF NEW.status IN ('completed', 'closed') THEN
     -- still update approved_at timestamps if levels changed
     IF NEW.level1_status != OLD.level1_status AND NEW.level1_status = 'completed' THEN
       NEW.level1_approved_at = now();

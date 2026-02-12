@@ -210,6 +210,7 @@ export default function DashboardLayout({
       name: "Fill Up Form",
       icon: DocumentTextIcon,
       href: "/dashboard/fill-up-form",
+      section: "Forms",
     },
     {
       name: "Daily Time Sheet",
@@ -230,6 +231,7 @@ export default function DashboardLayout({
       name: "JO Requests",
       icon: ShieldCheckIcon,
       href: "/dashboard/pending-jo-requests",
+      section: "Approvals",
     },
     {
       name: "DTS Requests",
@@ -245,6 +247,7 @@ export default function DashboardLayout({
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
+      section: "System",
     },
   ];
 
@@ -371,10 +374,18 @@ export default function DashboardLayout({
             </div>
           )}
           
-          {navigation.map((item) => {
+          {navigation.map((item: any) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
+
+            const sectionLabel = item.section && !sidebarCollapsed ? (
+              <div className="pt-4 pb-1 px-2.5">
+                <div className="text-[10px] font-semibold text-blue-200/40 uppercase tracking-wider">{item.section}</div>
+              </div>
+            ) : item.section && sidebarCollapsed ? (
+              <div className="pt-3 pb-1 mx-2.5 border-t border-white/10" />
+            ) : null;
 
             if (item.hasSubmenu) {
               const isExpanded =
@@ -391,7 +402,9 @@ export default function DashboardLayout({
                   : setProductsExpanded;
 
               return (
-                <div key={item.href} className="group/menu">
+                <div key={item.href}>
+                  {sectionLabel}
+                <div className="group/menu">
                   <button
                     onClick={() => {
                       if (sidebarCollapsed) {
@@ -513,12 +526,14 @@ export default function DashboardLayout({
                     </div>
                   </div>
                 </div>
+                </div>
               );
             }
 
             return (
+              <div key={item.href}>
+                {sectionLabel}
               <button
-                key={item.href}
                 onClick={() => {
                   router.push(item.href);
                   setSidebarOpen(false);
@@ -541,6 +556,7 @@ export default function DashboardLayout({
                   <span className="text-sm">{item.name}</span>
                 )}
               </button>
+              </div>
             );
           })}
         </nav>

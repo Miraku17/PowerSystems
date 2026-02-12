@@ -663,7 +663,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "closed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
+                          {canEditRecord(record.created_by) && record.data?.approval_status !== "completed" && record.data?.approval_status !== "closed" && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -830,7 +830,7 @@ export default function FormRecordsPage() {
                             <CheckCircleIcon className="h-5 w-5" />
                           </button>
                         )}
-                        {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "closed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
+                        {canEditRecord(record.created_by) && record.data?.approval_status !== "completed" && record.data?.approval_status !== "closed" && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"

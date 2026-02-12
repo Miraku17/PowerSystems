@@ -127,6 +127,11 @@ function ApprovalStatusBadge({ status }: { status?: string }) {
       color: "bg-green-50 text-green-700 border border-green-200",
       icon: <CheckCircleIcon className="h-3.5 w-3.5" />
     },
+    closed: {
+      label: "Closed",
+      color: "bg-purple-50 text-purple-700 border border-purple-200",
+      icon: <CheckCircleIcon className="h-3.5 w-3.5" />
+    },
   };
 
   const statusConfig = config[status || ""] || {
@@ -288,6 +293,32 @@ export default function FormRecordsPage() {
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Failed to reject");
+    } finally {
+      setApprovalProcessing(null);
+    }
+  };
+
+  const canCloseRecord = (record: FormRecord) => {
+    if (!isServiceReport || !record.approval?.approval_id) return false;
+    const { level1_status, level2_status, level1_remarks, level2_remarks } = record.approval;
+    if (level1_remarks?.startsWith("REJECTED:") || level2_remarks?.startsWith("REJECTED:")) return false;
+    if (level1_status !== "completed" || level2_status !== "completed") return false;
+    if (record.data?.approval_status === "closed") return false;
+    return userPosition === "Admin 2" || userPosition === "Super Admin";
+  };
+
+  const handleCloseRecord = async (approvalId: string) => {
+    setApprovalProcessing(approvalId);
+    try {
+      const response = await apiClient.post(`/approvals/${approvalId}`, { action: "close" });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to close");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to close");
     } finally {
       setApprovalProcessing(null);
     }
@@ -640,6 +671,16 @@ export default function FormRecordsPage() {
                               </button>
                             </>
                           )}
+                          {canCloseRecord(record) && record.approval?.approval_id && (
+                            <button
+                              onClick={() => handleCloseRecord(record.approval!.approval_id!)}
+                              disabled={approvalProcessing === record.approval!.approval_id}
+                              className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="Close"
+                            >
+                              <CheckCircleIcon className="h-4 w-4" />
+                            </button>
+                          )}
                           {canDeletePermission("form_records") && (
                             <button
                               onClick={() => setRecordToDelete(record)}
@@ -727,6 +768,16 @@ export default function FormRecordsPage() {
                               <XCircleIcon className="h-5 w-5" />
                             </button>
                           </>
+                        )}
+                        {canCloseRecord(record) && record.approval?.approval_id && (
+                          <button
+                            onClick={() => handleCloseRecord(record.approval!.approval_id!)}
+                            disabled={approvalProcessing === record.approval!.approval_id}
+                            className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Close"
+                          >
+                            <CheckCircleIcon className="h-5 w-5" />
+                          </button>
                         )}
                         {canEditRecord(record.created_by) && !((record.data?.approval_status === "completed" || record.data?.approval_status === "approved") && !canWritePermission("form_records")) && (
                           <button

@@ -305,13 +305,13 @@ export default function DashboardLayout({
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] bg-[#083459] text-slate-300 shadow-xl border-r border-white/5 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${sidebarCollapsed ? "w-20" : "w-[280px]"}`}
+        } ${sidebarCollapsed ? "w-[68px]" : "w-[230px]"}`}
       >
         {/* Logo Section */}
-        <div className="flex items-center h-[72px] px-6 border-b border-white/5 relative bg-[#052642]">
+        <div className="flex items-center h-[60px] px-4 border-b border-white/5 relative bg-[#052642]">
           {sidebarCollapsed ? (
             <div className="w-full flex justify-center">
-              <div className="w-9 h-9 relative">
+              <div className="w-8 h-8 relative">
                 <Image
                   src="/images/powersystemslogov2.png"
                   alt="Logo"
@@ -321,8 +321,8 @@ export default function DashboardLayout({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 relative flex-shrink-0">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-7 h-7 relative flex-shrink-0">
                 <Image
                   src="/images/powersystemslogov2.png"
                   alt="Logo"
@@ -331,10 +331,10 @@ export default function DashboardLayout({
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-white font-bold text-base tracking-tight leading-none">
+                <span className="text-white font-bold text-sm tracking-tight leading-none">
                   Power Systems
                 </span>
-                <span className="text-[10px] text-blue-200/60 font-medium uppercase tracking-wider mt-1">
+                <span className="text-[9px] text-blue-200/60 font-medium uppercase tracking-wider mt-0.5">
                   Admin Panel
                 </span>
               </div>
@@ -353,7 +353,7 @@ export default function DashboardLayout({
         {/* Toggle Button (Desktop) */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-[88px] bg-white text-slate-700 p-1.5 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] border border-slate-200 hover:bg-slate-50 hover:text-[#083459] transition-all z-50 items-center justify-center group"
+          className="hidden lg:flex absolute -right-3 top-[76px] bg-white text-slate-700 p-1 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] border border-slate-200 hover:bg-slate-50 hover:text-[#083459] transition-all z-50 items-center justify-center group"
         >
           <ChevronLeftIcon
             className={`h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110 ${
@@ -363,10 +363,10 @@ export default function DashboardLayout({
         </button>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <nav className="flex-1 px-2.5 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {/* Section Label (Optional, only show if not collapsed) */}
           {!sidebarCollapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-blue-200/40 uppercase tracking-wider">
+            <div className="px-2.5 mb-1.5 text-xs font-semibold text-blue-200/40 uppercase tracking-wider">
               Main Menu
             </div>
           )}
@@ -401,7 +401,7 @@ export default function DashboardLayout({
                         setExpanded(!isExpanded);
                       }
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-all duration-200 relative group ${
                       isActive
                         ? "bg-[#4A6FA5] text-white font-medium shadow-md"
                         : "text-blue-100/70 hover:bg-white/5 hover:text-white"
@@ -410,11 +410,11 @@ export default function DashboardLayout({
                   >
                     <div
                       className={`flex items-center ${
-                        sidebarCollapsed ? "justify-center w-full" : "gap-3"
+                        sidebarCollapsed ? "justify-center w-full" : "gap-2.5"
                       }`}
                     >
                       <Icon
-                        className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                        className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
                           isActive
                             ? "text-white"
                             : "text-blue-100/60 group-hover:text-white"
@@ -426,7 +426,7 @@ export default function DashboardLayout({
                     </div>
                     {!sidebarCollapsed && (
                       <ChevronDownIcon
-                        className={`h-4 w-4 text-blue-200/40 transition-transform duration-300 ${
+                        className={`h-3.5 w-3.5 text-blue-200/40 transition-transform duration-300 ${
                           isExpanded ? "rotate-180" : ""
                         }`}
                       />
@@ -450,7 +450,7 @@ export default function DashboardLayout({
                               router.push(item.href);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname === item.href && !activeCompanyTab
                                 ? "text-white font-medium before:bg-blue-300"
                                 : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
@@ -465,7 +465,7 @@ export default function DashboardLayout({
                                 router.push(`${item.href}?tab=${company.id}`);
                                 setSidebarOpen(false);
                               }}
-                              className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 truncate ${
+                              className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 truncate ${
                                 pathname.includes("/companies") &&
                                 activeCompanyTab === String(company.id)
                                   ? "text-white font-medium before:bg-blue-300"
@@ -485,7 +485,7 @@ export default function DashboardLayout({
                               router.push(`${item.href}?tab=engines`);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname.includes("/products") &&
                               activeProductTab === "engines"
                                 ? "text-white font-medium before:bg-blue-300"
@@ -499,7 +499,7 @@ export default function DashboardLayout({
                               router.push(`${item.href}?tab=pumps`);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname.includes("/products") &&
                               activeProductTab === "pumps"
                                 ? "text-white font-medium before:bg-blue-300"
@@ -523,15 +523,15 @@ export default function DashboardLayout({
                   router.push(item.href);
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                className={`w-full flex items-center px-2.5 py-2 rounded-lg transition-all duration-200 group relative ${
                   isActive
                     ? "bg-[#4A6FA5] text-white font-medium shadow-md"
                     : "text-blue-100/70 hover:bg-white/5 hover:text-white"
-                } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                } ${sidebarCollapsed ? "justify-center" : "gap-2.5"}`}
                 title={sidebarCollapsed ? item.name : ""}
               >
                 <Icon
-                  className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                  className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
                     isActive
                       ? "text-white"
                       : "text-blue-100/60 group-hover:text-white"
@@ -546,13 +546,13 @@ export default function DashboardLayout({
         </nav>
 
         {/* User Profile Section */}
-        <div className="p-4 border-t border-white/5 bg-[#052642]">
+        <div className="p-3 border-t border-white/5 bg-[#052642]">
           <div
             className={`flex items-center ${
-              sidebarCollapsed ? "justify-center" : "gap-3"
+              sidebarCollapsed ? "justify-center" : "gap-2.5"
             }`}
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2B4C7E] to-[#4A6FA5] flex items-center justify-center text-white font-bold text-sm shadow-inner ring-2 ring-blue-900/50">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2B4C7E] to-[#4A6FA5] flex items-center justify-center text-white font-bold text-xs shadow-inner ring-2 ring-blue-900/50">
               {userName.charAt(0).toUpperCase()}
             </div>
             {!sidebarCollapsed && (
@@ -560,26 +560,26 @@ export default function DashboardLayout({
                 <p className="text-sm font-semibold text-white truncate leading-tight">
                   {userName}
                 </p>
-                <p className="text-[11px] text-blue-200/60 truncate mt-0.5">{userPosition}</p>
+                <p className="text-xs text-blue-200/60 truncate mt-0.5">{userPosition}</p>
               </div>
             )}
             {!sidebarCollapsed && (
               <button
                 onClick={handleLogout}
-                className="p-1.5 text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className="p-1 text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
                 title="Logout"
               >
-                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+                <ArrowLeftOnRectangleIcon className="h-[18px] w-[18px]" />
               </button>
             )}
           </div>
           {sidebarCollapsed && (
             <button
               onClick={handleLogout}
-              className="mt-4 w-full p-2 flex justify-center text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+              className="mt-3 w-full p-1.5 flex justify-center text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               title="Logout"
             >
-              <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+              <ArrowLeftOnRectangleIcon className="h-[18px] w-[18px]" />
             </button>
           )}
         </div>
@@ -588,7 +588,7 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div
         className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
-          sidebarCollapsed ? "lg:ml-20" : "lg:ml-[280px]"
+          sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[230px]"
         }`}
       >
         {/* Top Mobile Bar */}

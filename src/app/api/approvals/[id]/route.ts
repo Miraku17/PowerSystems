@@ -9,9 +9,9 @@ export const POST = withAuth(async (request, { params, user }) => {
     const body = await request.json();
     const { action, notes } = body;
 
-    if (!action || !["approve", "reject"].includes(action)) {
+    if (!action || !["approve", "reject", "close"].includes(action)) {
       return NextResponse.json(
-        { success: false, message: "Invalid action. Must be 'approve' or 'reject'" },
+        { success: false, message: "Invalid action. Must be 'approve', 'reject', or 'close'" },
         { status: 400 }
       );
     }
@@ -68,6 +68,81 @@ export const POST = withAuth(async (request, { params, user }) => {
         { success: false, message: "Approval record not found" },
         { status: 404 }
       );
+    }
+
+    // Handle "close" action — Admin 2 (same branch) or Super Admin only
+    if (action === "close") {
+      if (positionName !== "Admin 2" && positionName !== "Super Admin") {
+        return NextResponse.json(
+          { success: false, message: "Only Admin 2 or Super Admin can close service forms" },
+          { status: 403 }
+        );
+      }
+
+      // Both levels must be approved (completed) and not rejected
+      const l1Rejected = approval.level1_remarks?.startsWith("REJECTED:");
+      const l2Rejected = approval.level2_remarks?.startsWith("REJECTED:");
+      if (
+        approval.level1_status !== "completed" ||
+        approval.level2_status !== "completed" ||
+        l1Rejected ||
+        l2Rejected
+      ) {
+        return NextResponse.json(
+          { success: false, message: "Both levels must be approved before closing" },
+          { status: 400 }
+        );
+      }
+
+      if (approval.status === "closed") {
+        return NextResponse.json(
+          { success: false, message: "This service form is already closed" },
+          { status: 400 }
+        );
+      }
+
+      // For Admin 2, check branch match
+      if (positionName === "Admin 2") {
+        const requesterAddress = approval.requester?.address;
+        if (!requesterAddress || requesterAddress !== userAddress) {
+          return NextResponse.json(
+            { success: false, message: "You can only close records from your branch" },
+            { status: 403 }
+          );
+        }
+      }
+
+      const now = new Date().toISOString();
+      const { data: closedRecord, error: closeError } = await supabase
+        .from("approvals")
+        .update({ status: "closed" })
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (closeError) {
+        console.error("Error closing approval:", closeError);
+        return NextResponse.json(
+          { success: false, message: closeError.message },
+          { status: 500 }
+        );
+      }
+
+      await supabase.from("audit_logs").insert({
+        table_name: "approvals",
+        record_id: id,
+        action: "CLOSE",
+        old_data: { status: approval.status },
+        new_data: { status: "closed" },
+        performed_by: user.id,
+        performed_at: now,
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: "Service report closed successfully",
+        data: closedRecord,
+      });
     }
 
     // Determine which level needs action

@@ -6,12 +6,26 @@ import {
   XCircleIcon,
   XMarkIcon,
   MagnifyingGlassIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { TableSkeleton } from "./Skeletons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationPrevious, PaginationNext, PaginationEllipsis } from "@/components/ui/pagination";
+import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
+import ViewDeutzService from "@/components/ViewDeutzService";
+import ViewSubmersiblePumpCommissioning from "@/components/ViewSubmersiblePumpCommissioning";
+import ViewSubmersiblePumpService from "@/components/ViewSubmersiblePumpService";
+import ViewSubmersiblePumpTeardown from "@/components/ViewSubmersiblePumpTeardown";
+import ViewElectricSurfacePumpCommissioning from "@/components/ViewElectricSurfacePumpCommissioning";
+import ViewElectricSurfacePumpService from "@/components/ViewElectricSurfacePumpService";
+import ViewEngineSurfacePumpService from "@/components/ViewEngineSurfacePumpService";
+import ViewEngineSurfacePumpCommissioning from "@/components/ViewEngineSurfacePumpCommissioning";
+import ViewEngineTeardown from "@/components/ViewEngineTeardown";
+import ViewElectricSurfacePumpTeardown from "@/components/ViewElectricSurfacePumpTeardown";
+import ViewEngineInspectionReceiving from "@/components/ViewEngineInspectionReceiving";
+import ViewComponentsTeardownMeasuring from "@/components/ViewComponentsTeardownMeasuring";
 
 interface PendingApproval {
   id: string;
@@ -43,6 +57,8 @@ export default function PendingServiceReports() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewModal, setViewModal] = useState<{ formType: string; data: Record<string, any> } | null>(null);
+  const [viewLoading, setViewLoading] = useState<string | null>(null);
   const recordsPerPage = 5;
 
   const fetchPending = async () => {
@@ -111,13 +127,57 @@ export default function PendingServiceReports() {
     }
   };
 
+  const handleClose = async (id: string) => {
+    setProcessing(id);
+    try {
+      const response = await apiClient.post(`/approvals/${id}`, {
+        action: "close",
+      });
+      if (response.data.success) {
+        toast.success(response.data.message);
+        fetchPending();
+      } else {
+        toast.error(response.data.message || "Failed to close");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Failed to close");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  const handleViewRecord = async (record: PendingApproval) => {
+    setViewLoading(record.id);
+    try {
+      const response = await apiClient.get(`/forms/${record.form_type}`);
+      const records = response.data?.data || response.data || [];
+      const formRecord = Array.isArray(records)
+        ? records.find((r: any) => String(r.id) === String(record.report_id))
+        : null;
+
+      if (formRecord) {
+        setViewModal({ formType: record.form_type, data: formRecord.data || formRecord });
+      } else {
+        toast.error("Form record not found");
+      }
+    } catch (error) {
+      console.error("Error fetching form record:", error);
+      toast.error("Failed to load form details");
+    } finally {
+      setViewLoading(null);
+    }
+  };
+
   const getStatusBadge = (record: PendingApproval) => {
     if (record.is_rejected) {
       return { label: "Rejected", color: "bg-red-100 text-red-800" };
     }
-    // Both levels approved — fully approved, awaiting user completion
+    // Both levels approved
     if (record.level1_status === "completed" && record.level2_status === "completed") {
-      return { label: "Approved", color: "bg-green-100 text-green-800" };
+      if (record.status === "closed") {
+        return { label: "Closed", color: "bg-purple-100 text-purple-800" };
+      }
+      return { label: "In Progress", color: "bg-blue-100 text-blue-800" };
     }
     if (record.level1_status === "completed" && record.level2_status === "pending") {
       return { label: "Pending (L2)", color: "bg-blue-100 text-blue-800" };
@@ -308,10 +368,18 @@ export default function PendingServiceReports() {
                   return (
                     <TableRow
                       key={record.id}
-                      className="hover:bg-blue-50/50 transition-all duration-200 group"
+                      className="hover:bg-blue-50/50 transition-all duration-200 group cursor-pointer"
+                      onClick={() => handleViewRecord(record)}
                     >
-                      <TableCell className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
-                        {record.form_type_label}
+                      <TableCell className="px-6 py-4 text-sm font-semibold text-gray-900 group-hover:text-blue-600 transition-colors max-w-[160px]">
+                        <div className="flex items-center gap-2">
+                          {viewLoading === record.id ? (
+                            <div className="h-4 w-4 flex-shrink-0 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <EyeIcon className="h-4 w-4 flex-shrink-0 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                          )}
+                          <span className="break-words leading-tight">{record.form_type_label}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {record.job_order_no || "-"}
@@ -354,35 +422,56 @@ export default function PendingServiceReports() {
                         </div>
                       </TableCell>
                       {!meta?.isRequester && (
-                        <TableCell className="px-6 py-4 whitespace-nowrap text-right">
+                        <TableCell className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                           {(() => {
                             const canAct =
                               (meta?.approvalLevel === 0 && (record.level1_status === "pending" || (record.level1_status === "completed" && record.level2_status === "pending"))) ||
                               (meta?.approvalLevel === 1 && record.level1_status === "pending") ||
                               (meta?.approvalLevel === 2 && record.level1_status === "completed" && record.level2_status === "pending");
-                            return canAct ? (
+                            const canClose =
+                              !record.is_rejected &&
+                              record.level1_status === "completed" &&
+                              record.level2_status === "completed" &&
+                              record.status !== "closed" &&
+                              (meta?.positionName === "Admin 2" || meta?.positionName === "Super Admin");
+
+                            return canAct || canClose ? (
                               <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleApprove(record.id)}
-                                  disabled={processing === record.id}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <CheckCircleIcon className="h-4 w-4" />
-                                  Approve
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setRejectModal({
-                                      id: record.id,
-                                      label: record.job_order_no || record.form_type_label,
-                                    })
-                                  }
-                                  disabled={processing === record.id}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <XCircleIcon className="h-4 w-4" />
-                                  Reject
-                                </button>
+                                {canAct && (
+                                  <>
+                                    <button
+                                      onClick={() => handleApprove(record.id)}
+                                      disabled={processing === record.id}
+                                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <CheckCircleIcon className="h-4 w-4" />
+                                      Approve
+                                    </button>
+                                    <button
+                                      onClick={() =>
+                                        setRejectModal({
+                                          id: record.id,
+                                          label: record.job_order_no || record.form_type_label,
+                                        })
+                                      }
+                                      disabled={processing === record.id}
+                                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      <XCircleIcon className="h-4 w-4" />
+                                      Reject
+                                    </button>
+                                  </>
+                                )}
+                                {canClose && (
+                                  <button
+                                    onClick={() => handleClose(record.id)}
+                                    disabled={processing === record.id}
+                                    className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    <CheckCircleIcon className="h-4 w-4" />
+                                    Close
+                                  </button>
+                                )}
                               </div>
                             ) : (
                               <span className="text-xs text-gray-400">—</span>
@@ -502,6 +591,47 @@ export default function PendingServiceReports() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* View Form Modal */}
+      {viewModal && viewModal.formType === "deutz-commissioning" && (
+        <ViewDeutzCommissioning data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "deutz-service" && (
+        <ViewDeutzService data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "submersible-pump-commissioning" && (
+        <ViewSubmersiblePumpCommissioning data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "submersible-pump-service" && (
+        <ViewSubmersiblePumpService data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "submersible-pump-teardown" && (
+        <ViewSubmersiblePumpTeardown data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "electric-surface-pump-commissioning" && (
+        <ViewElectricSurfacePumpCommissioning data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "electric-surface-pump-service" && (
+        <ViewElectricSurfacePumpService data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "engine-surface-pump-service" && (
+        <ViewEngineSurfacePumpService data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "engine-surface-pump-commissioning" && (
+        <ViewEngineSurfacePumpCommissioning data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "engine-teardown" && (
+        <ViewEngineTeardown data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "electric-surface-pump-teardown" && (
+        <ViewElectricSurfacePumpTeardown data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "engine-inspection-receiving" && (
+        <ViewEngineInspectionReceiving data={viewModal.data} onClose={() => setViewModal(null)} />
+      )}
+      {viewModal && viewModal.formType === "components-teardown-measuring" && (
+        <ViewComponentsTeardownMeasuring data={viewModal.data} recordId={viewModal.data.id} onClose={() => setViewModal(null)} />
       )}
     </div>
   );

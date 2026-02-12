@@ -55,8 +55,8 @@ export async function getApprovalsByTable(
     if (l1Rejected || l2Rejected) {
       displayStatus = "rejected";
     } else if (l1 === "completed" && l2 === "completed") {
-      // Both levels approved — user will manually complete later
-      displayStatus = "in-progress";
+      // Both levels approved — check if closed by Admin 2
+      displayStatus = row.status === "closed" ? "closed" : "in-progress";
     } else if (l1 === "completed" && l2 !== "completed") {
       displayStatus = "pending_level_2";
     } else if (row.status === "completed") {

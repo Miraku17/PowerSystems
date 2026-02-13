@@ -166,6 +166,7 @@ export default function FormRecordsPage() {
   const [rejectModal, setRejectModal] = useState<{ approvalId: string; label: string } | null>(null);
   const [rejectNotes, setRejectNotes] = useState("");
   const [completeModal, setCompleteModal] = useState<{ approvalId: string; label: string } | null>(null);
+  const [closeRecordModal, setCloseRecordModal] = useState<{ approvalId: string; label: string } | null>(null);
   const [userPosition, setUserPosition] = useState<string | null>(null);
 
   // Check if this form type uses the centralized approvals table
@@ -338,12 +339,14 @@ export default function FormRecordsPage() {
     return userPosition === "Admin 2" || userPosition === "Super Admin";
   };
 
-  const handleCloseRecord = async (approvalId: string) => {
-    setApprovalProcessing(approvalId);
+  const handleCloseRecord = async () => {
+    if (!closeRecordModal) return;
+    setApprovalProcessing(closeRecordModal.approvalId);
     try {
-      const response = await apiClient.post(`/approvals/${approvalId}`, { action: "close" });
+      const response = await apiClient.post(`/approvals/${closeRecordModal.approvalId}`, { action: "close" });
       if (response.data.success) {
         toast.success(response.data.message);
+        setCloseRecordModal(null);
         loadRecords();
       } else {
         toast.error(response.data.message || "Failed to close");
@@ -714,7 +717,7 @@ export default function FormRecordsPage() {
                           )}
                           {canCloseRecord(record) && record.approval?.approval_id && (
                             <button
-                              onClick={() => handleCloseRecord(record.approval!.approval_id!)}
+                              onClick={() => setCloseRecordModal({ approvalId: record.approval!.approval_id!, label: record.data?.job_order_no || record.data?.job_order || normalizedFormType })}
                               disabled={approvalProcessing === record.approval!.approval_id}
                               className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
                               title="Close"
@@ -822,7 +825,7 @@ export default function FormRecordsPage() {
                         )}
                         {canCloseRecord(record) && record.approval?.approval_id && (
                           <button
-                            onClick={() => handleCloseRecord(record.approval!.approval_id!)}
+                            onClick={() => setCloseRecordModal({ approvalId: record.approval!.approval_id!, label: record.data?.job_order_no || record.data?.job_order || normalizedFormType })}
                             disabled={approvalProcessing === record.approval!.approval_id}
                             className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50"
                             title="Close"
@@ -1324,6 +1327,58 @@ export default function FormRecordsPage() {
                 className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
               >
                 {approvalProcessing === completeModal.approvalId ? "Completing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Close Confirmation Modal */}
+      {closeRecordModal && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCloseRecordModal(null);
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-100">
+                  <CheckCircleIcon className="h-6 w-6 text-purple-600" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">Close Service Report</h3>
+              </div>
+              <button
+                onClick={() => setCloseRecordModal(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600">
+                Are you sure you want to close <span className="font-semibold">{closeRecordModal.label}</span>? This action marks the service report as finalized.
+              </p>
+            </div>
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                onClick={() => setCloseRecordModal(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCloseRecord}
+                disabled={approvalProcessing === closeRecordModal.approvalId}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {approvalProcessing === closeRecordModal.approvalId ? "Closing..." : "Confirm"}
               </button>
             </div>
           </div>

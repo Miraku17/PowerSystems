@@ -68,7 +68,7 @@ export const GET = withAuth(async (request) => {
       }
 
       // Transform the data to a cleaner format
-      const transformedUsers = users?.map(user => ({
+      const transformedUsers = users?.map((user: any) => ({
         id: user.id,
         firstname: user.firstname,
         lastname: user.lastname,
@@ -77,8 +77,8 @@ export const GET = withAuth(async (request) => {
         address: user.address,
         phone: user.phone,
         position: {
-          id: user.position?.id,
-          name: user.position?.name
+          id: user.position?.id || null,
+          name: user.position?.name || null
         }
       })) || [];
 

@@ -471,9 +471,34 @@ export default function FormRecordsPage() {
   };
 
   const getJobOrder = (record: FormRecord): string => {
-    if (record.job_order) return record.job_order;
-    // Check for job order request specific field
-    if (record.data?.shop_field_jo_number) return record.data.shop_field_jo_number;
+    // Helper to safely check and return a value
+    const checkValue = (val: any): string | null => {
+      if (val === null || val === undefined) return null;
+      const strVal = String(val).trim();
+      return strVal !== '' ? strVal : null;
+    };
+
+    // Check top-level job_order field first
+    const topLevel = checkValue(record.job_order);
+    if (topLevel) return topLevel;
+
+    // Check for various job order field names used by different forms in data object
+    const data = record.data;
+    const shopField = checkValue(data?.shop_field_jo_number);
+    if (shopField) return shopField;
+
+    const joNumber = checkValue(data?.jo_number);
+    if (joNumber) return joNumber;
+
+    const jobOrderNo = checkValue(data?.job_order_no);
+    if (jobOrderNo) return jobOrderNo;
+
+    const jobNumber = checkValue(data?.job_number);
+    if (jobNumber) return jobNumber;
+
+    const jobOrder = checkValue(data?.job_order);
+    if (jobOrder) return jobOrder;
+
     return "N/A";
   };
 

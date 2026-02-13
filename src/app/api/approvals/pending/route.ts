@@ -166,6 +166,7 @@ export const GET = withAuth(async (request, { user }) => {
           formDetails.job_order_no ||
           formDetails.job_order ||
           formDetails.job_number ||
+          formDetails.jo_number ||
           "";
 
         // Resolve customer name (different columns across tables)

@@ -26,10 +26,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Fetch detailed user profile from 'users' table
+    // Fetch detailed user profile from 'users' table with position
     const { data: profile } = await supabase
       .from("users")
-      .select("*")
+      .select("*, positions(name)")
       .eq("id", data.user.id)
       .single();
 
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
         address: profile.address,
         phone: profile.phone,
         role: profile.role || "user",
+        position: profile.positions?.name || null,
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
       };

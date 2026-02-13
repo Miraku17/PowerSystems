@@ -3,10 +3,19 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: products.read
+    if (!(await hasPermission(supabase, user.id, "products", "read"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view pumps" },
+        { status: 403 }
+      );
+    }
 
     // Fetch pumps with company details
     const { data, error } = await supabase
@@ -58,6 +67,15 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: products.write
+    if (!(await hasPermission(supabase, user.id, "products", "write"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to create pumps" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
 
     console.log("=== PUMP POST REQUEST DEBUG ===");

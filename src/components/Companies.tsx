@@ -16,6 +16,7 @@ import {
 import { CompanyCardsGridSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
 import Image from "next/image";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface CompaniesProps {
   companies: Company[];
@@ -28,6 +29,7 @@ export default function Companies({
   setCompanies,
   onCompanyClick,
 }: CompaniesProps) {
+  const { canWrite, canEdit, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -199,13 +201,15 @@ export default function Companies({
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
           />
         </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Company
-        </button>
+        {canWrite("company") && (
+          <button
+            onClick={handleOpenCreateModal}
+            className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add Company
+          </button>
+        )}
       </div>
 
       {/* Cards Grid */}
@@ -235,28 +239,34 @@ export default function Companies({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
                 {/* Actions Overlay */}
-                <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditModal(company);
-                    }}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"
-                    title="Edit"
-                  >
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(company.id);
-                    }}
-                    className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition-colors shadow-sm"
-                    title="Delete"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
+                {(canEdit("company") || canDelete("company")) && (
+                  <div className="absolute top-3 right-3 flex space-x-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {canEdit("company") && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(company);
+                        }}
+                        className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-blue-50 text-gray-700 hover:text-blue-600 transition-colors shadow-sm"
+                        title="Edit"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                    {canDelete("company") && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(company.id);
+                        }}
+                        className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-red-50 text-gray-700 hover:text-red-600 transition-colors shadow-sm"
+                        title="Delete"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {company.imageUrl ? (
                   <>

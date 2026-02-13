@@ -20,21 +20,37 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "daily-time-sheet",
-        name: "Daily Time Sheet",
-        formType: "daily-time-sheet",
-      },
-    }));
+    const formRecords = data.map((record: any) => {
+      // DTS uses its own approval_status column (pending_level_1, pending_level_2, approved)
+      // Map DTS-specific statuses to display-friendly values
+      let displayStatus = record.approval_status || "pending";
+      if (displayStatus === "approved") displayStatus = "approved";
+      else if (displayStatus === "rejected") displayStatus = "rejected";
+      else if (displayStatus.startsWith("pending_level_")) displayStatus = displayStatus;
+
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_number,
+        data: { ...record, approval_status: displayStatus },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval: {
+          approval_id: null,
+          approval_status: displayStatus,
+          level1_status: record.level_1_approved_by ? "completed" : "pending",
+          level2_status: record.level_2_approved_by ? "completed" : "pending",
+          level1_remarks: record.level_1_notes,
+          level2_remarks: record.level_2_notes,
+        },
+        companyForm: {
+          id: "daily-time-sheet",
+          name: "Daily Time Sheet",
+          formType: "daily-time-sheet",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -105,6 +121,7 @@ export const POST = withAuth(async (request, { user }) => {
     const service_coordinator = getString('service_coordinator');
     const approved_by_service = getString('approved_by_service');
     const service_manager = getString('service_manager');
+    const job_order_request_id = getString('job_order_request_id');
     const status = getString('status') || 'PENDING';
     const entriesJson = getString('entries');
 
@@ -135,6 +152,7 @@ export const POST = withAuth(async (request, { user }) => {
       .insert([
         {
           job_number,
+          job_order_request_id: job_order_request_id || null,
           date: date || null,
           customer,
           address,

@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -21,21 +22,28 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
+    // Fetch approval statuses for all records
+    const approvalMap = await getApprovalsByTable(supabase, "deutz_commissioning_report");
+
     // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null, // Not applicable for direct table queries
-      job_order: record.job_order_no,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "deutz-commissioning",
-        name: "Deutz Commissioning Report",
-        formType: "deutz-commissioning",
-      },
-    }));
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_order_no,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "deutz-commissioning",
+          name: "Deutz Commissioning Report",
+          formType: "deutz-commissioning",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -411,6 +419,9 @@ export const POST = withAuth(async (request, { user }) => {
         performed_by: user.id,
         performed_at: new Date().toISOString(),
       });
+
+      // Create approval record for service report workflow
+      await createApprovalRecord(supabase, 'deutz_commissioning_report', data[0].id, user.id);
     }
 
     return NextResponse.json(

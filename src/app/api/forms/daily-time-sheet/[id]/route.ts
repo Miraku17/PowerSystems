@@ -153,6 +153,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     // Extract form fields from JSON body
     const {
       job_number,
+      job_order_request_id,
       date,
       customer,
       address,
@@ -206,6 +207,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     // Construct update object
     const updateData: any = {
       job_number: job_number || '',
+      job_order_request_id: job_order_request_id || null,
       date: date || null,
       customer: customer || '',
       address: address || '',

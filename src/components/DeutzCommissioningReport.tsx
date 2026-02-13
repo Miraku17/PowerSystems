@@ -9,6 +9,8 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import JobOrderAutocomplete from './JobOrderAutocomplete';
+import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 
 interface User {
   id: string;
@@ -28,6 +30,7 @@ export default function DeutzCommissioningReport() {
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [engines, setEngines] = useState<any[]>([]);
+  const approvedJOs = useApprovedJobOrders();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -172,7 +175,18 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Job Reference</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <Input label="Job Order No." name="job_order_no" value={formData.job_order_no} onChange={handleChange} />
+                <JobOrderAutocomplete
+                  label="Job Order No."
+                  value={formData.job_order_no}
+                  onChange={(value) => setFormData({ job_order_no: value })}
+                  onSelect={(jo) => setFormData({
+                    job_order_no: jo.shop_field_jo_number || "",
+                    customer_name: jo.full_customer_name || "",
+                    address: jo.address || "",
+                  })}
+                  jobOrders={approvedJOs}
+                  required
+                />
                 <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
             </div>
         </div>

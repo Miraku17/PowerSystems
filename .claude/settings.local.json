@@ -20,7 +20,10 @@
       "Bash(npm run build:*)",
       "Bash(npm run dev:*)",
       "Bash(npm test:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(wc:*)",
+      "Bash(npx shadcn@latest init:*)",
+      "Bash(npx shadcn@latest add:*)"
     ]
   }
 }

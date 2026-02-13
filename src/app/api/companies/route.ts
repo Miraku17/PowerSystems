@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
-export const GET = withAuth(async () => {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: company.read
+    if (!(await hasPermission(supabase, user.id, "company", "read"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view companies" },
+        { status: 403 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("companies")
       .select("*")
@@ -37,6 +47,15 @@ export const GET = withAuth(async () => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: company.write
+    if (!(await hasPermission(supabase, user.id, "company", "write"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to create companies" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
     const name = formData.get("name") as string;
     const imageFile = formData.get("image") as File | null;

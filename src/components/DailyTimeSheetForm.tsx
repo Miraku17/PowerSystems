@@ -8,6 +8,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import JobOrderAutocomplete from './JobOrderAutocomplete';
 
 interface User {
   id: string;
@@ -24,6 +25,7 @@ export default function DailyTimeSheetForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [approvedJOs, setApprovedJOs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -48,8 +50,20 @@ export default function DailyTimeSheetForm() {
       }
     };
 
+    const fetchApprovedJOs = async () => {
+      try {
+        const response = await apiClient.get('/forms/job-order-request/approved');
+        if (response.data.success) {
+          setApprovedJOs(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch approved job orders", error);
+      }
+    };
+
     fetchUsers();
     fetchCustomers();
+    fetchApprovedJOs();
   }, []);
 
   // Auto-calculate total manhours when entries change
@@ -99,6 +113,15 @@ export default function DailyTimeSheetForm() {
     setFormData({
       customer: customer.customer || "",
       address: customer.address || "",
+    });
+  };
+
+  const handleJobOrderSelect = (jo: any) => {
+    setFormData({
+      job_number: jo.shop_field_jo_number || "",
+      customer: jo.full_customer_name || "",
+      address: jo.address || "",
+      job_order_request_id: jo.id || "",
     });
   };
 
@@ -176,6 +199,15 @@ export default function DailyTimeSheetForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Basic Information</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <JobOrderAutocomplete
+              label="Job No."
+              value={formData.job_number}
+              onChange={(value) => setFormData({ job_number: value })}
+              onSelect={handleJobOrderSelect}
+              jobOrders={approvedJOs}
+              required
+            />
+            <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />
             <div className="md:col-span-2">
               <CustomerAutocomplete
                 label="Customer"
@@ -199,8 +231,6 @@ export default function DailyTimeSheetForm() {
                 searchKey="address"
               />
             </div>
-            <Input label="Job No." name="job_number" value={formData.job_number} onChange={handleChange} required />
-            <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />
           </div>
         </div>
 
@@ -619,6 +649,7 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
     </div>
   );
 };
+
 
 interface CustomerAutocompleteProps {
   label: string;

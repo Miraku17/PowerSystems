@@ -18,6 +18,16 @@ export interface ApiResponse<T = any> {
 }
 
 /**
+ * Position Types
+ */
+export interface Position {
+  id: string;
+  name: string;
+  display_name: string;
+  description: string | null;
+}
+
+/**
  * User Types
  */
 export interface User {
@@ -28,7 +38,9 @@ export interface User {
   username: string;
   address: string;
   phone: string;
-  role: "user" | "admin";
+  position_id: string | null;
+  position?: Position;
+  // role: "user" | "admin"; // commented out - now using position_id
 }
 
 /**

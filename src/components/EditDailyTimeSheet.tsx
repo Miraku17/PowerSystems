@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import JobOrderAutocomplete from './JobOrderAutocomplete';
 
 interface EditDailyTimeSheetProps {
   data: Record<string, any>;
@@ -126,6 +127,7 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
   );
 };
 
+
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
@@ -136,6 +138,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
+  const [approvedJOs, setApprovedJOs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -193,9 +196,21 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       }
     };
 
+    const fetchApprovedJOs = async () => {
+      try {
+        const response = await apiClient.get('/forms/job-order-request/approved');
+        if (response.data.success) {
+          setApprovedJOs(response.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch approved job orders", error);
+      }
+    };
+
     fetchUsers();
     fetchAttachments();
     fetchEntries();
+    fetchApprovedJOs();
 
     // Also check if entries are in data object
     if (data.daily_time_sheet_entries && Array.isArray(data.daily_time_sheet_entries)) {
@@ -243,6 +258,16 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
 
   const handleSignatureChange = (name: string, signature: string) => {
     setFormData((prev) => ({ ...prev, [name]: signature }));
+  };
+
+  const handleJobOrderSelect = (jo: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      job_number: jo.shop_field_jo_number || "",
+      customer: jo.full_customer_name || "",
+      address: jo.address || "",
+      job_order_request_id: jo.id || "",
+    }));
   };
 
   const addEntry = () => {
@@ -341,8 +366,14 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Basic Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <JobOrderAutocomplete
+                  label="Job No."
+                  value={formData.job_number || ''}
+                  onChange={(value) => handleFieldChange('job_number', value)}
+                  onSelect={handleJobOrderSelect}
+                  jobOrders={approvedJOs}
+                />
                 <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
-                <Input label="Job No." name="job_number" value={formData.job_number} onChange={handleFieldChange} />
                 <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
                 <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>

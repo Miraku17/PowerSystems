@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -109,21 +110,27 @@ export const GET = withAuth(async (request, { user }) => {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    const formRecords = reports.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      updated_by: record.updated_by,
-      companyForm: {
-        id: "engine-teardown",
-        name: "Engine Teardown Report",
-        formType: "engine-teardown",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "engine_teardown_reports");
+
+    const formRecords = reports.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_number,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        updated_by: record.updated_by,
+        approval,
+        companyForm: {
+          id: "engine-teardown",
+          name: "Engine Teardown Report",
+          formType: "engine-teardown",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -740,8 +747,11 @@ export const POST = withAuth(async (request, { user }) => {
 
     if (fetchError) {
       console.error("Error fetching complete report:", fetchError);
+      await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
       return NextResponse.json({ success: true, data: reportData }, { status: 201 });
     }
+
+    await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
 
     return NextResponse.json({ success: true, data: completeReport }, { status: 201 });
   } catch (error: any) {

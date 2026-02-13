@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User } from "@/types";
+import { User, Position } from "@/types";
 import { userService } from "@/services";
+import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { useUserFormStore } from "@/stores/userFormStore";
 import {
@@ -18,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { TableSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Helper to generate consistent colors for avatars
 const getAvatarColor = (name: string) => {
@@ -34,6 +36,25 @@ const getAvatarColor = (name: string) => {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
+};
+
+const getPositionBadgeColor = (positionName: string | undefined) => {
+  switch (positionName) {
+    case "Super Admin":
+      return "bg-red-100 text-red-800";
+    case "Admin 1":
+      return "bg-green-100 text-green-800";
+    case "Admin 2":
+      return "bg-yellow-100 text-yellow-800";
+    case "Super User":
+      return "bg-purple-100 text-purple-800";
+    case "User 1":
+      return "bg-blue-100 text-blue-800";
+    case "User 2":
+      return "bg-indigo-100 text-indigo-800";
+    default:
+      return "bg-gray-100 text-gray-800";
+  }
 };
 
 const Avatar = ({ name }: { name: string }) => {
@@ -64,6 +85,8 @@ export default function Users() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const { canRead, canWrite, canDelete, isLoading: permissionsLoading } = usePermissions();
 
   // Confirmation modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -88,7 +111,8 @@ export default function Users() {
     username: "",
     address: "",
     phone: "",
-    role: "user" as "user" | "admin",
+    position_id: "",
+    // role: "user" as "user" | "admin", // commented out - now using position_id
   });
 
   // Combined form data for create mode
@@ -126,9 +150,10 @@ export default function Users() {
     }
   };
 
-  // Load users on mount
+  // Load users and positions on mount
   useEffect(() => {
     loadUsers();
+    loadPositions();
   }, []);
 
   const loadUsers = async () => {
@@ -142,6 +167,15 @@ export default function Users() {
       setUsers([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadPositions = async () => {
+    try {
+      const response = await apiClient.get("/positions");
+      setPositions(response.data.data || []);
+    } catch (error) {
+      console.error("Error loading positions:", error);
     }
   };
 
@@ -162,7 +196,8 @@ export default function Users() {
       username: user.username,
       address: user.address,
       phone: user.phone,
-      role: user.role,
+      position_id: user.position_id || "",
+      // role: user.role, // commented out - now using position_id
     });
     setShowModal(true);
   };
@@ -256,6 +291,20 @@ export default function Users() {
       )
     : [];
 
+  if (permissionsLoading) {
+    return <TableSkeleton rows={8} />;
+  }
+
+  if (!canRead("user_creation")) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <UserIcon className="h-16 w-16 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-700">Access Denied</h2>
+        <p className="text-gray-500 mt-2">You do not have permission to view user accounts.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 max-w-[1600px] mx-auto">
       {/* Header Section */}
@@ -272,13 +321,15 @@ export default function Users() {
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
           />
         </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add User
-        </button>
+        {canWrite("user_creation") && (
+          <button
+            onClick={handleOpenCreateModal}
+            className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add User
+          </button>
+        )}
       </div>
 
       {/* Content Section */}
@@ -296,18 +347,19 @@ export default function Users() {
                       Name
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Username
-                    </th>
-
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Email
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Role
+                      Address
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Position
                     </th>
+                    {(canWrite("user_creation") || canDelete("user_creation")) && (
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -344,45 +396,47 @@ export default function Users() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">
-                            {user.username}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500 flex items-center">
                             <EnvelopeIcon className="h-3.5 w-3.5 mr-1.5 text-gray-400" />
                             {user.email}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              user.role === "admin"
-                                ? "bg-green-100 text-green-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button
-                              onClick={() => handleOpenEditModal(user)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(user.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-gray-500 max-w-xs truncate">
+                            {user.address || "—"}
                           </div>
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPositionBadgeColor(user.position?.name)}`}
+                          >
+                            {user.position?.name || "No Position"}
+                          </span>
+                        </td>
+                        {(canWrite("user_creation") || canDelete("user_creation")) && (
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              {canWrite("user_creation") && (
+                                <button
+                                  onClick={() => handleOpenEditModal(user)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                  title="Edit"
+                                >
+                                  <PencilIcon className="h-4 w-4" />
+                                </button>
+                              )}
+                              {canDelete("user_creation") && (
+                                <button
+                                  onClick={() => handleDelete(user.id)}
+                                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Delete"
+                                >
+                                  <TrashIcon className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -413,18 +467,22 @@ export default function Users() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      <button
-                        onClick={() => handleOpenEditModal(user)}
-                        className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
+                      {canWrite("user_creation") && (
+                        <button
+                          onClick={() => handleOpenEditModal(user)}
+                          className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                      {canDelete("user_creation") && (
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -567,7 +625,8 @@ export default function Users() {
                   />
                 </div>
 
-                <div className="space-y-2">
+                {/* Role dropdown commented out - now using position_id */}
+                {/* <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-700">
                     Role
                   </label>
@@ -583,6 +642,27 @@ export default function Users() {
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                  </select>
+                </div> */}
+
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Position
+                  </label>
+                  <select
+                    required
+                    value={currentFormData.position_id}
+                    onChange={(e) =>
+                      updateFormData({ position_id: e.target.value })
+                    }
+                    className="block w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors sm:text-sm"
+                  >
+                    <option value="">Select a position</option>
+                    {positions.map((pos) => (
+                      <option key={pos.id} value={pos.id}>
+                        {pos.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 

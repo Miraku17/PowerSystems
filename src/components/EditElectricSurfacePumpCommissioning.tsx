@@ -32,12 +32,14 @@ const Input = ({
   name,
   value,
   type = "text",
+  disabled = false,
   onChange,
 }: {
   label: string;
   name: string;
   value: any;
   type?: string;
+  disabled?: boolean;
   onChange: (name: string, value: any) => void;
 }) => (
   <div className="flex flex-col w-full">
@@ -49,7 +51,8 @@ const Input = ({
       name={name}
       value={value || ""}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
     />
   </div>
 );
@@ -272,6 +275,7 @@ export default function EditElectricSurfacePumpCommissioning({
                   name="job_order"
                   value={formData.job_order}
                   onChange={handleChange}
+                  disabled
                 />
                 <Input
                   label="J.O Date"

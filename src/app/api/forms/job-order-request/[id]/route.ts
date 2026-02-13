@@ -154,7 +154,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     }
 
     const {
-      shop_field_jo_number,
+      // shop_field_jo_number is auto-generated, not editable
       date_prepared,
       full_customer_name,
       address,
@@ -198,28 +198,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       status,
     } = body;
 
-    // Check for duplicate Job Order Number
-    if (shop_field_jo_number) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('job_order_request_form')
-        .select('id')
-        .eq('shop_field_jo_number', shop_field_jo_number)
-        .neq('id', id)
-        .is('deleted_at', null)
-        .maybeSingle();
-
-      if (searchError) {
-        console.error('Error checking for duplicate job order:', searchError);
-        return NextResponse.json({ error: 'Failed to validate J.O. Number uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `J.O. Number '${shop_field_jo_number}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
+    // shop_field_jo_number duplicate check removed — it's auto-generated and immutable
 
     // Process Signatures
     const timestamp = Date.now();
@@ -286,9 +265,8 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
-    // Construct update object
+    // Construct update object (shop_field_jo_number excluded — auto-generated)
     const updateData: any = {
-      shop_field_jo_number,
       date_prepared: date_prepared || null,
       full_customer_name,
       address,

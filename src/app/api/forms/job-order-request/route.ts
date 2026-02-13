@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -20,21 +21,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Map to consistent format for frontend
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.shop_field_jo_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "job-order-request",
-        name: "Job Order Request Form",
-        formType: "job-order-request",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "job_order_request_form");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.shop_field_jo_number,
+        data: { ...record }, // Don't overwrite approval_status - use the actual database value
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "job-order-request",
+          name: "Job Order Request Form",
+          formType: "job-order-request",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -88,8 +94,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     const getString = (key: string) => formData.get(key) as string || '';
 
-    // Extract all fields
-    const shop_field_jo_number = getString('shop_field_jo_number');
+    // Extract all fields (shop_field_jo_number is now auto-generated from jo_number)
     const date_prepared = getString('date_prepared');
     const full_customer_name = getString('full_customer_name');
     const address = getString('address');
@@ -170,7 +175,6 @@ export const POST = withAuth(async (request, { user }) => {
       .from("job_order_request_form")
       .insert([
         {
-          shop_field_jo_number,
           date_prepared: date_prepared || null,
           full_customer_name,
           address,
@@ -220,6 +224,16 @@ export const POST = withAuth(async (request, { user }) => {
     if (error) {
       console.error("Error inserting data:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Auto-set shop_field_jo_number from jo_number (SERIAL)
+    if (data && data[0]) {
+      const joNumber = `JO-${String(data[0].jo_number).padStart(4, '0')}`;
+      await supabase
+        .from("job_order_request_form")
+        .update({ shop_field_jo_number: joNumber })
+        .eq("id", data[0].id);
+      data[0].shop_field_jo_number = joNumber;
     }
 
     // Upload attachments

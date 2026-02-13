@@ -20,7 +20,7 @@ interface User {
 }
 
 // Helper Components - Moved outside to prevent re-creation on every render
-const Input = ({ label, name, value, type = "text", className = "", onChange }: { label: string; name: string; value: any; type?: string; className?: string; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, type = "text", className = "", disabled = false, onChange }: { label: string; name: string; value: any; type?: string; className?: string; disabled?: boolean; onChange: (name: string, value: any) => void }) => (
   <div className={`flex flex-col w-full ${className}`}>
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
@@ -28,7 +28,8 @@ const Input = ({ label, name, value, type = "text", className = "", onChange }: 
       name={name}
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
     />
   </div>
 );
@@ -258,7 +259,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
             {/* Job Order and Date Emphasis */}
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Job Order No." name="job_order" value={formData.job_order} onChange={handleChange} className="font-bold" />
+                <Input label="Job Order No." name="job_order" value={formData.job_order} onChange={handleChange} className="font-bold" disabled />
                 <Input label="Date" name="report_date" type="date" value={formData.report_date} onChange={handleChange} className="font-bold" />
               </div>
             </div>

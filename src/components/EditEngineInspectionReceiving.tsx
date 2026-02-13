@@ -24,7 +24,7 @@ interface EditEngineInspectionReceivingProps {
   onSaved: () => void;
 }
 
-const Input = ({ label, name, value, onChange }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, disabled = false, onChange }: { label: string; name: string; value: any; disabled?: boolean; onChange: (name: string, value: any) => void }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
@@ -32,7 +32,8 @@ const Input = ({ label, name, value, onChange }: { label: string; name: string; 
       name={name}
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
     />
   </div>
 );
@@ -316,7 +317,7 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Input label="Customer" name="customer" value={formState.customer} onChange={handleFieldChange} />
                 <DateInput label="JO Date" name="jo_date" value={formState.jo_date} onChange={handleFieldChange} />
-                <Input label="JO Number *" name="jo_number" value={formState.jo_number} onChange={handleFieldChange} />
+                <Input label="JO Number *" name="jo_number" value={formState.jo_number} onChange={handleFieldChange} disabled />
                 <Input label="Address" name="address" value={formState.address} onChange={handleFieldChange} />
                 <Input label="ERR No." name="err_no" value={formState.err_no} onChange={handleFieldChange} />
               </div>

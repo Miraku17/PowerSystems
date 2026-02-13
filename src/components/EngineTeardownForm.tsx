@@ -8,6 +8,8 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useEngineTeardownFormStore } from "@/stores/engineTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import JobOrderAutocomplete from './JobOrderAutocomplete';
+import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 
 interface User {
   id: string;
@@ -24,6 +26,7 @@ export default function EngineTeardownForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const approvedJOs = useApprovedJobOrders();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -147,14 +150,16 @@ export default function EngineTeardownForm() {
               />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Job Number *</label>
-              <input
-                type="text"
-                name="job_number"
+              <JobOrderAutocomplete
+                label="Job Number"
                 value={formData.job_number}
-                onChange={handleChange}
+                onChange={(value) => setFormData({ job_number: value })}
+                onSelect={(jo) => setFormData({
+                  job_number: jo.shop_field_jo_number || "",
+                  customer: jo.full_customer_name || "",
+                })}
+                jobOrders={approvedJOs}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
             </div>
             <div>

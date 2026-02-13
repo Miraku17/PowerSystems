@@ -7,8 +7,11 @@ import Companies from "@/components/Companies";
 import Engines from "@/components/Engines";
 import { companyService } from "@/services";
 import toast from "react-hot-toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { BuildingOfficeIcon } from "@heroicons/react/24/outline";
 
 function CompaniesPageContent() {
+  const { canRead, isLoading: permissionsLoading } = usePermissions();
   const searchParams = useSearchParams();
   const router = useRouter();
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -57,6 +60,20 @@ function CompaniesPageContent() {
       setIsLoading(false);
     }
   };
+
+  if (permissionsLoading) {
+    return <div className="p-8">Loading...</div>;
+  }
+
+  if (!canRead("company")) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <BuildingOfficeIcon className="h-16 w-16 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-700">Access Denied</h2>
+        <p className="text-gray-500 mt-2">You do not have permission to view companies.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

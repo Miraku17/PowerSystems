@@ -19,7 +19,7 @@ interface EditEngineTeardownProps {
 }
 
 // Helper Components
-const Input = ({ label, name, value, className = "", onChange }: { label: string; name: string; value: any; className?: string; onChange: (name: string, value: any) => void }) => (
+const Input = ({ label, name, value, className = "", disabled = false, onChange }: { label: string; name: string; value: any; className?: string; disabled?: boolean; onChange: (name: string, value: any) => void }) => (
   <div className={`flex flex-col w-full ${className}`}>
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <input
@@ -27,7 +27,8 @@ const Input = ({ label, name, value, className = "", onChange }: { label: string
       name={name}
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 cursor-not-allowed" : "bg-white"}`}
     />
   </div>
 );
@@ -462,7 +463,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
             <Section title="Basic Information">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} />
-                <Input label="Job Number" name="job_number" value={formData.job_number} onChange={handleChange} />
+                <Input label="Job Number" name="job_number" value={formData.job_number} onChange={handleChange} disabled />
                 <Input label="Engine Model" name="engine_model" value={formData.engine_model} onChange={handleChange} />
                 <Input label="Serial No." name="serial_no" value={formData.serial_no} onChange={handleChange} />
               </div>

@@ -17,14 +17,15 @@ interface EditComponentsTeardownMeasuringProps {
   onSaved: () => void;
 }
 
-const Input = ({ label, value, onChange }: { label: string; value: any; onChange: (value: string) => void }) => (
+const Input = ({ label, value, disabled = false, onChange }: { label: string; value: any; disabled?: boolean; onChange: (value: string) => void }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1 uppercase">{label}</label>
     <input
       type="text"
       value={value || ''}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full border border-gray-300 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+      disabled={disabled}
+      className={`w-full border border-gray-300 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 ${disabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
     />
   </div>
 );
@@ -290,7 +291,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
                 <DateInput label="Report Date" value={formState.report_date} onChange={(v) => handleFieldChange('report_date', v)} />
                 <Input label="Engine Model" value={formState.engine_model} onChange={(v) => handleFieldChange('engine_model', v)} />
                 <Input label="Serial No." value={formState.serial_no} onChange={(v) => handleFieldChange('serial_no', v)} />
-                <Input label="Job Order No. *" value={formState.job_order_no} onChange={(v) => handleFieldChange('job_order_no', v)} />
+                <Input label="Job Order No. *" value={formState.job_order_no} onChange={(v) => handleFieldChange('job_order_no', v)} disabled />
               </div>
             </div>
           )}

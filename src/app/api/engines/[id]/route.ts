@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -22,6 +23,15 @@ export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
+
+    // Permission check: products.edit
+    if (!(await hasPermission(supabase, user.id, "products", "edit"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to edit engines" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
 
     const imageFile = formData.get("image") as File | null;
@@ -166,6 +176,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
+
+    // Permission check: products.delete
+    if (!(await hasPermission(supabase, user.id, "products", "delete"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to delete engines" },
+        { status: 403 }
+      );
+    }
 
     // Fetch engine data to get image URL before deleting
     const { data: engineData } = await supabase

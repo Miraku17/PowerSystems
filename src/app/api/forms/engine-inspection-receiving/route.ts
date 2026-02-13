@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { SECTION_DEFINITIONS } from "@/stores/engineInspectionReceivingFormStore";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -91,20 +92,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.jo_number,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "engine-inspection-receiving",
-        name: "Engine Inspection / Receiving Report",
-        formType: "engine-inspection-receiving",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "engine_inspection_receiving_report");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.jo_number,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "engine-inspection-receiving",
+          name: "Engine Inspection / Receiving Report",
+          formType: "engine-inspection-receiving",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -293,6 +300,8 @@ export const POST = withAuth(async (request, { user }) => {
       performed_by: user.id,
       performed_at: new Date().toISOString(),
     });
+
+    await createApprovalRecord(supabase, 'engine_inspection_receiving_report', reportId, user.id);
 
     return NextResponse.json(
       { message: "Engine Inspection / Receiving Report submitted successfully", data: mainData },

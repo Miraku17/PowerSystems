@@ -19,6 +19,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { TableSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // Helper to generate consistent colors for avatars
 const getAvatarColor = (name: string) => {
@@ -74,6 +75,7 @@ export default function Customers() {
 
   // Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useCustomerFormStore();
+  const { canWrite, canEdit, canDelete } = usePermissions();
 
   // Local state for edit mode (not persisted)
   const [editFormData, setEditFormData] = useState({
@@ -227,13 +229,15 @@ export default function Customers() {
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-200 rounded-lg leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition duration-150 ease-in-out sm:text-sm"
           />
         </div>
-        <button
-          onClick={handleOpenCreateModal}
-          className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Customer
-        </button>
+        {canWrite("customer_management") && (
+          <button
+            onClick={handleOpenCreateModal}
+            className="w-full sm:w-auto flex items-center justify-center px-4 py-2.5 border border-transparent text-sm font-medium rounded-lg text-white bg-[#2B4C7E] hover:bg-[#1A2F4F] shadow-sm hover:shadow transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <PlusIcon className="h-5 w-5 mr-2" />
+            Add Customer
+          </button>
+        )}
       </div>
 
       {/* Content Section */}
@@ -317,20 +321,24 @@ export default function Customers() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <button
-                              onClick={() => handleOpenEditModal(customer)}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                              title="Edit"
-                            >
-                              <PencilIcon className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(customer.id)}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Delete"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
+                            {canEdit("customer_management") && (
+                              <button
+                                onClick={() => handleOpenEditModal(customer)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Edit"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDelete("customer_management") && (
+                              <button
+                                onClick={() => handleDelete(customer.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -363,18 +371,22 @@ export default function Customers() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      <button
-                        onClick={() => handleOpenEditModal(customer)}
-                        className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
-                      >
-                        <PencilIcon className="h-5 w-5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(customer.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
-                      >
-                        <TrashIcon className="h-5 w-5" />
-                      </button>
+                      {canEdit("customer_management") && (
+                        <button
+                          onClick={() => handleOpenEditModal(customer)}
+                          className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
+                        >
+                          <PencilIcon className="h-5 w-5" />
+                        </button>
+                      )}
+                      {canDelete("customer_management") && (
+                        <button
+                          onClick={() => handleDelete(customer.id)}
+                          className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
+                        >
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   

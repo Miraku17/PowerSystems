@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -87,6 +88,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     if (fetchError) {
       console.error("Error fetching record for deletion:", fetchError);
       return NextResponse.json({ success: false, message: fetchError.message }, { status: 500 });
+    }
+
+    const canDelete = await hasPermission(supabase, user.id, "form_records", "delete");
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "You do not have permission to delete records" },
+        { status: 403 }
+      );
     }
 
     // Soft delete by setting deleted_at timestamp

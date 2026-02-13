@@ -24,8 +24,10 @@ import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthStore } from "@/stores/authStore";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -48,11 +50,16 @@ export default function DashboardLayout({
   const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("user");
+  const [userPosition, setUserPosition] = useState<string>("");
   const [userLoading, setUserLoading] = useState(true);
 
   // Auth store actions
   const setAuthUser = useAuthStore((state) => state.setUser);
   const clearAuthUser = useAuthStore((state) => state.clearUser);
+  const queryClient = useQueryClient();
+
+  // Permissions
+  const { canAccess, canRead } = usePermissions();
 
   // Load companies and forms on mount
   useEffect(() => {
@@ -80,6 +87,9 @@ export default function DashboardLayout({
 
       if (user && user.role) {
         setUserRole(user.role);
+      }
+      if (user && user.position) {
+        setUserPosition(user.position);
       }
     }
     setUserLoading(false);
@@ -166,6 +176,8 @@ export default function DashboardLayout({
       localStorage.removeItem("user");
       // Clear auth store
       clearAuthUser();
+      // Clear TanStack Query cache so stale data doesn't persist across accounts
+      queryClient.clear();
       // Clear authToken cookie
       document.cookie = "authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
       // Redirect to login page
@@ -183,6 +195,7 @@ export default function DashboardLayout({
       href: "/dashboard/products",
       hasSubmenu: true,
       submenuType: "products",
+      permissionModule: "products",
     },
     {
       name: "Companies",
@@ -190,12 +203,14 @@ export default function DashboardLayout({
       href: "/dashboard/companies",
       hasSubmenu: true,
       submenuType: "companies",
+      permissionModule: "company",
     },
 
     {
       name: "Fill Up Form",
       icon: DocumentTextIcon,
       href: "/dashboard/fill-up-form",
+      section: "Forms",
     },
     {
       name: "Daily Time Sheet",
@@ -208,27 +223,57 @@ export default function DashboardLayout({
       href: "/dashboard/records",
     },
     {
-      name: "Pending Forms",
+      name: "Pending Offline Forms",
       icon: CloudArrowUpIcon,
       href: "/dashboard/pending-forms",
+    },
+    {
+      name: "JO Requests",
+      icon: ShieldCheckIcon,
+      href: "/dashboard/pending-jo-requests",
+      section: "Approvals",
+    },
+    {
+      name: "DTS Requests",
+      icon: ClockIcon,
+      href: "/dashboard/pending-dts",
+    },
+    {
+      name: "Service Reports",
+      icon: ShieldCheckIcon,
+      href: "/dashboard/pending-service-reports",
     },
     {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
+      section: "System",
     },
   ];
 
-  const navigation =
-    userRole === "user"
-      ? allNavigation.filter(
-          (item) =>
-            item.href === "/dashboard/fill-up-form" ||
-            item.href === "/dashboard/daily-time-sheet" ||
-            item.href === "/dashboard/records" ||
-            item.href === "/dashboard/pending-forms"
-        )
-      : allNavigation;
+  const navigation = allNavigation.filter((item: any) => {
+    // Permission-gated items: only show if user has the required permission
+    if (item.permission) {
+      return canAccess(item.permission.module);
+    }
+    // Permission-module gated items: only show if user has read access
+    if (item.permissionModule) {
+      return canRead(item.permissionModule);
+    }
+    // Role-based filtering for regular users
+    if (userRole === "user") {
+      return (
+        item.href === "/dashboard/fill-up-form" ||
+        item.href === "/dashboard/daily-time-sheet" ||
+        item.href === "/dashboard/records" ||
+        item.href === "/dashboard/pending-forms" ||
+        item.href === "/dashboard/pending-jo-requests" ||
+        item.href === "/dashboard/pending-dts" ||
+        item.href === "/dashboard/pending-service-reports"
+      );
+    }
+    return true;
+  });
 
   // Redirect restricted users
   useEffect(() => {
@@ -237,7 +282,10 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/fill-up-form") ||
         pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
-        pathname.startsWith("/dashboard/pending-forms");
+        pathname.startsWith("/dashboard/pending-forms") ||
+        pathname.startsWith("/dashboard/pending-jo-requests") ||
+        pathname.startsWith("/dashboard/pending-dts") ||
+        pathname.startsWith("/dashboard/pending-service-reports");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }
@@ -260,13 +308,13 @@ export default function DashboardLayout({
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] bg-[#083459] text-slate-300 shadow-xl border-r border-white/5 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } ${sidebarCollapsed ? "w-20" : "w-[280px]"}`}
+        } ${sidebarCollapsed ? "w-[68px]" : "w-[230px]"}`}
       >
         {/* Logo Section */}
-        <div className="flex items-center h-[72px] px-6 border-b border-white/5 relative bg-[#052642]">
+        <div className="flex items-center h-[60px] px-4 border-b border-white/5 relative bg-[#052642]">
           {sidebarCollapsed ? (
             <div className="w-full flex justify-center">
-              <div className="w-9 h-9 relative">
+              <div className="w-8 h-8 relative">
                 <Image
                   src="/images/powersystemslogov2.png"
                   alt="Logo"
@@ -276,8 +324,8 @@ export default function DashboardLayout({
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-8 h-8 relative flex-shrink-0">
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-7 h-7 relative flex-shrink-0">
                 <Image
                   src="/images/powersystemslogov2.png"
                   alt="Logo"
@@ -286,10 +334,10 @@ export default function DashboardLayout({
                 />
               </div>
               <div className="flex flex-col">
-                <span className="text-white font-bold text-base tracking-tight leading-none">
+                <span className="text-white font-bold text-sm tracking-tight leading-none">
                   Power Systems
                 </span>
-                <span className="text-[10px] text-blue-200/60 font-medium uppercase tracking-wider mt-1">
+                <span className="text-[9px] text-blue-200/60 font-medium uppercase tracking-wider mt-0.5">
                   Admin Panel
                 </span>
               </div>
@@ -308,7 +356,7 @@ export default function DashboardLayout({
         {/* Toggle Button (Desktop) */}
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="hidden lg:flex absolute -right-3 top-[88px] bg-white text-slate-700 p-1.5 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] border border-slate-200 hover:bg-slate-50 hover:text-[#083459] transition-all z-50 items-center justify-center group"
+          className="hidden lg:flex absolute -right-3 top-[76px] bg-white text-slate-700 p-1 rounded-full shadow-[0_2px_4px_rgba(0,0,0,0.1)] border border-slate-200 hover:bg-slate-50 hover:text-[#083459] transition-all z-50 items-center justify-center group"
         >
           <ChevronLeftIcon
             className={`h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110 ${
@@ -318,18 +366,26 @@ export default function DashboardLayout({
         </button>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        <nav className="flex-1 px-2.5 py-4 space-y-0.5 overflow-y-auto overflow-x-hidden custom-scrollbar">
           {/* Section Label (Optional, only show if not collapsed) */}
           {!sidebarCollapsed && (
-            <div className="px-3 mb-2 text-xs font-semibold text-blue-200/40 uppercase tracking-wider">
+            <div className="px-2.5 mb-1.5 text-xs font-semibold text-blue-200/40 uppercase tracking-wider">
               Main Menu
             </div>
           )}
           
-          {navigation.map((item) => {
+          {navigation.map((item: any) => {
             const Icon = item.icon;
             const isActive =
               pathname === item.href || pathname.startsWith(item.href + "/");
+
+            const sectionLabel = item.section && !sidebarCollapsed ? (
+              <div className="pt-4 pb-1 px-2.5">
+                <div className="text-[10px] font-semibold text-blue-200/40 uppercase tracking-wider">{item.section}</div>
+              </div>
+            ) : item.section && sidebarCollapsed ? (
+              <div className="pt-3 pb-1 mx-2.5 border-t border-white/10" />
+            ) : null;
 
             if (item.hasSubmenu) {
               const isExpanded =
@@ -346,7 +402,9 @@ export default function DashboardLayout({
                   : setProductsExpanded;
 
               return (
-                <div key={item.href} className="group/menu">
+                <div key={item.href}>
+                  {sectionLabel}
+                <div className="group/menu">
                   <button
                     onClick={() => {
                       if (sidebarCollapsed) {
@@ -356,7 +414,7 @@ export default function DashboardLayout({
                         setExpanded(!isExpanded);
                       }
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg transition-all duration-200 relative group ${
                       isActive
                         ? "bg-[#4A6FA5] text-white font-medium shadow-md"
                         : "text-blue-100/70 hover:bg-white/5 hover:text-white"
@@ -365,11 +423,11 @@ export default function DashboardLayout({
                   >
                     <div
                       className={`flex items-center ${
-                        sidebarCollapsed ? "justify-center w-full" : "gap-3"
+                        sidebarCollapsed ? "justify-center w-full" : "gap-2.5"
                       }`}
                     >
                       <Icon
-                        className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                        className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
                           isActive
                             ? "text-white"
                             : "text-blue-100/60 group-hover:text-white"
@@ -381,7 +439,7 @@ export default function DashboardLayout({
                     </div>
                     {!sidebarCollapsed && (
                       <ChevronDownIcon
-                        className={`h-4 w-4 text-blue-200/40 transition-transform duration-300 ${
+                        className={`h-3.5 w-3.5 text-blue-200/40 transition-transform duration-300 ${
                           isExpanded ? "rotate-180" : ""
                         }`}
                       />
@@ -405,7 +463,7 @@ export default function DashboardLayout({
                               router.push(item.href);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname === item.href && !activeCompanyTab
                                 ? "text-white font-medium before:bg-blue-300"
                                 : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
@@ -420,7 +478,7 @@ export default function DashboardLayout({
                                 router.push(`${item.href}?tab=${company.id}`);
                                 setSidebarOpen(false);
                               }}
-                              className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 truncate ${
+                              className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 truncate ${
                                 pathname.includes("/companies") &&
                                 activeCompanyTab === String(company.id)
                                   ? "text-white font-medium before:bg-blue-300"
@@ -440,7 +498,7 @@ export default function DashboardLayout({
                               router.push(`${item.href}?tab=engines`);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname.includes("/products") &&
                               activeProductTab === "engines"
                                 ? "text-white font-medium before:bg-blue-300"
@@ -454,7 +512,7 @@ export default function DashboardLayout({
                               router.push(`${item.href}?tab=pumps`);
                               setSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-2 pl-11 pr-3 py-2 text-sm transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
+                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
                               pathname.includes("/products") &&
                               activeProductTab === "pumps"
                                 ? "text-white font-medium before:bg-blue-300"
@@ -468,25 +526,27 @@ export default function DashboardLayout({
                     </div>
                   </div>
                 </div>
+                </div>
               );
             }
 
             return (
+              <div key={item.href}>
+                {sectionLabel}
               <button
-                key={item.href}
                 onClick={() => {
                   router.push(item.href);
                   setSidebarOpen(false);
                 }}
-                className={`w-full flex items-center px-3 py-2.5 rounded-lg transition-all duration-200 group relative ${
+                className={`w-full flex items-center px-2.5 py-2 rounded-lg transition-all duration-200 group relative ${
                   isActive
                     ? "bg-[#4A6FA5] text-white font-medium shadow-md"
                     : "text-blue-100/70 hover:bg-white/5 hover:text-white"
-                } ${sidebarCollapsed ? "justify-center" : "gap-3"}`}
+                } ${sidebarCollapsed ? "justify-center" : "gap-2.5"}`}
                 title={sidebarCollapsed ? item.name : ""}
               >
                 <Icon
-                  className={`h-5 w-5 flex-shrink-0 transition-colors ${
+                  className={`h-[18px] w-[18px] flex-shrink-0 transition-colors ${
                     isActive
                       ? "text-white"
                       : "text-blue-100/60 group-hover:text-white"
@@ -496,18 +556,19 @@ export default function DashboardLayout({
                   <span className="text-sm">{item.name}</span>
                 )}
               </button>
+              </div>
             );
           })}
         </nav>
 
         {/* User Profile Section */}
-        <div className="p-4 border-t border-white/5 bg-[#052642]">
+        <div className="p-3 border-t border-white/5 bg-[#052642]">
           <div
             className={`flex items-center ${
-              sidebarCollapsed ? "justify-center" : "gap-3"
+              sidebarCollapsed ? "justify-center" : "gap-2.5"
             }`}
           >
-            <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#2B4C7E] to-[#4A6FA5] flex items-center justify-center text-white font-bold text-sm shadow-inner ring-2 ring-blue-900/50">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2B4C7E] to-[#4A6FA5] flex items-center justify-center text-white font-bold text-xs shadow-inner ring-2 ring-blue-900/50">
               {userName.charAt(0).toUpperCase()}
             </div>
             {!sidebarCollapsed && (
@@ -515,26 +576,26 @@ export default function DashboardLayout({
                 <p className="text-sm font-semibold text-white truncate leading-tight">
                   {userName}
                 </p>
-                <p className="text-[11px] text-blue-200/60 truncate capitalize mt-0.5">{userRole}</p>
+                <p className="text-xs text-blue-200/60 truncate mt-0.5">{userPosition}</p>
               </div>
             )}
             {!sidebarCollapsed && (
               <button
                 onClick={handleLogout}
-                className="p-1.5 text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className="p-1 text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
                 title="Logout"
               >
-                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+                <ArrowLeftOnRectangleIcon className="h-[18px] w-[18px]" />
               </button>
             )}
           </div>
           {sidebarCollapsed && (
             <button
               onClick={handleLogout}
-              className="mt-4 w-full p-2 flex justify-center text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+              className="mt-3 w-full p-1.5 flex justify-center text-blue-100/60 hover:text-white hover:bg-white/10 rounded-md transition-colors"
               title="Logout"
             >
-              <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+              <ArrowLeftOnRectangleIcon className="h-[18px] w-[18px]" />
             </button>
           )}
         </div>
@@ -543,7 +604,7 @@ export default function DashboardLayout({
       {/* Main Content */}
       <div
         className={`flex-1 flex flex-col min-h-screen transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] ${
-          sidebarCollapsed ? "lg:ml-20" : "lg:ml-[280px]"
+          sidebarCollapsed ? "lg:ml-[68px]" : "lg:ml-[230px]"
         }`}
       >
         {/* Top Mobile Bar */}

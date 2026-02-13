@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    
+
+    // Permission check: products.read
+    if (!(await hasPermission(supabase, user.id, "products", "read"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view engines" },
+        { status: 403 }
+      );
+    }
+
     // Fetch engines with company details
     const { data, error } = await supabase
       .from("engines")
@@ -65,6 +74,15 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: products.write
+    if (!(await hasPermission(supabase, user.id, "products", "write"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to create engines" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
 
     console.log("=== ENGINE POST REQUEST DEBUG ===");

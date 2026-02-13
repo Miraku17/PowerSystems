@@ -12,7 +12,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     const { data: publicUsers, error: publicError } = await supabase
       .from("users")
-      .select("id, firstname, lastname, username, address, phone, role");
+      .select("id, firstname, lastname, username, address, phone, position_id, positions(id, name, display_name, description)");
     if (publicError) throw publicError;
 
     // Create a map of public users for easy lookup
@@ -20,7 +20,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     // Merge the data
     const users = authUsersData.users.map(authUser => {
-      const publicUser = publicUsersMap.get(authUser.id);
+      const publicUser = publicUsersMap.get(authUser.id) as any;
       const firstname = publicUser?.firstname || '';
       const lastname = publicUser?.lastname || '';
       return {
@@ -32,7 +32,9 @@ export const GET = withAuth(async (request, { user }) => {
         username: publicUser?.username || '',
         address: publicUser?.address || '',
         phone: publicUser?.phone || '',
-        role: publicUser?.role || 'user',
+        position_id: publicUser?.position_id || null,
+        position: publicUser?.positions || null,
+        // role: publicUser?.role || 'user', // commented out - now using position_id
       };
     });
 
@@ -47,7 +49,7 @@ export const GET = withAuth(async (request, { user }) => {
 
 export async function POST(request: Request) {
   try {
-    const { email, password, firstname, lastname, username, address, phone, role } = await request.json();
+    const { email, password, firstname, lastname, username, address, phone, position_id } = await request.json();
 
     if (!email || !password || !firstname || !lastname) {
       return NextResponse.json(
@@ -81,7 +83,8 @@ export async function POST(request: Request) {
           username,
           address,
           phone,
-          role: role || 'user',
+          position_id: position_id || null,
+          // role: role || 'user', // commented out - now using position_id
         });
 
       if (insertError) {

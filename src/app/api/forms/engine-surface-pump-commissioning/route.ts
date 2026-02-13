@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
+import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -18,20 +19,26 @@ export const GET = withAuth(async (request, { user }) => {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    const formRecords = data.map((record: any) => ({
-      id: record.id,
-      companyFormId: null,
-      job_order: record.job_order,
-      data: record,
-      dateCreated: record.created_at,
-      dateUpdated: record.updated_at,
-      created_by: record.created_by,
-      companyForm: {
-        id: "engine-surface-pump-commissioning",
-        name: "Engine Driven Surface Pump Commissioning Report",
-        formType: "engine-surface-pump-commissioning",
-      },
-    }));
+    const approvalMap = await getApprovalsByTable(supabase, "engine_surface_pump_commissioning_report");
+
+    const formRecords = data.map((record: any) => {
+      const approval = getApprovalForRecord(approvalMap, String(record.id));
+      return {
+        id: record.id,
+        companyFormId: null,
+        job_order: record.job_order,
+        data: { ...record, approval_status: approval.approval_status },
+        dateCreated: record.created_at,
+        dateUpdated: record.updated_at,
+        created_by: record.created_by,
+        approval,
+        companyForm: {
+          id: "engine-surface-pump-commissioning",
+          name: "Engine Driven Surface Pump Commissioning Report",
+          formType: "engine-surface-pump-commissioning",
+        },
+      };
+    });
 
     return NextResponse.json({ success: true, data: formRecords });
   } catch (error: any) {
@@ -242,6 +249,8 @@ export const POST = withAuth(async (request, { user }) => {
 
     if (data && data[0]) {
       await supabase.from('audit_logs').insert({ table_name: 'engine_surface_pump_commissioning_report', record_id: data[0].id, action: 'CREATE', old_data: null, new_data: data[0], performed_by: user.id, performed_at: new Date().toISOString() });
+
+      await createApprovalRecord(supabase, 'engine_surface_pump_commissioning_report', data[0].id, user.id);
     }
 
     return NextResponse.json({ message: "Report submitted successfully", data }, { status: 201 });

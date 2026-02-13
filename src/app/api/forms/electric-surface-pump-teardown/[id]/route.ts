@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
@@ -38,6 +39,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const { id } = await params;
     const supabase = getServiceSupabase();
+
+    const canDelete = await hasPermission(supabase, user.id, "form_records", "delete");
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: "You do not have permission to delete records" },
+        { status: 403 }
+      );
+    }
 
     // Soft delete by setting deleted_at timestamp
     const { data, error } = await supabase

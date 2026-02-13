@@ -13,6 +13,7 @@ export interface TimeSheetEntry {
 interface DailyTimeSheetFormData {
   // Header / Basic Information
   job_number: string;
+  job_order_request_id: string;
   date: string;
 
   // Customer Information
@@ -71,6 +72,7 @@ const createEmptyEntry = (): TimeSheetEntry => ({
 const initialFormData: DailyTimeSheetFormData = {
   // Header / Basic Information
   job_number: '',
+  job_order_request_id: '',
   date: '',
 
   // Customer Information

@@ -23,13 +23,38 @@ export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
     const serviceSupabase = supabase;
-    const formData = await request.formData();
 
-    const reportId = formData.get('report_id') as string;
-    const attachmentsToDelete = JSON.parse(formData.get('attachments_to_delete') as string || '[]');
-    const existingAttachments = JSON.parse(formData.get('existing_attachments') as string || '[]');
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    // Detect content type to handle both JSON and FormData formats
+    const contentType = request.headers.get('content-type') || '';
+    const isJsonFormat = contentType.includes('application/json');
+
+    let reportId: string;
+    let attachmentsToDelete: string[];
+    let existingAttachments: any[];
+    let uploadedNewAttachments: any[] = [];
+
+    // Legacy FormData fields
+    let attachmentFiles: File[] = [];
+    let attachmentTitles: string[] = [];
+    let attachmentCategories: string[] = [];
+
+    if (isJsonFormat) {
+      // New format: JSON with pre-uploaded URLs
+      const body = await request.json();
+      reportId = body.report_id;
+      attachmentsToDelete = body.attachments_to_delete || [];
+      existingAttachments = body.existing_attachments || [];
+      uploadedNewAttachments = body.uploaded_new_attachments || [];
+    } else {
+      // Legacy format: FormData with files
+      const formData = await request.formData();
+      reportId = formData.get('report_id') as string;
+      attachmentsToDelete = JSON.parse(formData.get('attachments_to_delete') as string || '[]');
+      existingAttachments = JSON.parse(formData.get('existing_attachments') as string || '[]');
+      attachmentFiles = formData.getAll('attachment_files') as File[];
+      attachmentTitles = formData.getAll('attachment_titles') as string[];
+      attachmentCategories = formData.getAll('attachment_categories') as string[];
+    }
 
     // 1. Delete attachments marked for deletion
     if (attachmentsToDelete.length > 0) {
@@ -72,17 +97,36 @@ export const POST = withAuth(async (request, { user }) => {
         .eq('id', attachment.id);
     }
 
-    // 3. Upload and save new attachments
-    if (attachmentFiles.length > 0) {
-      const attachmentCategories = formData.getAll('attachment_categories') as string[];
+    // 3. Save new attachments (pre-uploaded URLs from JSON format)
+    if (uploadedNewAttachments.length > 0) {
+      for (const attachment of uploadedNewAttachments) {
+        const { error: attachmentError } = await supabase
+          .from('submersible_pump_teardown_attachments')
+          .insert([
+            {
+              report_id: reportId,
+              file_url: attachment.url,
+              file_name: attachment.title || attachment.fileName,
+              file_type: attachment.fileType,
+              file_size: attachment.fileSize,
+              attachment_category: attachment.category,
+            },
+          ]);
 
+        if (attachmentError) {
+          console.error(`Error inserting attachment record:`, attachmentError);
+        }
+      }
+    }
+
+    // 4. Legacy: Upload and save new attachments from FormData
+    if (attachmentFiles.length > 0) {
       for (let i = 0; i < attachmentFiles.length; i++) {
         const file = attachmentFiles[i];
         const title = attachmentTitles[i] || '';
         const category = attachmentCategories[i] || null;
 
         if (file && file.size > 0) {
-          // Upload to service-reports/submersible/teardown bucket
           const filename = `submersible/teardown/${Date.now()}-${sanitizeFilename(file.name)}`;
 
           const { error: uploadError } = await serviceSupabase.storage
@@ -103,7 +147,6 @@ export const POST = withAuth(async (request, { user }) => {
 
           const fileUrl = publicUrlData.publicUrl;
 
-          // Insert into submersible_pump_teardown_attachments table
           const { error: attachmentError } = await supabase
             .from('submersible_pump_teardown_attachments')
             .insert([

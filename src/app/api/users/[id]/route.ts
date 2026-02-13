@@ -19,12 +19,12 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
     const supabase = getServiceSupabase();
 
-    // Only users with user_creation write permission can update other users
+    // Only users with user_creation edit permission can update other users
     if (user.id !== id) {
-      const canWrite = await hasPermission(supabase, user.id, "user_creation", "write");
-      if (!canWrite) {
+      const canEdit = await hasPermission(supabase, user.id, "user_creation", "edit");
+      if (!canEdit) {
         return NextResponse.json(
-          { success: false, message: "You do not have permission to update users" },
+          { success: false, message: "You do not have permission to edit users" },
           { status: 403 }
         );
       }

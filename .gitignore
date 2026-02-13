@@ -44,3 +44,4 @@ next-env.d.ts
 /database_scripts
 /files_to_be_added
 .env*.local
+/docs

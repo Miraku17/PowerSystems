@@ -86,7 +86,7 @@ export default function Users() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [positions, setPositions] = useState<Position[]>([]);
-  const { canRead, canWrite, canDelete, isLoading: permissionsLoading } = usePermissions();
+  const { canRead, canWrite, canEdit, canDelete, isLoading: permissionsLoading } = usePermissions();
 
   // Confirmation modal states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -355,7 +355,7 @@ export default function Users() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Position
                     </th>
-                    {(canWrite("user_creation") || canDelete("user_creation")) && (
+                    {(canWrite("user_creation") || canEdit("user_creation") || canDelete("user_creation")) && (
                       <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                         Actions
                       </th>
@@ -413,10 +413,10 @@ export default function Users() {
                             {user.position?.name || "No Position"}
                           </span>
                         </td>
-                        {(canWrite("user_creation") || canDelete("user_creation")) && (
+                        {(canWrite("user_creation") || canEdit("user_creation") || canDelete("user_creation")) && (
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              {canWrite("user_creation") && (
+                              {canEdit("user_creation") && (
                                 <button
                                   onClick={() => handleOpenEditModal(user)}
                                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -467,7 +467,7 @@ export default function Users() {
                       </div>
                     </div>
                     <div className="flex space-x-1">
-                      {canWrite("user_creation") && (
+                      {canEdit("user_creation") && (
                         <button
                           onClick={() => handleOpenEditModal(user)}
                           className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"

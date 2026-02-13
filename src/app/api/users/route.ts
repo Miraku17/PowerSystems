@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -47,7 +48,7 @@ export const GET = withAuth(async (request, { user }) => {
   }
 });
 
-export async function POST(request: Request) {
+export const POST = withAuth(async (request, { user }) => {
   try {
     const { email, password, firstname, lastname, username, address, phone, position_id } = await request.json();
 
@@ -59,6 +60,15 @@ export async function POST(request: Request) {
     }
 
     const supabase = getServiceSupabase();
+
+    // Check if user has permission to create users
+    const canWrite = await hasPermission(supabase, user.id, "user_creation", "write");
+    if (!canWrite) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to create users" },
+        { status: 403 }
+      );
+    }
 
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
@@ -111,4 +121,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
+});

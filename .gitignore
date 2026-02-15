@@ -45,3 +45,4 @@ next-env.d.ts
 /files_to_be_added
 .env*.local
 /docs
+/scripts

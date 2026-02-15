@@ -310,7 +310,7 @@ export const DELETE = withAuth(async (request, { params, user }) => {
     // Fetch the current record
     const { data: currentRecord, error: fetchError } = await supabase
       .from("daily_time_sheet")
-      .select("deleted_at, created_by")
+      .select("performed_by_signature, approved_by_signature, deleted_at, created_by")
       .eq("id", id)
       .single();
 
@@ -343,6 +343,46 @@ export const DELETE = withAuth(async (request, { params, user }) => {
         { status: 403 }
       );
     }
+
+    // Fetch all attachments for this report
+    const { data: attachments, error: attachmentsError } = await supabase
+      .from("daily_time_sheet_attachments")
+      .select("file_url")
+      .eq("daily_time_sheet_id", id);
+
+    if (attachmentsError) {
+      console.error("Error fetching attachments:", attachmentsError);
+    }
+
+    // Delete attachment images from storage
+    if (attachments && attachments.length > 0) {
+      await Promise.all(attachments.map(async (attachment) => {
+        const filePath = getFilePathFromUrl(attachment.file_url);
+        if (!filePath) return;
+        try {
+          const { error } = await supabase.storage.from('service-reports').remove([filePath]);
+          if (error) console.error(`Error deleting attachment ${filePath}:`, error);
+        } catch (e) {
+          console.error(`Exception deleting attachment ${filePath}:`, e);
+        }
+      }));
+    }
+
+    // Delete attachment records from database
+    const { error: deleteAttachmentsError } = await supabase
+      .from("daily_time_sheet_attachments")
+      .delete()
+      .eq("daily_time_sheet_id", id);
+
+    if (deleteAttachmentsError) {
+      console.error("Error deleting attachment records:", deleteAttachmentsError);
+    }
+
+    // Delete signatures from storage
+    await Promise.all([
+      deleteSignature(supabase, currentRecord.performed_by_signature),
+      deleteSignature(supabase, currentRecord.approved_by_signature),
+    ]);
 
     // Soft delete - set deleted_at timestamp
     const { data, error } = await supabase

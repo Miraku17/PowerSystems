@@ -114,11 +114,13 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    // Optionally delete signature files from storage (uncomment if needed)
-    // await deleteSignature(supabase, existingRecord?.service_technician_signature);
-    // await deleteSignature(supabase, existingRecord?.noted_by_signature);
-    // await deleteSignature(supabase, existingRecord?.approved_by_signature);
-    // await deleteSignature(supabase, existingRecord?.acknowledged_by_signature);
+    // Delete signatures from storage
+    await Promise.all([
+      deleteSignature(supabase, existingRecord?.service_technician_signature),
+      deleteSignature(supabase, existingRecord?.noted_by_signature),
+      deleteSignature(supabase, existingRecord?.approved_by_signature),
+      deleteSignature(supabase, existingRecord?.acknowledged_by_signature),
+    ]);
 
     // Log the deletion in audit logs
     await supabase.from('audit_logs').insert({

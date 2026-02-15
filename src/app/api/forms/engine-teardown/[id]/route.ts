@@ -604,6 +604,22 @@ export const DELETE = withAuth(async (request, { user, params }) => {
     const { id } = await params;
     const supabase = getServiceSupabase();
 
+    // Fetch the record to get signature URLs for cleanup
+    const { data: record, error: fetchError } = await supabase
+      .from("engine_teardown_reports")
+      .select("service_technician_signature, noted_by_signature, approved_by_signature, acknowledged_by_signature, deleted_at")
+      .eq("id", id)
+      .single();
+
+    if (fetchError) {
+      console.error("Error fetching record:", fetchError);
+      return NextResponse.json({ success: false, message: fetchError.message }, { status: 500 });
+    }
+
+    if (record.deleted_at) {
+      return NextResponse.json({ error: "Record is already deleted" }, { status: 400 });
+    }
+
     const canDelete = await hasPermission(supabase, user.id, "form_records", "delete");
     if (!canDelete) {
       return NextResponse.json(
@@ -611,6 +627,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
         { status: 403 }
       );
     }
+
+    // Delete signatures from storage
+    await Promise.all([
+      deleteSignature(supabase, record.service_technician_signature),
+      deleteSignature(supabase, record.noted_by_signature),
+      deleteSignature(supabase, record.approved_by_signature),
+      deleteSignature(supabase, record.acknowledged_by_signature),
+    ]);
 
     // Soft delete by setting deleted_at timestamp
     const { data, error } = await supabase

@@ -128,6 +128,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       console.error("Error deleting attachment records:", deleteAttachmentsError);
     }
 
+    // Delete signatures from storage
+    await Promise.all([
+      deleteSignature(serviceSupabase, record.attending_technician_signature),
+      deleteSignature(serviceSupabase, record.noted_by_signature),
+      deleteSignature(serviceSupabase, record.approved_by_signature),
+      deleteSignature(serviceSupabase, record.acknowledged_by_signature),
+    ]);
+
     // Soft delete: Update the record with deleted_at and deleted_by instead of deleting
     const { data, error } = await supabase
       .from("deutz_service_report")

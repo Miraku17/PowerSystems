@@ -15,6 +15,12 @@ import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name: string;
+    description: string | null;
+  };
 }
 
 export default function SubmersiblePumpTeardownForm() {
@@ -60,6 +66,20 @@ export default function SubmersiblePumpTeardownForm() {
   };
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+
+  const allUserOptions = users.map(user => user.fullName);
+  const approvedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
+    })
+    .map(user => user.fullName);
+  const notedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1';
+    })
+    .map(user => user.fullName);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -787,7 +807,7 @@ export default function SubmersiblePumpTeardownForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
-              <Select label="Service Technician" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Service Technician" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={allUserOptions} />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.teardowned_by_signature}
@@ -796,7 +816,7 @@ export default function SubmersiblePumpTeardownForm() {
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={notedByUsers} />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.noted_by_signature}
@@ -805,7 +825,7 @@ export default function SubmersiblePumpTeardownForm() {
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select label="Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={approvedByUsers} />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.checked_approved_by_signature}
@@ -814,7 +834,7 @@ export default function SubmersiblePumpTeardownForm() {
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select label="Acknowledged By" name="acknowledged_by_name" value={formData.acknowledged_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <Select label="Acknowledged By" name="acknowledged_by_name" value={formData.acknowledged_by_name} onChange={handleChange} options={allUserOptions} />
               <SignaturePad
                 label="Draw Signature"
                 value={formData.acknowledged_by_signature}
@@ -1036,10 +1056,10 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           type="text"
           name={name}
           value={value}
-          onChange={onChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
-          placeholder="Select or type a name"
+          readOnly
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          placeholder="Select a name"
         />
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
           <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />

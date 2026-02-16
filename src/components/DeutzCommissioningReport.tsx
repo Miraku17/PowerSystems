@@ -15,6 +15,12 @@ import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name: string;
+    description: string | null;
+  };
 }
 
 export default function DeutzCommissioningReport() {
@@ -31,6 +37,20 @@ export default function DeutzCommissioningReport() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [engines, setEngines] = useState<any[]>([]);
   const approvedJOs = useApprovedJobOrders();
+
+  const allUserOptions = users.map(user => user.fullName);
+  const approvedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
+    })
+    .map(user => user.fullName);
+  const notedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1';
+    })
+    .map(user => user.fullName);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -634,7 +654,7 @@ export default function DeutzCommissioningReport() {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
                 <div className="flex flex-col space-y-4">
-                    <Select label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} options={users.map(user => user.fullName)} />
+                    <Select label="Attending Technician" name="attending_technician" value={formData.attending_technician} onChange={handleChange} options={allUserOptions} />
                     <SignaturePad
                         label="Draw Signature"
                         value={formData.attending_technician_signature}
@@ -643,7 +663,7 @@ export default function DeutzCommissioningReport() {
                     />
                 </div>
                 <div className="flex flex-col space-y-4">
-                    <Select label="Noted By" name="noted_by" value={formData.noted_by} onChange={handleChange} options={users.map(user => user.fullName)} />
+                    <Select label="Noted By" name="noted_by" value={formData.noted_by} onChange={handleChange} options={notedByUsers} />
                     <SignaturePad
                         label="Draw Signature"
                         value={formData.noted_by_signature}
@@ -652,7 +672,7 @@ export default function DeutzCommissioningReport() {
                     />
                 </div>
                 <div className="flex flex-col space-y-4">
-                    <Select label="Approved By" name="approved_by" value={formData.approved_by} onChange={handleChange} options={users.map(user => user.fullName)} />
+                    <Select label="Approved By" name="approved_by" value={formData.approved_by} onChange={handleChange} options={approvedByUsers} />
                     <SignaturePad
                         label="Draw Signature"
                         value={formData.approved_by_signature}
@@ -661,7 +681,7 @@ export default function DeutzCommissioningReport() {
                     />
                 </div>
                 <div className="flex flex-col space-y-4">
-                    <Select label="Acknowledged By" name="acknowledged_by" value={formData.acknowledged_by} onChange={handleChange} options={users.map(user => user.fullName)} />
+                    <Select label="Acknowledged By" name="acknowledged_by" value={formData.acknowledged_by} onChange={handleChange} options={allUserOptions} />
                     <SignaturePad
                         label="Draw Signature"
                         value={formData.acknowledged_by_signature}
@@ -777,10 +797,6 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
     setShowDropdown(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e);
-  };
-
   return (
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
@@ -789,10 +805,10 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           type="text"
           name={name}
           value={value}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
-          placeholder="Select or type a name"
+          readOnly
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          placeholder="Select a name"
         />
         <button
           type="button"

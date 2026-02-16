@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
+
+    // Permission check: customer_management.edit
+    if (!(await hasPermission(supabase, user.id, "customer_management", "edit"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to edit customers" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
 
     // Map frontend camelCase to database column names
@@ -55,6 +65,14 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
     const { id } = await params;
+
+    // Permission check: customer_management.delete
+    if (!(await hasPermission(supabase, user.id, "customer_management", "delete"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to delete customers" },
+        { status: 403 }
+      );
+    }
 
     const { error } = await supabase.from("customers").delete().eq("id", id);
 

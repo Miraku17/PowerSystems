@@ -156,7 +156,7 @@ export default function DashboardLayout({
 
   const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
-    { name: "Customers", icon: UsersIcon, href: "/dashboard/customers" },
+    { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
     {
       name: "Products",

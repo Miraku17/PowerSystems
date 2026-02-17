@@ -124,7 +124,7 @@ const initialFormData: JobOrderRequestFormData = {
   verified_by_signature: "",
 
   // Status
-  status: "PENDING",
+  status: "Pending",
 };
 
 export const useJobOrderRequestFormStore = create<JobOrderRequestFormStore>()(

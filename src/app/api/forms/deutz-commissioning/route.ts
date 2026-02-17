@@ -221,6 +221,8 @@ export const POST = withAuth(async (request, { user }) => {
     const rawApprovedSignature = getString('approved_by_signature');
     const acknowledged_by = getString('acknowledged_by');
     const rawAcknowledgedSignature = getString('acknowledged_by_signature');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
+    const approved_by_user_id = getString('approved_by_user_id') || null;
 
     // Handle Multiple Attachment Uploads
     const attachmentFiles = formData.getAll('attachment_files') as File[];
@@ -350,6 +352,8 @@ export const POST = withAuth(async (request, { user }) => {
           noted_by_signature,
           approved_by_signature,
           acknowledged_by_signature,
+          noted_by_user_id,
+          approved_by_user_id,
           created_by: user.id,
         },
       ])
@@ -568,6 +572,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       approved_by_signature: rawApprovedSignature,
       acknowledged_by,
       acknowledged_by_signature: rawAcknowledgedSignature,
+      noted_by_user_id,
+      approved_by_user_id,
     } = body;
 
     // Check for duplicate Job Order if it's being updated
@@ -727,6 +733,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       noted_by,
       approved_by,
       acknowledged_by,
+      noted_by_user_id: noted_by_user_id || null,
+      approved_by_user_id: approved_by_user_id || null,
     };
 
     // Only update signatures if they were processed (non-empty)

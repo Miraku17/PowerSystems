@@ -152,7 +152,9 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     if (hasField('serial_no')) mainReportData.serial_no = getString('serial_no');
     if (hasField('service_technician_name')) mainReportData.service_technician_name = getString('service_technician_name');
     if (hasField('noted_by_name')) mainReportData.noted_by_name = getString('noted_by_name');
+    if (hasField('noted_by_user_id')) mainReportData.noted_by_user_id = getString('noted_by_user_id') || null;
     if (hasField('approved_by_name')) mainReportData.approved_by_name = getString('approved_by_name');
+    if (hasField('approved_by_user_id')) mainReportData.approved_by_user_id = getString('approved_by_user_id') || null;
     if (hasField('acknowledged_by_name')) mainReportData.acknowledged_by_name = getString('acknowledged_by_name');
 
     // Handle signature uploads

@@ -157,7 +157,9 @@ export const POST = withAuth(async (request, { user }) => {
     const timestamp = Date.now();
     const service_technician_name = getString('service_technician_name');
     const noted_by_name = getString('noted_by_name');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
     const approved_by_name = getString('approved_by_name');
+    const approved_by_user_id = getString('approved_by_user_id') || null;
     const acknowledged_by_name = getString('acknowledged_by_name');
 
     const service_technician_signature = await uploadSignature(
@@ -192,8 +194,10 @@ export const POST = withAuth(async (request, { user }) => {
         service_technician_name,
         service_technician_signature,
         noted_by_name,
+        noted_by_user_id,
         noted_by_signature,
         approved_by_name,
+        approved_by_user_id,
         approved_by_signature,
         acknowledged_by_name,
         acknowledged_by_signature,

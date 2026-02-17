@@ -76,7 +76,18 @@ export default function ElectricSurfacePumpServiceForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({ [name]: value });
+    const updates: Record<string, any> = { [name]: value };
+
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'checked_approved_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+
+    setFormData(updates);
   };
 
   const handleBooleanChange = (name: string, value: boolean | null) => {

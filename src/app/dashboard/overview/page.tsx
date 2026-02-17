@@ -149,8 +149,10 @@ export default function OverviewPage() {
           apiClient.get("/forms/job-order-request/pending"),
           apiClient.get("/forms/daily-time-sheet/pending"),
         ]);
+        const joData = joResponse.data.data || [];
+        const pendingJoCount = joData.filter((jo: any) => jo.status === "Pending" || jo.status === "In-Progress").length;
         setPendingApprovals({
-          jobOrders: joResponse.data.data?.length || 0,
+          jobOrders: pendingJoCount,
           timesheets: dtsResponse.data.data?.length || 0,
         });
       } catch (err) {

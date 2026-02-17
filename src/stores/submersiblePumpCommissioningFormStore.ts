@@ -67,6 +67,8 @@ interface SubmersiblePumpCommissioningFormData {
   commissioned_by_signature: string;
   checked_approved_by_name: string;
   checked_approved_by_signature: string;
+  noted_by_user_id: string;
+  approved_by_user_id: string;
   noted_by_name: string;
   noted_by_signature: string;
   acknowledged_by_name: string;
@@ -145,6 +147,8 @@ const initialFormData: SubmersiblePumpCommissioningFormData = {
   commissioned_by_signature: "",
   checked_approved_by_name: "",
   checked_approved_by_signature: "",
+  noted_by_user_id: "",
+  approved_by_user_id: "",
   noted_by_name: "",
   noted_by_signature: "",
   acknowledged_by_name: "",

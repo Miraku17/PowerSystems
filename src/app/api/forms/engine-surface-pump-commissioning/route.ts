@@ -186,9 +186,11 @@ export const POST = withAuth(async (request, { user }) => {
     const checked_approved_by_name = getString('checked_approved_by_name');
     const rawCheckedApprovedBySignature = getString('checked_approved_by_signature');
     const noted_by_name = getString('noted_by_name');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
     const rawNotedBySignature = getString('noted_by_signature');
     const acknowledged_by_name = getString('acknowledged_by_name');
     const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
+    const approved_by_user_id = getString('approved_by_user_id') || null;
 
     const attachmentFiles = formData.getAll('attachment_files') as File[];
     const attachmentTitles = formData.getAll('attachment_titles') as string[];
@@ -220,8 +222,8 @@ export const POST = withAuth(async (request, { user }) => {
         charging_voltage, engine_running_hours, pump_discharge_pressure, test_duration,
         crankshaft_end_play_prior_test, crankshaft_end_play_post_test,
         commissioned_by_name, commissioned_by_signature, checked_approved_by_name,
-        checked_approved_by_signature, noted_by_name, noted_by_signature,
-        acknowledged_by_name, acknowledged_by_signature, created_by: user.id,
+        checked_approved_by_signature, noted_by_name, noted_by_user_id, noted_by_signature,
+        acknowledged_by_name, acknowledged_by_signature, approved_by_user_id, created_by: user.id,
       }])
       .select();
 
@@ -303,6 +305,8 @@ export const PATCH = withAuth(async (request, { user }) => {
       ...body,
       jo_date: body.jo_date || null,
       commissioning_date: body.commissioning_date || null,
+      noted_by_user_id: body.noted_by_user_id || null,
+      approved_by_user_id: body.approved_by_user_id || null,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     };

@@ -200,11 +200,6 @@ export default function DashboardLayout({
       href: "/dashboard/pending-dts",
     },
     {
-      name: "Service Reports",
-      icon: ShieldCheckIcon,
-      href: "/dashboard/pending-service-reports",
-    },
-    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
@@ -229,8 +224,7 @@ export default function DashboardLayout({
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
         item.href === "/dashboard/pending-jo-requests" ||
-        item.href === "/dashboard/pending-dts" ||
-        item.href === "/dashboard/pending-service-reports"
+        item.href === "/dashboard/pending-dts"
       );
     }
     return true;
@@ -245,8 +239,7 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
-        pathname.startsWith("/dashboard/pending-dts") ||
-        pathname.startsWith("/dashboard/pending-service-reports");
+        pathname.startsWith("/dashboard/pending-dts");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

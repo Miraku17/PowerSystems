@@ -151,7 +151,9 @@ export const POST = withAuth(async (request, { user }) => {
     // Signatures (matching Deutz Service Form)
     const service_technician_name = getString('service_technician_name');
     const noted_by_name = getString('noted_by_name');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
     const approved_by_name = getString('approved_by_name');
+    const approved_by_user_id = getString('approved_by_user_id') || null;
     const acknowledged_by_name = getString('acknowledged_by_name');
     const rawServiceTechSignature = getString('service_technician_signature');
     const rawNotedBySignature = getString('noted_by_signature');
@@ -236,8 +238,10 @@ export const POST = withAuth(async (request, { user }) => {
         service_technician_name,
         service_technician_signature,
         noted_by_name,
+        noted_by_user_id,
         noted_by_signature,
         approved_by_name,
+        approved_by_user_id,
         approved_by_signature,
         acknowledged_by_name,
         acknowledged_by_signature,
@@ -374,8 +378,10 @@ export const PATCH = withAuth(async (request, { user }) => {
       service_technician_name,
       service_technician_signature: rawServiceTechSignature,
       noted_by_name,
+      noted_by_user_id,
       noted_by_signature: rawNotedBySignature,
       approved_by_name,
+      approved_by_user_id,
       approved_by_signature: rawApprovedBySignature,
       acknowledged_by_name,
       acknowledged_by_signature: rawAcknowledgedBySignature,
@@ -477,7 +483,9 @@ export const PATCH = withAuth(async (request, { user }) => {
       missing_parts,
       service_technician_name,
       noted_by_name,
+      noted_by_user_id: noted_by_user_id || null,
       approved_by_name,
+      approved_by_user_id: approved_by_user_id || null,
       acknowledged_by_name,
       updated_by: user.id,
       updated_at: new Date().toISOString(),

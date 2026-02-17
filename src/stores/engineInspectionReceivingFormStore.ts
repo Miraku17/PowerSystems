@@ -61,6 +61,8 @@ export interface EngineInspectionReceivingFormData {
   noted_by_signature: string;
   approved_by_name: string;
   approved_by_signature: string;
+  noted_by_user_id: string;
+  approved_by_user_id: string;
   acknowledged_by_name: string;
   acknowledged_by_signature: string;
 }
@@ -374,6 +376,8 @@ const initialFormData: EngineInspectionReceivingFormData = {
   noted_by_signature: '',
   approved_by_name: '',
   approved_by_signature: '',
+  noted_by_user_id: '',
+  approved_by_user_id: '',
   acknowledged_by_name: '',
   acknowledged_by_signature: '',
 };

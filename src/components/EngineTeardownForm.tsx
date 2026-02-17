@@ -82,7 +82,18 @@ export default function EngineTeardownForm() {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData({ [name]: checked });
     } else {
-      setFormData({ [name]: value });
+      const updates: Record<string, any> = { [name]: value };
+
+      if (name === 'noted_by_name') {
+        const matchedUser = users.find(u => u.fullName === value);
+        updates.noted_by_user_id = matchedUser?.id || '';
+      }
+      if (name === 'approved_by_name') {
+        const matchedUser = users.find(u => u.fullName === value);
+        updates.approved_by_user_id = matchedUser?.id || '';
+      }
+
+      setFormData(updates);
     }
   };
 

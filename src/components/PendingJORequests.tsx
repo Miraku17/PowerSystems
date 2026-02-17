@@ -2,10 +2,9 @@
 
 import { useState, useEffect } from "react";
 import {
-  CheckCircleIcon,
-  XCircleIcon,
-  XMarkIcon,
   MagnifyingGlassIcon,
+  ClipboardDocumentListIcon,
+  ChevronDownIcon,
 } from "@heroicons/react/24/outline";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
@@ -21,28 +20,19 @@ interface PendingJO {
   full_customer_name: string;
   date_prepared: string;
   created_at: string;
-  approval_status: string;
+  status: string;
   requester_name: string;
   requester_address: string;
-  level_1_approved_by_name: string | null;
-  level_1_approved_at: string | null;
-  level_1_notes: string | null;
-  level_2_approved_by_name: string | null;
-  level_2_approved_at: string | null;
-  level_2_notes: string | null;
-  level_3_approved_by_name: string | null;
-  level_3_approved_at: string | null;
-  level_3_notes: string | null;
 }
+
+const STATUS_OPTIONS = ["In-Progress", "Pending", "Close", "Cancelled"];
 
 export default function PendingJORequests() {
   const [records, setRecords] = useState<PendingJO[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [processing, setProcessing] = useState<string | null>(null);
-  const [rejectModal, setRejectModal] = useState<{ id: string; joNumber: string } | null>(null);
-  const [rejectNotes, setRejectNotes] = useState("");
-  const [meta, setMeta] = useState<{ approvalLevel: number; positionName: string; isRequester: boolean } | null>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [meta, setMeta] = useState<{ positionName: string; isRequester: boolean } | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
@@ -56,8 +46,8 @@ export default function PendingJORequests() {
         setMeta(response.data.meta || null);
       }
     } catch (error) {
-      console.error("Error fetching pending JO requests:", error);
-      toast.error("Failed to load pending requests");
+      console.error("Error fetching JO requests:", error);
+      toast.error("Failed to load requests");
     } finally {
       setLoading(false);
     }
@@ -71,45 +61,20 @@ export default function PendingJORequests() {
     setCurrentPage(1);
   }, [searchTerm]);
 
-  const handleApprove = async (id: string) => {
-    setProcessing(id);
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setUpdatingStatus(id);
     try {
-      const response = await apiClient.post(`/forms/job-order-request/${id}/approve`, {
-        action: "approve",
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        fetchPending();
-      } else {
-        toast.error(response.data.message || "Failed to approve");
+      const response = await apiClient.patch(`/forms/job-order-request/${id}`, { status: newStatus });
+      if (response.data) {
+        toast.success("Status updated successfully");
+        setRecords((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
+        );
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to approve");
+      toast.error(error.response?.data?.error || "Failed to update status");
     } finally {
-      setProcessing(null);
-    }
-  };
-
-  const handleReject = async () => {
-    if (!rejectModal) return;
-    setProcessing(rejectModal.id);
-    try {
-      const response = await apiClient.post(`/forms/job-order-request/${rejectModal.id}/approve`, {
-        action: "reject",
-        notes: rejectNotes,
-      });
-      if (response.data.success) {
-        toast.success(response.data.message);
-        setRejectModal(null);
-        setRejectNotes("");
-        fetchPending();
-      } else {
-        toast.error(response.data.message || "Failed to reject");
-      }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to reject");
-    } finally {
-      setProcessing(null);
+      setUpdatingStatus(null);
     }
   };
 
@@ -129,20 +94,33 @@ export default function PendingJORequests() {
     setSelectedRecordId(id);
   };
 
+  const getStatusSelectClass = (status: string) => {
+    switch (status) {
+      case "In-Progress":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "Close":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "Cancelled":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case "pending_level_1":
-        return { label: "Pending Level 1", color: "bg-yellow-100 text-yellow-800" };
-      case "pending_level_2":
-        return { label: "Pending Level 2", color: "bg-blue-100 text-blue-800" };
-      case "pending_level_3":
-        return { label: "Pending Level 3", color: "bg-purple-100 text-purple-800" };
-      case "approved":
-        return { label: "Approved", color: "bg-green-100 text-green-800" };
-      case "rejected":
-        return { label: "Rejected", color: "bg-red-100 text-red-800" };
+      case "In-Progress":
+        return { label: "In-Progress", color: "bg-blue-100 text-blue-800" };
+      case "Pending":
+        return { label: "Pending", color: "bg-yellow-100 text-yellow-800" };
+      case "Close":
+        return { label: "Close", color: "bg-green-100 text-green-800" };
+      case "Cancelled":
+        return { label: "Cancelled", color: "bg-red-100 text-red-800" };
       default:
-        return { label: status, color: "bg-gray-100 text-gray-800" };
+        return { label: status || "Unknown", color: "bg-gray-100 text-gray-800" };
     }
   };
 
@@ -154,6 +132,8 @@ export default function PendingJORequests() {
       year: "numeric",
     });
   };
+
+  const isAdmin = meta && !meta.isRequester;
 
   const filteredRecords = records.filter(
     (r) =>
@@ -193,8 +173,8 @@ export default function PendingJORequests() {
           <h1 className="text-2xl font-bold text-gray-800">JO Requests</h1>
           <p className="text-sm text-gray-500 mt-1">
             {meta?.isRequester
-              ? "Track the approval status of your Job Order Requests."
-              : "Review and approve Job Order Requests."}
+              ? "Track the status of your Job Order Requests."
+              : "Manage Job Order Requests."}
             {meta?.positionName && !meta?.isRequester && (
               <span className="ml-1 font-medium text-gray-600">
                 ({meta.positionName})
@@ -247,26 +227,18 @@ export default function PendingJORequests() {
                 <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
                 </TableHead>
-                <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider hidden lg:table-cell">
-                  Approval Trail
-                </TableHead>
-                {!meta?.isRequester && (
-                  <TableHead className="px-6 py-4 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Actions
-                  </TableHead>
-                )}
               </TableRow>
             </TableHeader>
             <TableBody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={meta?.isRequester ? 7 : 8}>
+                  <TableCell colSpan={6}>
                     <TableSkeleton rows={5} />
                   </TableCell>
                 </TableRow>
               ) : paginatedRecords.length > 0 ? (
                 paginatedRecords.map((record) => {
-                  const badge = getStatusBadge(record.approval_status);
+                  const badge = getStatusBadge(record.status);
                   return (
                     <TableRow
                       key={record.id}
@@ -288,78 +260,38 @@ export default function PendingJORequests() {
                       <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 hidden lg:table-cell">
                         {record.requester_address || "-"}
                       </TableCell>
-                      <TableCell className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
-                        >
-                          {badge.label}
-                        </span>
+                      <TableCell className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                        {isAdmin ? (
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={record.status || "Pending"}
+                              onChange={(e) => handleStatusChange(record.id, e.target.value)}
+                              disabled={updatingStatus === record.id}
+                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.status)}`}
+                            >
+                              {STATUS_OPTIONS.map((opt) => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                            <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
+                          </div>
+                        ) : (
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${badge.color}`}
+                          >
+                            {badge.label}
+                          </span>
+                        )}
                       </TableCell>
-                      <TableCell className="px-6 py-4 text-xs text-gray-500 hidden lg:table-cell">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${record.level_1_approved_by_name ? (record.level_1_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
-                            <span className="text-gray-400">L1:</span>
-                            <span className={record.level_1_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
-                              {record.level_1_approved_by_name || "Pending"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${record.level_2_approved_by_name ? (record.level_2_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
-                            <span className="text-gray-400">L2:</span>
-                            <span className={record.level_2_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
-                              {record.level_2_approved_by_name || "Pending"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-2 h-2 rounded-full ${record.level_3_approved_by_name ? (record.level_3_notes?.startsWith("REJECTED:") ? "bg-red-500" : "bg-green-500") : "bg-gray-300"}`} />
-                            <span className="text-gray-400">L3:</span>
-                            <span className={record.level_3_approved_by_name ? "text-gray-700 font-medium" : "text-gray-400"}>
-                              {record.level_3_approved_by_name || "Pending"}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      {!meta?.isRequester && (
-                        <TableCell className="px-6 py-4 whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
-                          {record.approval_status === `pending_level_${meta?.approvalLevel}` || (meta?.approvalLevel === 0 && record.approval_status.startsWith("pending_level_")) ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleApprove(record.id)}
-                                disabled={processing === record.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <CheckCircleIcon className="h-4 w-4" />
-                                Approve
-                              </button>
-                              <button
-                                onClick={() =>
-                                  setRejectModal({
-                                    id: record.id,
-                                    joNumber: record.jo_number || record.id,
-                                  })
-                                }
-                                disabled={processing === record.id}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <XCircleIcon className="h-4 w-4" />
-                                Reject
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">—</span>
-                          )}
-                        </TableCell>
-                      )}
                     </TableRow>
                   );
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={meta?.isRequester ? 7 : 8} className="px-6 py-16 text-center">
+                  <TableCell colSpan={6} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                        <MagnifyingGlassIcon className="h-8 w-8 text-gray-400" />
+                        <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400" />
                       </div>
                       <p className="text-gray-500 font-medium">No JO requests found</p>
                       <p className="text-sm text-gray-400">Try adjusting your search criteria</p>
@@ -427,74 +359,6 @@ export default function PendingJORequests() {
           <div className="bg-white rounded-lg p-6 shadow-xl flex items-center gap-3">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="text-sm text-gray-600">Loading details...</span>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal */}
-      {rejectModal && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          style={{
-            backgroundColor: "rgba(0, 0, 0, 0.3)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setRejectModal(null);
-              setRejectNotes("");
-            }
-          }}
-        >
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100">
-                  <XCircleIcon className="h-6 w-6 text-red-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900">Reject JO Request</h3>
-              </div>
-              <button
-                onClick={() => {
-                  setRejectModal(null);
-                  setRejectNotes("");
-                }}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">
-                Rejecting <span className="font-semibold">{rejectModal.joNumber}</span>. Please provide a reason:
-              </p>
-              <textarea
-                value={rejectNotes}
-                onChange={(e) => setRejectNotes(e.target.value)}
-                rows={4}
-                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-transparent resize-none"
-                placeholder="Enter reason for rejection..."
-              />
-            </div>
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  setRejectModal(null);
-                  setRejectNotes("");
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={processing === rejectModal.id}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {processing === rejectModal.id ? "Rejecting..." : "Reject"}
-              </button>
-            </div>
           </div>
         </div>
       )}

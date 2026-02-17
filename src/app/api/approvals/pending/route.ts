@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 // Map report_table names to human-readable form type labels
 const TABLE_LABELS: Record<string, string> = {
@@ -15,7 +16,7 @@ const TABLE_LABELS: Record<string, string> = {
   electric_surface_pump_commissioning_report: "Electric Surface Pump Commissioning",
   electric_surface_pump_teardown_report: "Electric Surface Pump Teardown",
   engine_inspection_receiving_report: "Engine Inspection / Receiving",
-  engine_teardown_report: "Engine Teardown",
+  engine_teardown_reports: "Engine Teardown",
   components_teardown_measuring_report: "Components Teardown Measuring",
 };
 
@@ -32,7 +33,7 @@ const TABLE_TO_FORM_TYPE: Record<string, string> = {
   electric_surface_pump_commissioning_report: "electric-surface-pump-commissioning",
   electric_surface_pump_teardown_report: "electric-surface-pump-teardown",
   engine_inspection_receiving_report: "engine-inspection-receiving",
-  engine_teardown_report: "engine-teardown",
+  engine_teardown_reports: "engine-teardown",
   components_teardown_measuring_report: "components-teardown-measuring",
 };
 
@@ -43,10 +44,13 @@ export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
 
-    // Get current user's position name and address
+    // Check if user has edit permission on approvals (can manage statuses)
+    const canEdit = await hasPermission(supabase, user.id, "approvals", "edit");
+
+    // Get user address for branch filtering
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("address, position:positions(name)")
+      .select("address, position_id")
       .eq("id", user.id)
       .single();
 
@@ -57,32 +61,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const positionName = (userData.position as any)?.name;
     const userAddress = userData.address;
+    const isRequester = !canEdit;
 
-    // Determine which approval level this user can act on
-    let approvalLevel: number | null = null;
+    // Check if user's scope is "branch" for filtering
     let filterByAddress = false;
-    let isRequester = false;
+    if (canEdit && userData.position_id) {
+      const { data: permScope } = await supabase
+        .from("position_permissions")
+        .select("scope, permissions!inner(module, action)")
+        .eq("position_id", userData.position_id)
+        .eq("permissions.module", "approvals")
+        .eq("permissions.action", "edit")
+        .maybeSingle();
 
-    switch (positionName) {
-      case "Admin 2":
-        approvalLevel = 1;
+      if (permScope?.scope === "branch") {
         filterByAddress = true;
-        break;
-      case "Admin 1":
-        approvalLevel = 2;
-        break;
-      case "Super Admin":
-        approvalLevel = 0; // special: all levels
-        break;
-      default:
-        // Regular user / Super User: show only their own submissions (view-only)
-        isRequester = true;
-        break;
+      }
     }
 
-    // Build query for pending approvals (only service report tables)
+    // Build query for approvals (only service report tables)
     let query = supabase
       .from("approvals")
       .select("*, requester:users!approvals_requested_by_fkey(id, firstname, lastname, address)")
@@ -91,15 +89,8 @@ export const GET = withAuth(async (request, { user }) => {
     if (isRequester) {
       // Regular users see all their own service report approvals
       query = query.eq("requested_by", user.id);
-    } else if (approvalLevel === 0) {
-      // Super Admin sees all
-    } else if (approvalLevel === 1) {
-      // Admin 2: records they need to act on OR have already acted on (level 1)
-      query = query.or("level1_status.eq.pending,level1_status.eq.completed");
-    } else if (approvalLevel === 2) {
-      // Admin 1: records they need to act on OR have already acted on (level 2)
-      query = query.or("level2_status.eq.pending,level2_status.eq.completed").eq("level1_status", "completed");
     }
+    // Users with edit permission see all records (branch-scoped users filtered below)
 
     query = query.order("created_at", { ascending: false });
 
@@ -123,30 +114,7 @@ export const GET = withAuth(async (request, { user }) => {
       });
     }
 
-    // No longer filtering out rejected records — show full history
-
-    // Collect all unique approver IDs to resolve names in one query
-    const approverIds = new Set<string>();
-    filteredData.forEach((r: any) => {
-      if (r.level1_approved_by) approverIds.add(r.level1_approved_by);
-      if (r.level2_approved_by) approverIds.add(r.level2_approved_by);
-    });
-
-    let approverNames: Record<string, string> = {};
-    if (approverIds.size > 0) {
-      const { data: approvers } = await supabase
-        .from("users")
-        .select("id, firstname, lastname")
-        .in("id", Array.from(approverIds));
-      if (approvers) {
-        approverNames = Object.fromEntries(
-          approvers.map((u: any) => [u.id, `${u.firstname} ${u.lastname}`])
-        );
-      }
-    }
-
-    // Now fetch form details for each approval to get JO number, customer, date
-    // Column names vary across tables, so select all possible variants
+    // Fetch form details for each approval to get JO number, customer, date
     const enrichedRecords = await Promise.all(
       filteredData.map(async (approval: any) => {
         let formDetails: any = {};
@@ -161,7 +129,6 @@ export const GET = withAuth(async (request, { user }) => {
           // Form record may have been deleted
         }
 
-        // Resolve job order number (different columns across tables)
         const jobOrderNo =
           formDetails.job_order_no ||
           formDetails.job_order ||
@@ -169,7 +136,6 @@ export const GET = withAuth(async (request, { user }) => {
           formDetails.jo_number ||
           "";
 
-        // Resolve customer name (different columns across tables)
         const customerName =
           formDetails.customer_name ||
           formDetails.customer ||
@@ -185,20 +151,11 @@ export const GET = withAuth(async (request, { user }) => {
           customer_name: customerName,
           date_created: formDetails.created_at || approval.created_at,
           status: approval.status,
-          level1_status: approval.level1_status,
-          level1_remarks: approval.level1_remarks,
-          level1_approved_by_name: approverNames[approval.level1_approved_by] || null,
-          level2_status: approval.level2_status,
-          level2_remarks: approval.level2_remarks,
-          level2_approved_by_name: approverNames[approval.level2_approved_by] || null,
           requested_by: approval.requested_by,
           requester_name: approval.requester
             ? `${approval.requester.firstname} ${approval.requester.lastname}`
             : "Unknown",
           requester_address: approval.requester?.address || "",
-          is_rejected:
-            approval.level1_remarks?.startsWith("REJECTED:") ||
-            approval.level2_remarks?.startsWith("REJECTED:"),
         };
       })
     );
@@ -206,7 +163,7 @@ export const GET = withAuth(async (request, { user }) => {
     return NextResponse.json({
       success: true,
       data: enrichedRecords,
-      meta: { approvalLevel, positionName, isRequester },
+      meta: { canEdit, isRequester },
     });
   } catch (error: any) {
     console.error("API error fetching pending approvals:", error);

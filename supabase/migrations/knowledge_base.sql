@@ -50,16 +50,48 @@ INSERT INTO permissions (module, action, description) VALUES
 ON CONFLICT (module, action) DO NOTHING;
 
 -- ============================================
--- Assign permissions to admin positions
--- (Adjust the position name to match your admin position)
+-- Assign permissions by role
 -- ============================================
 
+-- Read: Super Admin, Admin 1, Admin 2, Super User, User 1, User 2
+INSERT INTO position_permissions (position_id, permission_id)
+SELECT p.id, perm.id
+FROM positions p
+CROSS JOIN permissions perm
+WHERE p.name IN ('Super Admin', 'Admin 1', 'Admin 2', 'Super User', 'User 1', 'User 2')
+  AND perm.module = 'knowledge_base'
+  AND perm.action = 'read'
+ON CONFLICT DO NOTHING;
+
+-- Write: Super Admin, Admin 1
+INSERT INTO position_permissions (position_id, permission_id)
+SELECT p.id, perm.id
+FROM positions p
+CROSS JOIN permissions perm
+WHERE p.name IN ('Super Admin', 'Admin 1')
+  AND perm.module = 'knowledge_base'
+  AND perm.action = 'write'
+ON CONFLICT DO NOTHING;
+
+-- Edit: Super Admin, Admin 1
+INSERT INTO position_permissions (position_id, permission_id)
+SELECT p.id, perm.id
+FROM positions p
+CROSS JOIN permissions perm
+WHERE p.name IN ('Super Admin', 'Admin 1')
+  AND perm.module = 'knowledge_base'
+  AND perm.action = 'edit'
+ON CONFLICT DO NOTHING;
+
+-- Delete: Super Admin only
 INSERT INTO position_permissions (position_id, permission_id)
 SELECT p.id, perm.id
 FROM positions p
 CROSS JOIN permissions perm
 WHERE p.name = 'Super Admin'
-  AND perm.module = 'knowledge_base';
+  AND perm.module = 'knowledge_base'
+  AND perm.action = 'delete'
+ON CONFLICT DO NOTHING;
 
 -- ============================================
 -- Storage bucket

@@ -54,7 +54,7 @@ export default function DashboardLayout({
   const queryClient = useQueryClient();
 
   // Permissions
-  const { canAccess, canRead } = usePermissions();
+  const { canAccess, canRead, isLoading: permissionsLoading } = usePermissions();
 
   // Load user data on mount
   useEffect(() => {
@@ -233,19 +233,22 @@ export default function DashboardLayout({
 
   // Redirect restricted users
   useEffect(() => {
-    if (!userLoading && userRole === "user") {
+    if (!userLoading && !permissionsLoading && userRole === "user") {
       const isAllowed =
         pathname.startsWith("/dashboard/fill-up-form") ||
         pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
-        pathname.startsWith("/dashboard/pending-dts");
+        pathname.startsWith("/dashboard/pending-dts") ||
+        (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||
+        (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
+        (pathname.startsWith("/dashboard/products") && canRead("products"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }
     }
-  }, [pathname, userRole, userLoading, router]);
+  }, [pathname, userRole, userLoading, permissionsLoading, router]);
 
   return (
     <OfflineProvider>

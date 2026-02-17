@@ -58,6 +58,7 @@ export default function KnowledgeBaseFormModal({
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingCode, setIsLoadingCode] = useState(false);
+  const [imagesToDelete, setImagesToDelete] = useState<{ id: string; articleId: string }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load existing images in edit mode
@@ -142,16 +143,12 @@ export default function KnowledgeBaseFormModal({
     }
   };
 
-  const handleRemoveImage = async (index: number) => {
+  const handleRemoveImage = (index: number) => {
     const image = images[index];
+
+    // If it's an existing image, queue it for deletion on save
     if (image.isExisting && image.id && article) {
-      try {
-        await knowledgeBaseService.deleteImage(article.id, image.id);
-        toast.success("Image removed");
-      } catch (error) {
-        toast.error("Failed to remove image");
-        return;
-      }
+      setImagesToDelete((prev) => [...prev, { id: image.id!, articleId: article.id }]);
     }
 
     // Revoke blob URL if it's a new image
@@ -226,6 +223,15 @@ export default function KnowledgeBaseFormModal({
         }
 
         articleId = article.id;
+      }
+
+      // Delete queued images
+      for (const img of imagesToDelete) {
+        try {
+          await knowledgeBaseService.deleteImage(img.articleId, img.id);
+        } catch (error) {
+          console.error("Error deleting image:", error);
+        }
       }
 
       // Upload new images

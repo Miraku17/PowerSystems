@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditSubmersiblePumpServiceProps {
   data: Record<string, any>;
@@ -205,12 +206,32 @@ export default function EditSubmersiblePumpService({
   onClose,
   onSaved,
 }: EditSubmersiblePumpServiceProps) {
+  const currentUser = useCurrentUser();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
+  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+
+  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
+    try {
+      await apiClient.patch('/forms/signatory-approval', {
+        table: 'submersible_pump_service_report',
+        recordId: data.id,
+        field,
+        checked,
+      });
+      if (field === 'noted_by') setNotedByChecked(checked);
+      else setApprovedByChecked(checked);
+      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to update approval';
+      toast.error(message);
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -248,7 +269,16 @@ export default function EditSubmersiblePumpService({
   }, [recordId]);
 
   const handleChange = (name: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [name]: value }));
+    const updates: Record<string, any> = { [name]: value };
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find((u: any) => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'checked_approved_by_name') {
+      const matchedUser = users.find((u: any) => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+    setFormData((prev: any) => ({ ...prev, ...updates }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -610,6 +640,10 @@ export default function EditSubmersiblePumpService({
                   ) : (
                     <SignaturePad label="Signature" value={formData.noted_by_signature} onChange={(val) => handleChange("noted_by_signature", val)} subtitle="Svc. Manager" />
                   )}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Noted</span>
+                  </label>
                 </div>
 
                 {/* Approved By */}
@@ -626,6 +660,10 @@ export default function EditSubmersiblePumpService({
                   ) : (
                     <SignaturePad label="Signature" value={formData.checked_approved_by_signature} onChange={(val) => handleChange("checked_approved_by_signature", val)} subtitle="Svc. Supvr. / Supt." />
                   )}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Approved</span>
+                  </label>
                 </div>
 
                 {/* Acknowledged By */}

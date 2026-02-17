@@ -130,7 +130,7 @@ export const POST = withAuth(async (request, { user }) => {
     const invoice_number = getString('invoice_number');
     const remarks = getString('remarks');
     const verified_by_name = getString('verified_by_name');
-    const status = getString('status') || 'PENDING';
+    const status = getString('status') || 'Pending';
 
     // Signatures
     const rawRequestedBySignature = getString('requested_by_signature');

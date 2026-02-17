@@ -14,6 +14,12 @@ import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name: string;
+    description: string | null;
+  };
 }
 
 export default function EngineTeardownForm() {
@@ -27,6 +33,20 @@ export default function EngineTeardownForm() {
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const approvedJOs = useApprovedJobOrders();
+
+  const allUserOptions = users.map(user => user.fullName);
+  const approvedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
+    })
+    .map(user => user.fullName);
+  const notedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1';
+    })
+    .map(user => user.fullName);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -62,7 +82,18 @@ export default function EngineTeardownForm() {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData({ [name]: checked });
     } else {
-      setFormData({ [name]: value });
+      const updates: Record<string, any> = { [name]: value };
+
+      if (name === 'noted_by_name') {
+        const matchedUser = users.find(u => u.fullName === value);
+        updates.noted_by_user_id = matchedUser?.id || '';
+      }
+      if (name === 'approved_by_name') {
+        const matchedUser = users.find(u => u.fullName === value);
+        updates.approved_by_user_id = matchedUser?.id || '';
+      }
+
+      setFormData(updates);
     }
   };
 
@@ -827,7 +858,7 @@ export default function EngineTeardownForm() {
                 name="service_technician_name"
                 value={formData.service_technician_name}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={allUserOptions}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -842,7 +873,7 @@ export default function EngineTeardownForm() {
                 name="noted_by_name"
                 value={formData.noted_by_name}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={notedByUsers}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -857,7 +888,7 @@ export default function EngineTeardownForm() {
                 name="approved_by_name"
                 value={formData.approved_by_name}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={approvedByUsers}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -872,7 +903,7 @@ export default function EngineTeardownForm() {
                 name="acknowledged_by_name"
                 value={formData.acknowledged_by_name}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={allUserOptions}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -950,10 +981,10 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           type="text"
           name={name}
           value={value}
-          onChange={onChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
-          placeholder="Select or type a name"
+          readOnly
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          placeholder="Select a name"
         />
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
           <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />

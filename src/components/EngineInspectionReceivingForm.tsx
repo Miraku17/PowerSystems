@@ -19,6 +19,12 @@ import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name: string;
+    description: string | null;
+  };
 }
 
 export default function EngineInspectionReceivingForm() {
@@ -30,6 +36,20 @@ export default function EngineInspectionReceivingForm() {
   const [users, setUsers] = useState<User[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const approvedJOs = useApprovedJobOrders();
+
+  const allUserOptions = users.map(user => user.fullName);
+  const approvedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
+    })
+    .map(user => user.fullName);
+  const notedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1';
+    })
+    .map(user => user.fullName);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -60,7 +80,18 @@ export default function EngineInspectionReceivingForm() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({ [name]: value });
+    const updates: Record<string, any> = { [name]: value };
+
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'approved_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+
+    setFormData(updates);
   };
 
   const handleSignatureChange = (name: string, signature: string) => {
@@ -459,7 +490,7 @@ export default function EngineInspectionReceivingForm() {
                 name="service_technician_name"
                 value={formData.service_technician_name}
                 onChange={handleChange}
-                options={users.map((user) => user.fullName)}
+                options={allUserOptions}
                 placeholder="Select technician"
               />
               <SignaturePad
@@ -477,7 +508,7 @@ export default function EngineInspectionReceivingForm() {
                 name="noted_by_name"
                 value={formData.noted_by_name}
                 onChange={handleChange}
-                options={users.map((user) => user.fullName)}
+                options={notedByUsers}
                 placeholder="Select manager"
               />
               <SignaturePad
@@ -495,7 +526,7 @@ export default function EngineInspectionReceivingForm() {
                 name="approved_by_name"
                 value={formData.approved_by_name}
                 onChange={handleChange}
-                options={users.map((user) => user.fullName)}
+                options={approvedByUsers}
                 placeholder="Select approver"
               />
               <SignaturePad
@@ -513,7 +544,7 @@ export default function EngineInspectionReceivingForm() {
                 name="acknowledged_by_name"
                 value={formData.acknowledged_by_name}
                 onChange={handleChange}
-                options={users.map((user) => user.fullName)}
+                options={allUserOptions}
                 placeholder="Select customer rep"
               />
               <SignaturePad
@@ -561,7 +592,7 @@ interface UserSelectProps {
   placeholder?: string;
 }
 
-function UserSelect({ label, name, value, onChange, options, placeholder = "Select or type a name" }: UserSelectProps) {
+function UserSelect({ label, name, value, onChange, options, placeholder = "Select a name" }: UserSelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -584,10 +615,6 @@ function UserSelect({ label, name, value, onChange, options, placeholder = "Sele
     setShowDropdown(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e);
-  };
-
   // Filter options based on current input
   const filteredOptions = options.filter(opt =>
     opt.toLowerCase().includes((value || '').toLowerCase())
@@ -601,9 +628,9 @@ function UserSelect({ label, name, value, onChange, options, placeholder = "Sele
           type="text"
           name={name}
           value={value}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
+          readOnly
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
           placeholder={placeholder}
         />
         <button

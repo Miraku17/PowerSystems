@@ -185,8 +185,10 @@ export const POST = withAuth(async (request, { user }) => {
     const service_technician = getString('service_technician');
     const rawServiceTechSignature = getString('service_technician_signature');
     const noted_by = getString('noted_by');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
     const rawNotedBySignature = getString('noted_by_signature');
     const approved_by = getString('approved_by');
+    const approved_by_user_id = getString('approved_by_user_id') || null;
     const rawApprovedBySignature = getString('approved_by_signature');
     const acknowledged_by = getString('acknowledged_by');
     const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
@@ -264,8 +266,10 @@ export const POST = withAuth(async (request, { user }) => {
           service_technician,
           attending_technician_signature,
           noted_by,
+          noted_by_user_id,
           noted_by_signature,
           approved_by,
+          approved_by_user_id,
           approved_by_signature,
           acknowledged_by,
           acknowledged_by_signature,
@@ -452,8 +456,10 @@ export const PATCH = withAuth(async (request, { user }) => {
       attending_technician_signature: rawServiceTechSignature, // Frontend Edit component uses this name
       service_technician_signature: rawServiceTechSignatureAlt, // Frontend Create component uses this name
       noted_by,
+      noted_by_user_id,
       noted_by_signature: rawNotedBySignature,
       approved_by,
+      approved_by_user_id,
       approved_by_signature: rawApprovedBySignature,
       acknowledged_by,
       acknowledged_by_signature: rawAcknowledgedBySignature,
@@ -585,7 +591,9 @@ export const PATCH = withAuth(async (request, { user }) => {
       summary_details,
       service_technician,
       noted_by,
+      noted_by_user_id: noted_by_user_id || null,
       approved_by,
+      approved_by_user_id: approved_by_user_id || null,
       acknowledged_by,
       action_taken,
       observation,

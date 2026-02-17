@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
+import { useCurrentUser } from "@/stores/authStore";
+import apiClient from "@/lib/axios";
+import toast from "react-hot-toast";
 
 interface ViewDeutzCommissioningProps {
   data: Record<string, any>;
@@ -18,6 +21,9 @@ interface Attachment {
 }
 
 export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: ViewDeutzCommissioningProps) {
+  const currentUser = useCurrentUser();
+  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
+  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [auditInfo, setAuditInfo] = useState<{
     createdBy?: string;
@@ -82,6 +88,23 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
 
     fetchAuditInfo();
   }, [data.created_by, data.updated_by, data.deleted_by]);
+
+  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
+    try {
+      await apiClient.patch('/forms/signatory-approval', {
+        table: 'deutz_commissioning_report',
+        recordId: data.id,
+        field,
+        checked,
+      });
+      if (field === 'noted_by') setNotedByChecked(checked);
+      else setApprovedByChecked(checked);
+      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to update approval';
+      toast.error(message);
+    }
+  };
 
   const Field = ({ label, value }: { label: string; value: any }) => (
     <div>
@@ -473,6 +496,16 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                     </div>
                     <Field label="Noted By" value={data.noted_by} />
                     <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={notedByChecked}
+                        disabled={!currentUser || currentUser.id !== data.noted_by_user_id}
+                        onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-xs font-medium text-gray-600">Noted</span>
+                    </label>
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
@@ -484,6 +517,16 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF }: V
                     </div>
                     <Field label="Approved By" value={data.approved_by} />
                     <p className="text-xs text-gray-400 mt-1 italic">Authorized Signature</p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={approvedByChecked}
+                        disabled={!currentUser || currentUser.id !== data.approved_by_user_id}
+                        onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                      <span className="text-xs font-medium text-gray-600">Approved</span>
+                    </label>
                   </div>
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">

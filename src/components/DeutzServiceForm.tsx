@@ -15,6 +15,12 @@ import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name: string;
+    description: string | null;
+  };
 }
 
 export default function DeutzServiceForm() {
@@ -31,6 +37,20 @@ export default function DeutzServiceForm() {
   const [customers, setCustomers] = useState<any[]>([]);
   const approvedJOs = useApprovedJobOrders();
   const [engines, setEngines] = useState<any[]>([]);
+
+  const allUserOptions = users.map(user => user.fullName);
+  const approvedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
+    })
+    .map(user => user.fullName);
+  const notedByUsers = users
+    .filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'super admin' || posName === 'admin 1';
+    })
+    .map(user => user.fullName);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -78,7 +98,18 @@ export default function DeutzServiceForm() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData({ [name]: value });
+    const updates: Record<string, any> = { [name]: value };
+
+    if (name === 'noted_by') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'approved_by') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+
+    setFormData(updates);
   };
 
   const handleCustomerSelect = (customer: any) => {
@@ -718,7 +749,7 @@ export default function DeutzServiceForm() {
                 name="service_technician"
                 value={formData.service_technician}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={allUserOptions}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -733,7 +764,7 @@ export default function DeutzServiceForm() {
                 name="noted_by"
                 value={formData.noted_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={notedByUsers}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -748,7 +779,7 @@ export default function DeutzServiceForm() {
                 name="approved_by"
                 value={formData.approved_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={approvedByUsers}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -763,7 +794,7 @@ export default function DeutzServiceForm() {
                 name="acknowledged_by"
                 value={formData.acknowledged_by}
                 onChange={handleChange}
-                options={users.map(user => user.fullName)}
+                options={allUserOptions}
               />
               <SignaturePad
                 label="Draw Signature"
@@ -929,10 +960,6 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
     setShowDropdown(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e);
-  };
-
   return (
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
@@ -943,10 +970,10 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           type="text"
           name={name}
           value={value}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
-          placeholder="Select or type a name"
+          readOnly
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          placeholder="Select a name"
         />
         <button
           type="button"

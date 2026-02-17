@@ -206,9 +206,11 @@ export const POST = withAuth(async (request, { user }) => {
     const checked_approved_by_name = getString('checked_approved_by_name');
     const rawCheckedApprovedBySignature = getString('checked_approved_by_signature');
     const noted_by_name = getString('noted_by_name');
+    const noted_by_user_id = getString('noted_by_user_id') || null;
     const rawNotedBySignature = getString('noted_by_signature');
     const acknowledged_by_name = getString('acknowledged_by_name');
     const rawAcknowledgedBySignature = getString('acknowledged_by_signature');
+    const approved_by_user_id = getString('approved_by_user_id') || null;
 
     // Handle Attachment Uploads
     const attachmentFiles = formData.getAll('attachment_files') as File[];
@@ -296,9 +298,11 @@ export const POST = withAuth(async (request, { user }) => {
           checked_approved_by_name,
           checked_approved_by_signature,
           noted_by_name,
+          noted_by_user_id,
           noted_by_signature,
           acknowledged_by_name,
           acknowledged_by_signature,
+          approved_by_user_id,
           created_by: user.id,
         },
       ])
@@ -492,9 +496,11 @@ export const PATCH = withAuth(async (request, { user }) => {
       checked_approved_by_name,
       checked_approved_by_signature: rawCheckedApprovedBySignature,
       noted_by_name,
+      noted_by_user_id,
       noted_by_signature: rawNotedBySignature,
       acknowledged_by_name,
       acknowledged_by_signature: rawAcknowledgedBySignature,
+      approved_by_user_id,
     } = body;
 
     // Check for duplicate Job Order
@@ -627,7 +633,9 @@ export const PATCH = withAuth(async (request, { user }) => {
       performed_by_name,
       checked_approved_by_name,
       noted_by_name,
+      noted_by_user_id: noted_by_user_id || null,
       acknowledged_by_name,
+      approved_by_user_id: approved_by_user_id || null,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     };

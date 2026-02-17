@@ -1,10 +1,20 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: customer_management.read
+    if (!(await hasPermission(supabase, user.id, "customer_management", "read"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view customers" },
+        { status: 403 }
+      );
+    }
+
     // Fetch all customers from Supabase
     const { data, error } = await supabase
       .from("customers")
@@ -46,6 +56,15 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    // Permission check: customer_management.write
+    if (!(await hasPermission(supabase, user.id, "customer_management", "write"))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to create customers" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     
     // Extract data from request body

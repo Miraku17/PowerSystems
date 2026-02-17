@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
@@ -17,7 +17,7 @@ interface User {
 
 export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { formData, setFormData, resetFormData, addEntry, updateEntry, removeEntry } = useDailyTimeSheetFormStore();
+  const { formData, setFormData, resetFormData, addRow, addDateRow, updateEntry, removeEntry } = useDailyTimeSheetFormStore();
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
@@ -145,8 +145,8 @@ export default function DailyTimeSheetForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    // Prepare entries data for submission
-    const entriesData = formData.entries.map(({ id, ...rest }) => rest);
+    // Prepare entries data for submission (strip client-only fields)
+    const entriesData = formData.entries.map(({ id, has_date, ...rest }) => rest);
 
     await submit({
       formType: 'daily-time-sheet' as any,
@@ -241,14 +241,24 @@ export default function DailyTimeSheetForm() {
               <div className="w-1 h-6 bg-blue-600 mr-2"></div>
               <h3 className="text-lg font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h3>
             </div>
-            <button
-              type="button"
-              onClick={addEntry}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Row
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={addRow}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Row
+              </button>
+              <button
+                type="button"
+                onClick={addDateRow}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                <CalendarDaysIcon className="h-4 w-4" />
+                Add New Date
+              </button>
+            </div>
           </div>
 
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 overflow-x-auto">
@@ -264,15 +274,19 @@ export default function DailyTimeSheetForm() {
                 </tr>
               </thead>
               <tbody>
-                {formData.entries.map((entry, index) => (
+                {formData.entries.map((entry) => (
                   <tr key={entry.id} className="border-b border-gray-200">
                     <td className="py-2 px-2">
-                      <input
-                        type="date"
-                        value={entry.entry_date}
-                        onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
-                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                      />
+                      {entry.has_date ? (
+                        <input
+                          type="date"
+                          value={entry.entry_date}
+                          onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
+                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                        />
+                      ) : (
+                        <div className="w-full h-10"></div>
+                      )}
                     </td>
                     <td className="py-2 px-2">
                       <input

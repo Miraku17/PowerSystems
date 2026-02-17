@@ -7,7 +7,6 @@ import {
   HomeIcon,
   UsersIcon,
   UserPlusIcon,
-  BuildingOfficeIcon,
   CogIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
@@ -19,7 +18,6 @@ import {
   ChevronRightIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
-import { Company } from "@/types";
 import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
 import { useAuth } from "@/hooks/useAuth";
@@ -41,11 +39,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [companiesExpanded, setCompaniesExpanded] = useState(false);
   const [formsExpanded, setFormsExpanded] = useState(false);
   const [productsExpanded, setProductsExpanded] = useState(false);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [activeCompanyTab, setActiveCompanyTab] = useState<string | null>(null);
   const [activeFormTab, setActiveFormTab] = useState<string | null>(null);
   const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
@@ -61,9 +56,8 @@ export default function DashboardLayout({
   // Permissions
   const { canAccess, canRead } = usePermissions();
 
-  // Load companies and forms on mount
+  // Load user data on mount
   useEffect(() => {
-    loadCompanies();
     loadUserData();
   }, []);
 
@@ -95,13 +89,6 @@ export default function DashboardLayout({
     setUserLoading(false);
   };
 
-  // Auto-expand companies menu and sync active tab when on companies page
-  useEffect(() => {
-    if (pathname.includes("/companies")) {
-      setCompaniesExpanded(true);
-    }
-  }, [pathname]);
-
   // Auto-expand forms menu when on forms page
   useEffect(() => {
     if (pathname.includes("/forms")) {
@@ -123,20 +110,13 @@ export default function DashboardLayout({
         const params = new URLSearchParams(window.location.search);
         const tabParam = params.get("tab");
 
-        if (pathname.includes("/companies")) {
-          setActiveCompanyTab(tabParam);
-          setActiveFormTab(null);
-          setActiveProductTab(null);
-        } else if (pathname.includes("/forms")) {
+        if (pathname.includes("/forms")) {
           setActiveFormTab(tabParam);
-          setActiveCompanyTab(null);
           setActiveProductTab(null);
         } else if (pathname.includes("/products")) {
           setActiveProductTab(tabParam);
-          setActiveCompanyTab(null);
           setActiveFormTab(null);
         } else {
-          setActiveCompanyTab(null);
           setActiveFormTab(null);
           setActiveProductTab(null);
         }
@@ -151,17 +131,6 @@ export default function DashboardLayout({
 
     return () => clearInterval(interval);
   }, [pathname]);
-
-  const loadCompanies = async () => {
-    try {
-      const response = await apiClient.get("/companies");
-      const companiesData = response.data.data || [];
-      setCompanies(Array.isArray(companiesData) ? companiesData : []);
-    } catch (error) {
-      console.error("Error loading companies:", error);
-      setCompanies([]);
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -187,7 +156,7 @@ export default function DashboardLayout({
 
   const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
-    { name: "Customers", icon: UsersIcon, href: "/dashboard/customers" },
+    { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
     {
       name: "Products",
@@ -196,14 +165,6 @@ export default function DashboardLayout({
       hasSubmenu: true,
       submenuType: "products",
       permissionModule: "products",
-    },
-    {
-      name: "Companies",
-      icon: BuildingOfficeIcon,
-      href: "/dashboard/companies",
-      hasSubmenu: true,
-      submenuType: "companies",
-      permissionModule: "company",
     },
 
     {
@@ -239,11 +200,6 @@ export default function DashboardLayout({
       href: "/dashboard/pending-dts",
     },
     {
-      name: "Service Reports",
-      icon: ShieldCheckIcon,
-      href: "/dashboard/pending-service-reports",
-    },
-    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
@@ -268,8 +224,7 @@ export default function DashboardLayout({
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
         item.href === "/dashboard/pending-jo-requests" ||
-        item.href === "/dashboard/pending-dts" ||
-        item.href === "/dashboard/pending-service-reports"
+        item.href === "/dashboard/pending-dts"
       );
     }
     return true;
@@ -284,8 +239,7 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
-        pathname.startsWith("/dashboard/pending-dts") ||
-        pathname.startsWith("/dashboard/pending-service-reports");
+        pathname.startsWith("/dashboard/pending-dts");
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }
@@ -389,15 +343,11 @@ export default function DashboardLayout({
 
             if (item.hasSubmenu) {
               const isExpanded =
-                item.submenuType === "companies"
-                  ? companiesExpanded
-                  : item.submenuType === "forms"
+                item.submenuType === "forms"
                   ? formsExpanded
                   : productsExpanded;
               const setExpanded =
-                item.submenuType === "companies"
-                  ? setCompaniesExpanded
-                  : item.submenuType === "forms"
+                item.submenuType === "forms"
                   ? setFormsExpanded
                   : setProductsExpanded;
 
@@ -456,41 +406,6 @@ export default function DashboardLayout({
                   >
                     <div className="space-y-0.5 py-1">
                       {/* Submenu Items Logic */}
-                      {item.submenuType === "companies" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              router.push(item.href);
-                              setSidebarOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
-                              pathname === item.href && !activeCompanyTab
-                                ? "text-white font-medium before:bg-blue-300"
-                                : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
-                            }`}
-                          >
-                            All Companies
-                          </button>
-                          {companies.map((company) => (
-                            <button
-                              key={company.id}
-                              onClick={() => {
-                                router.push(`${item.href}?tab=${company.id}`);
-                                setSidebarOpen(false);
-                              }}
-                              className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 truncate ${
-                                pathname.includes("/companies") &&
-                                activeCompanyTab === String(company.id)
-                                  ? "text-white font-medium before:bg-blue-300"
-                                  : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
-                              }`}
-                            >
-                                <span className="truncate">{company.name}</span>
-                            </button>
-                          ))}
-                        </>
-                      )}
-
                       {item.submenuType === "products" && (
                         <>
                           <button

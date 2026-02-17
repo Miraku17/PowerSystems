@@ -12,6 +12,11 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 interface User {
   id: string;
   fullName: string;
+  position?: {
+    id: string;
+    name: string;
+    display_name?: string;
+  } | null;
 }
 
 export default function JobOrderRequestForm() {
@@ -346,7 +351,13 @@ export default function JobOrderRequestForm() {
             </div>
             <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} />
             <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} />
-            {/* Status field hidden as requested */}
+            <SelectDropdown
+              label="Status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              options={["Pending", "In-Progress", "Close", "Cancelled"]}
+            />
             <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
             <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />
             <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} />
@@ -357,7 +368,23 @@ export default function JobOrderRequestForm() {
               <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} />
             </div>
             <div className="lg:col-span-3 space-y-4">
-              <Select label="Verified By" name="verified_by_name" value={formData.verified_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+              <SelectDropdown
+                label="Verified By"
+                name="verified_by_name"
+                value={formData.verified_by_name}
+                onChange={handleChange}
+                options={users
+                  .filter(user => {
+                    const posName = (user.position?.name || '').toLowerCase();
+                    return posName === 'admin 1' || posName === 'admin 2' || posName === 'accounting';
+                  })
+                  .map(user => ({
+                    label: user.fullName,
+                    subtitle: user.position?.name || '',
+                    value: user.fullName,
+                  }))}
+                placeholder="Select verified by"
+              />
               <SignaturePad
                 label="Signature"
                 value={formData.verified_by_signature}
@@ -612,31 +639,86 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
   );
 };
 
+interface SelectDropdownOption {
+  label: string;
+  subtitle?: string;
+  value: string;
+}
+
 interface SelectDropdownProps {
   label: string;
   name: string;
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  options: string[];
+  options: string[] | SelectDropdownOption[];
+  placeholder?: string;
 }
 
-const SelectDropdown = ({ label, name, value, onChange, options }: SelectDropdownProps) => (
-  <div className="flex flex-col w-full">
-    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+const SelectDropdown = ({ label, name, value, onChange, options, placeholder }: SelectDropdownProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Normalize options to always be SelectDropdownOption[]
+  const normalizedOptions: SelectDropdownOption[] = options.map((opt) =>
+    typeof opt === 'string' ? { label: opt, value: opt } : opt
+  );
+
+  const selectedOption = normalizedOptions.find((opt) => opt.value === value);
+  const displayText = selectedOption ? selectedOption.label : '';
+
+  const handleSelectOption = (optValue: string) => {
+    const syntheticEvent = { target: { name, value: optValue } } as React.ChangeEvent<HTMLInputElement>;
+    onChange(syntheticEvent);
+    setShowDropdown(false);
+  };
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left text-sm text-gray-900 transition-colors pr-10 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          {displayText || <span className="text-gray-400">{placeholder || `Select ${label.toLowerCase()}`}</span>}
+        </button>
+        <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400">
+          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
+        </div>
+        {showDropdown && normalizedOptions.length > 0 && (
+          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
+            {normalizedOptions.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelectOption(opt.value)}
+                className={`w-full px-4 py-2.5 text-left transition-colors ${opt.value === value ? "bg-[#2B4C7E] text-white" : "text-gray-900 hover:bg-[#2B4C7E] hover:text-white"}`}
+              >
+                <span className="font-medium text-sm">{opt.label}</span>
+                {opt.subtitle && (
+                  <span className={`ml-2 text-xs ${opt.value === value ? "text-blue-200" : "text-gray-400"}`}>
+                    — {opt.subtitle}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 interface CustomerAutocompleteProps {
   label: string;

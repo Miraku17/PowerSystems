@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
+import { useCurrentUser } from "@/stores/authStore";
 import SignaturePad from "./SignaturePad";
 
 interface User {
@@ -97,7 +98,27 @@ const CylinderServiceable = ({ bank, prefix, formData, onChange }: { bank: strin
 );
 
 export default function EditEngineTeardown({ data, recordId, onClose, onSaved }: EditEngineTeardownProps) {
+  const currentUser = useCurrentUser();
   const [users, setUsers] = useState<User[]>([]);
+  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
+  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+
+  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
+    try {
+      await apiClient.patch('/forms/signatory-approval', {
+        table: 'engine_teardown_reports',
+        recordId: data.id,
+        field,
+        checked,
+      });
+      if (field === 'noted_by') setNotedByChecked(checked);
+      else setApprovedByChecked(checked);
+      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to update approval';
+      toast.error(message);
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -404,7 +425,16 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
   const [isSaving, setIsSaving] = useState(false);
 
   const handleChange = (name: string, value: any) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const updates: Record<string, any> = { [name]: value };
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'approved_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+    setFormData((prev) => ({ ...prev, ...updates }));
   };
 
   const handleSave = async () => {
@@ -858,6 +888,10 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
                     onChange={(signature) => handleChange('noted_by_signature', signature)}
                     subtitle="Service Manager"
                   />
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Noted</span>
+                  </label>
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SelectDropdown
@@ -873,6 +907,10 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
                     onChange={(signature) => handleChange('approved_by_signature', signature)}
                     subtitle="Authorized Signature"
                   />
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Approved</span>
+                  </label>
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SelectDropdown

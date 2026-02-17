@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { XMarkIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
+import { useCurrentUser } from "@/stores/authStore";
+import apiClient from "@/lib/axios";
+import toast from "react-hot-toast";
 import {
   SECTION_DEFINITIONS,
   type SectionDefinition,
@@ -21,6 +24,27 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
     createdBy?: string;
     updatedBy?: string;
   }>({});
+
+  const currentUser = useCurrentUser();
+  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
+  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+
+  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
+    try {
+      await apiClient.patch('/forms/signatory-approval', {
+        table: 'engine_inspection_receiving_report',
+        recordId: data.id,
+        field,
+        checked,
+      });
+      if (field === 'noted_by') setNotedByChecked(checked);
+      else setApprovedByChecked(checked);
+      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to update approval';
+      toast.error(message);
+    }
+  };
 
   // Build inspectionItems map from the joined engine_inspection_items array
   const inspectionItemsMap: Record<string, InspectionItemData> = {};
@@ -309,6 +333,10 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
                     <div className="border-t border-gray-400 w-48 pt-2 text-center">
                       <p className="text-sm font-medium text-gray-900">{data.noted_by_name || "________________________"}</p>
                       <p className="text-xs text-gray-500">Service Manager</p>
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                        <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                        <span className="text-xs font-medium text-gray-600">Noted</span>
+                      </label>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
@@ -323,6 +351,10 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
                     <div className="border-t border-gray-400 w-48 pt-2 text-center">
                       <p className="text-sm font-medium text-gray-900">{data.approved_by_name || "________________________"}</p>
                       <p className="text-xs text-gray-500">Authorized Signature</p>
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                        <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                        <span className="text-xs font-medium text-gray-600">Approved</span>
+                      </label>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">

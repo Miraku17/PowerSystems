@@ -46,6 +46,8 @@ interface DeutzServiceFormData {
   noted_by_signature: string;
   approved_by: string;
   approved_by_signature: string;
+  noted_by_user_id: string;
+  approved_by_user_id: string;
   acknowledged_by: string;
   acknowledged_by_signature: string;
 }
@@ -101,6 +103,8 @@ const initialFormData: DeutzServiceFormData = {
   noted_by_signature: "",
   approved_by: "",
   approved_by_signature: "",
+  noted_by_user_id: "",
+  approved_by_user_id: "",
   acknowledged_by: "",
   acknowledged_by_signature: "",
 };

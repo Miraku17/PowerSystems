@@ -8,6 +8,7 @@ export interface TimeSheetEntry {
   stop_time: string;
   total_hours: string;
   job_description: string;
+  has_date: boolean;
 }
 
 interface DailyTimeSheetFormData {
@@ -53,48 +54,37 @@ interface DailyTimeSheetFormStore {
   formData: DailyTimeSheetFormData;
   setFormData: (data: Partial<DailyTimeSheetFormData>) => void;
   resetFormData: () => void;
-  addEntry: () => void;
+  addRow: () => void;
+  addDateRow: () => void;
   updateEntry: (id: string, data: Partial<TimeSheetEntry>) => void;
   removeEntry: (id: string) => void;
 }
 
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-const createEmptyEntry = (): TimeSheetEntry => ({
+const createEntry = (hasDate: boolean): TimeSheetEntry => ({
   id: generateEntryId(),
   entry_date: '',
   start_time: '',
   stop_time: '',
   total_hours: '',
   job_description: '',
+  has_date: hasDate,
 });
 
 const initialFormData: DailyTimeSheetFormData = {
-  // Header / Basic Information
   job_number: '',
   job_order_request_id: '',
   date: '',
-
-  // Customer Information
   customer: '',
   address: '',
-
-  // Time Entries - start with one empty row
-  entries: [createEmptyEntry()],
-
-  // Totals
+  entries: [createEntry(true)],
   total_manhours: '',
   grand_total_manhours: '',
-
-  // Performed By
   performed_by_signature: '',
   performed_by_name: '',
-
-  // Approved By
   approved_by_signature: '',
   approved_by_name: '',
-
-  // For Service Office Only
   total_srt: '',
   actual_manhour: '',
   performance: '',
@@ -103,25 +93,30 @@ const initialFormData: DailyTimeSheetFormData = {
   service_coordinator: '',
   approved_by_service: '',
   service_manager: '',
-
-  // Status
   status: 'PENDING',
 };
 
 export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
   persist(
     (set) => ({
-      formData: initialFormData,
+      formData: { ...initialFormData, entries: [createEntry(true)] },
       setFormData: (data) =>
         set((state) => ({
           formData: { ...state.formData, ...data },
         })),
-      resetFormData: () => set({ formData: { ...initialFormData, entries: [createEmptyEntry()] } }),
-      addEntry: () =>
+      resetFormData: () => set({ formData: { ...initialFormData, entries: [createEntry(true)] } }),
+      addRow: () =>
         set((state) => ({
           formData: {
             ...state.formData,
-            entries: [...state.formData.entries, createEmptyEntry()],
+            entries: [...state.formData.entries, createEntry(false)],
+          },
+        })),
+      addDateRow: () =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            entries: [...state.formData.entries, createEntry(true)],
           },
         })),
       updateEntry: (id, data) =>
@@ -143,6 +138,34 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
     }),
     {
       name: 'psi-daily-time-sheet-form-draft',
+      version: 2,
+      migrate: (persistedState: any, version: number) => {
+        const state = persistedState as any;
+        if (state.formData) {
+          // Migrate entries: ensure has_date field exists, remove date_section_id
+          const entries = (state.formData.entries || []).map((entry: any) => ({
+            id: entry.id,
+            entry_date: entry.entry_date || '',
+            start_time: entry.start_time || '',
+            stop_time: entry.stop_time || '',
+            total_hours: entry.total_hours || '',
+            job_description: entry.job_description || '',
+            has_date: entry.has_date !== undefined ? entry.has_date : true,
+          }));
+
+          // Remove dateSections if it exists
+          const { dateSections, ...restFormData } = state.formData;
+
+          return {
+            ...state,
+            formData: {
+              ...restFormData,
+              entries: entries.length > 0 ? entries : [createEntry(true)],
+            },
+          };
+        }
+        return persistedState;
+      },
     }
   )
 );

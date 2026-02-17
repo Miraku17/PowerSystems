@@ -1,7 +1,127 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
+const VALID_STATUSES = ["In-Progress", "Pending", "Close", "Cancelled"];
+
+// PATCH: Directly set status on an approval record (requires approvals/edit permission)
+export const PATCH = withAuth(async (request, { params, user }) => {
+  try {
+    const supabase = getServiceSupabase();
+    const { id } = await params;
+    const body = await request.json();
+    const { status } = body;
+
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { success: false, message: `Invalid status. Must be one of: ${VALID_STATUSES.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    // Check permission: user must have approvals/edit permission
+    const canEdit = await hasPermission(supabase, user.id, "approvals", "edit");
+    if (!canEdit) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to change status" },
+        { status: 403 }
+      );
+    }
+
+    // Fetch the approval record
+    const { data: approval, error: approvalError } = await supabase
+      .from("approvals")
+      .select("*, requester:users!approvals_requested_by_fkey(id, address)")
+      .eq("id", id)
+      .single();
+
+    if (approvalError || !approval) {
+      return NextResponse.json(
+        { success: false, message: "Approval record not found" },
+        { status: 404 }
+      );
+    }
+
+    // Branch scoping: check if user's scope is "branch" and filter accordingly
+    const { data: userData } = await supabase
+      .from("users")
+      .select("address")
+      .eq("id", user.id)
+      .single();
+
+    if (userData?.address) {
+      const { data: scopeData } = await supabase
+        .from("users")
+        .select("position_id")
+        .eq("id", user.id)
+        .single();
+
+      if (scopeData?.position_id) {
+        const { data: permScope } = await supabase
+          .from("position_permissions")
+          .select("scope, permissions!inner(module, action)")
+          .eq("position_id", scopeData.position_id)
+          .eq("permissions.module", "approvals")
+          .eq("permissions.action", "edit")
+          .maybeSingle();
+
+        if (permScope?.scope === "branch") {
+          const requesterAddress = approval.requester?.address;
+          if (!requesterAddress || requesterAddress !== userData.address) {
+            return NextResponse.json(
+              { success: false, message: "You can only update records from your branch" },
+              { status: 403 }
+            );
+          }
+        }
+      }
+    }
+
+    const oldStatus = approval.status;
+    const now = new Date().toISOString();
+
+    const { data: updatedRecord, error: updateError } = await supabase
+      .from("approvals")
+      .update({ status, updated_by: user.id, updated_at: new Date().toISOString() })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error("Error updating approval status:", updateError);
+      return NextResponse.json(
+        { success: false, message: updateError.message },
+        { status: 500 }
+      );
+    }
+
+    // Audit log
+    await supabase.from("audit_logs").insert({
+      table_name: "approvals",
+      record_id: id,
+      action: "STATUS_CHANGE",
+      old_data: { status: oldStatus },
+      new_data: { status },
+      performed_by: user.id,
+      performed_at: now,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Status updated to ${status}`,
+      data: updatedRecord,
+    });
+  } catch (error: any) {
+    console.error("Error updating approval status:", error);
+    return NextResponse.json(
+      { success: false, message: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+});
+
+// POST: Legacy approve/reject/complete/close actions (kept for backwards compatibility)
 export const POST = withAuth(async (request, { params, user }) => {
   try {
     const supabase = getServiceSupabase();

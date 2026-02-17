@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditEngineSurfacePumpCommissioningProps {
   data: Record<string, any>;
@@ -41,12 +42,32 @@ const Select = ({ label, name, value, onChange, options }: { label: string; name
 };
 
 export default function EditEngineSurfacePumpCommissioning({ data, recordId, onClose, onSaved }: EditEngineSurfacePumpCommissioningProps) {
+  const currentUser = useCurrentUser();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
+  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
+  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+
+  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
+    try {
+      await apiClient.patch('/forms/signatory-approval', {
+        table: 'engine_surface_pump_commissioning_report',
+        recordId: data.id,
+        field,
+        checked,
+      });
+      if (field === 'noted_by') setNotedByChecked(checked);
+      else setApprovedByChecked(checked);
+      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
+    } catch (error: any) {
+      const message = error?.response?.data?.error || 'Failed to update approval';
+      toast.error(message);
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => { try { const response = await apiClient.get('/users'); if (response.data.success) setUsers(response.data.data); } catch (error) { console.error("Failed to fetch users", error); } };
@@ -55,7 +76,18 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
     fetchAttachments();
   }, [recordId]);
 
-  const handleChange = (name: string, value: any) => { setFormData((prev: any) => ({ ...prev, [name]: value })); };
+  const handleChange = (name: string, value: any) => {
+    const updates: Record<string, any> = { [name]: value };
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find((u: any) => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'checked_approved_by_name') {
+      const matchedUser = users.find((u: any) => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+    setFormData((prev: any) => ({ ...prev, ...updates }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +138,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
 
             <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Installation Photos</h4></div><div className="space-y-4">{existingAttachments.map((attachment) => (<div key={attachment.id} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm"><div className="flex items-start gap-4"><div className="shrink-0"><img src={attachment.file_url} alt={attachment.file_name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" /></div><div className="flex-1 min-w-0"><div className="flex items-start justify-between"><input type="text" placeholder="Enter image title" value={attachment.file_name} onChange={(e) => { const updated = existingAttachments.map((att) => att.id === attachment.id ? { ...att, file_name: e.target.value } : att); setExistingAttachments(updated); }} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5" /><button type="button" onClick={() => { setAttachmentsToDelete([...attachmentsToDelete, attachment.id]); setExistingAttachments(existingAttachments.filter((att) => att.id !== attachment.id)); }} className="ml-4 text-red-600 hover:text-red-800 transition-colors shrink-0"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div></div></div></div>))}{newAttachments.map((attachment, index) => { const previewUrl = URL.createObjectURL(attachment.file); return (<div key={`new-${index}`} className="px-6 py-4 border-2 border-blue-300 rounded-md bg-blue-50 shadow-sm"><div className="flex items-start gap-4"><div className="shrink-0"><img src={previewUrl} alt={attachment.file.name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" onLoad={() => URL.revokeObjectURL(previewUrl)} /></div><div className="flex-1 min-w-0"><div className="flex items-start justify-between"><div className="flex-1 min-w-0"><p className="text-sm font-medium text-gray-900 truncate mb-2">{attachment.file.name}</p><input type="text" placeholder="Enter image title" value={attachment.title} onChange={(e) => { const updated = [...newAttachments]; updated[index].title = e.target.value; setNewAttachments(updated); }} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5" /></div><button type="button" onClick={() => setNewAttachments(newAttachments.filter((_, i) => i !== index))} className="ml-4 text-red-600 hover:text-red-800 transition-colors shrink-0"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button></div></div></div></div>); })}<div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer"><div className="space-y-1 text-center"><svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg><div className="flex text-sm text-gray-600"><label htmlFor="file-upload-edit-engine-comm" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500"><span>Upload an image</span><input id="file-upload-edit-engine-comm" type="file" accept="image/*" className="sr-only" onChange={(e) => { if (e.target.files && e.target.files[0]) { const file = e.target.files[0]; if (!file.type.startsWith('image/')) { toast.error('Please select only image files'); return; } setNewAttachments([...newAttachments, { file, title: '' }]); e.target.value = ''; } }} /></label><p className="pl-1">or drag and drop</p></div><p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p></div></div></div></div>
 
-            <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">{[{ label: "Service Technician", name: "commissioned_by_name", sigName: "commissioned_by_signature", subtitle: "Svc Engineer/Technician" },{ label: "Checked & Approved By", name: "checked_approved_by_name", sigName: "checked_approved_by_signature", subtitle: "Svc. Supvr. / Supt." },{ label: "Noted By", name: "noted_by_name", sigName: "noted_by_signature", subtitle: "Svc. Manager" },{ label: "Acknowledged By", name: "acknowledged_by_name", sigName: "acknowledged_by_signature", subtitle: "Customer Representative" }].map((s, i) => (<div key={i} className="flex flex-col space-y-4"><Select label={s.label} name={s.name} value={formData[s.name]} onChange={handleChange} options={users.map(user => user.fullName)} />{formData[s.sigName] && formData[s.sigName].startsWith('http') ? (<div className="flex flex-col items-center"><div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center"><img src={formData[s.sigName]} alt="Signature" className="max-h-24 object-contain" /></div><button type="button" onClick={() => handleChange(s.sigName, "")} className="text-xs text-red-600 hover:text-red-800 underline">Remove Signature</button><p className="text-xs text-gray-400 mt-1 italic">{s.subtitle}</p></div>) : (<SignaturePad label="Signature" value={formData[s.sigName]} onChange={(val) => handleChange(s.sigName, val)} subtitle={s.subtitle} />)}</div>))}</div></div>
+            <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">{[{ label: "Service Technician", name: "commissioned_by_name", sigName: "commissioned_by_signature", subtitle: "Svc Engineer/Technician" },{ label: "Checked & Approved By", name: "checked_approved_by_name", sigName: "checked_approved_by_signature", subtitle: "Svc. Supvr. / Supt." },{ label: "Noted By", name: "noted_by_name", sigName: "noted_by_signature", subtitle: "Svc. Manager" },{ label: "Acknowledged By", name: "acknowledged_by_name", sigName: "acknowledged_by_signature", subtitle: "Customer Representative" }].map((s, i) => (<div key={i} className="flex flex-col space-y-4"><Select label={s.label} name={s.name} value={formData[s.name]} onChange={handleChange} options={users.map(user => user.fullName)} />{formData[s.sigName] && formData[s.sigName].startsWith('http') ? (<div className="flex flex-col items-center"><div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center"><img src={formData[s.sigName]} alt="Signature" className="max-h-24 object-contain" /></div><button type="button" onClick={() => handleChange(s.sigName, "")} className="text-xs text-red-600 hover:text-red-800 underline">Remove Signature</button><p className="text-xs text-gray-400 mt-1 italic">{s.subtitle}</p></div>) : (<SignaturePad label="Signature" value={formData[s.sigName]} onChange={(val) => handleChange(s.sigName, val)} subtitle={s.subtitle} />)}{s.name === "noted_by_name" && (<label className="flex items-center gap-2 mt-2 cursor-pointer"><input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" /><span className="text-xs font-medium text-gray-600">Noted</span></label>)}{s.name === "checked_approved_by_name" && (<label className="flex items-center gap-2 mt-2 cursor-pointer"><input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" /><span className="text-xs font-medium text-gray-600">Approved</span></label>)}</div>))}</div></div>
           </div>
         </form>
 

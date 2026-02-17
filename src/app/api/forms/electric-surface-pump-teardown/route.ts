@@ -208,6 +208,10 @@ export const POST = withAuth(async (request, { user }) => {
       insertData[field] = getBoolean(field);
     }
 
+    // User IDs for signatories (not in textFields loop due to || null handling)
+    insertData.noted_by_user_id = getString('noted_by_user_id') || null;
+    insertData.approved_by_user_id = getString('approved_by_user_id') || null;
+
     // Process Signatures
     const timestamp = Date.now();
     insertData.teardowned_by_signature = await uploadSignature(
@@ -473,6 +477,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     for (const field of booleanFields) {
       if (body[field] !== undefined) updateData[field] = body[field];
     }
+
+    // User IDs for signatories
+    if (body.noted_by_user_id !== undefined) updateData.noted_by_user_id = body.noted_by_user_id || null;
+    if (body.approved_by_user_id !== undefined) updateData.approved_by_user_id = body.approved_by_user_id || null;
 
     // Handle signature updates
     if (teardowned_by_signature) updateData.teardowned_by_signature = teardowned_by_signature;

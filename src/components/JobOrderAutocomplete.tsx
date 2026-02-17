@@ -130,7 +130,7 @@ const JobOrderAutocomplete = ({
                   ))
                 ) : (
                   <div className="px-3 py-2 text-sm text-gray-500">
-                    No approved job orders found
+                    No pending job orders found
                   </div>
                 )}
               </div>

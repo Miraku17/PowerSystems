@@ -25,7 +25,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -54,7 +54,7 @@ export default function DashboardLayout({
   const queryClient = useQueryClient();
 
   // Permissions
-  const { canAccess, canRead } = usePermissions();
+  const { canAccess, canRead, isLoading: permissionsLoading } = usePermissions();
 
   // Load user data on mount
   useEffect(() => {
@@ -157,6 +157,7 @@ export default function DashboardLayout({
   const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
+    { name: "Knowledge Base", icon: BookOpenIcon, href: "/dashboard/knowledge-base", permissionModule: "knowledge_base" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
     {
       name: "Products",
@@ -232,19 +233,22 @@ export default function DashboardLayout({
 
   // Redirect restricted users
   useEffect(() => {
-    if (!userLoading && userRole === "user") {
+    if (!userLoading && !permissionsLoading && userRole === "user") {
       const isAllowed =
         pathname.startsWith("/dashboard/fill-up-form") ||
         pathname.startsWith("/dashboard/daily-time-sheet") ||
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
-        pathname.startsWith("/dashboard/pending-dts");
+        pathname.startsWith("/dashboard/pending-dts") ||
+        (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||
+        (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
+        (pathname.startsWith("/dashboard/products") && canRead("products"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }
     }
-  }, [pathname, userRole, userLoading, router]);
+  }, [pathname, userRole, userLoading, permissionsLoading, router]);
 
   return (
     <OfflineProvider>

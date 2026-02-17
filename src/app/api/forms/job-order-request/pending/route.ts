@@ -1,15 +1,19 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
 
-    // Get current user's position name and address
+    // Check if user has edit permission on approvals (can manage statuses)
+    const canEdit = await hasPermission(supabase, user.id, "approvals", "edit");
+
+    // Get user address and position for branch filtering
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("address, position:positions(name)")
+      .select("address, position_id")
       .eq("id", user.id)
       .single();
 
@@ -20,24 +24,36 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const positionName = (userData.position as any)?.name;
     const userAddress = userData.address;
+    const isRequester = !canEdit;
 
-    // Determine if user is a regular requester or admin
-    const adminRoles = ["Admin 1", "Admin 2", "Super User", "Super Admin"];
-    const isRequester = !adminRoles.includes(positionName);
+    // Check if user's scope is "branch" for filtering
+    let filterByAddress = false;
+    if (canEdit && userData.position_id) {
+      const { data: permScope } = await supabase
+        .from("position_permissions")
+        .select("scope, permissions!inner(module, action)")
+        .eq("position_id", userData.position_id)
+        .eq("permissions.module", "approvals")
+        .eq("permissions.action", "edit")
+        .maybeSingle();
+
+      if (permScope?.scope === "branch") {
+        filterByAddress = true;
+      }
+    }
 
     // Build query for JO requests
     let query = supabase
       .from("job_order_request_form")
-      .select("*, requester:users!job_order_request_form_created_by_fkey(id, firstname, lastname, address)")
+      .select("*")
       .is("deleted_at", null);
 
     if (isRequester) {
       // Regular users see only their own JO requests
       query = query.eq("created_by", user.id);
     }
-    // Admin roles see all JO requests
+    // Users with edit permission see all records (branch-scoped users filtered below)
 
     query = query.order("created_at", { ascending: false });
 
@@ -51,24 +67,43 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
+    // Fetch requester info for all unique created_by users
+    const creatorIds = [...new Set((data || []).map((r: any) => r.created_by).filter(Boolean))];
+    const { data: creators } = creatorIds.length > 0
+      ? await supabase
+          .from("users")
+          .select("id, firstname, lastname, address")
+          .in("id", creatorIds)
+      : { data: [] };
+
+    const creatorMap = new Map((creators || []).map((u: any) => [u.id, u]));
+
     // Map to frontend format
-    const records = (data || []).map((record: any) => ({
-      id: record.id,
-      jo_number: record.shop_field_jo_number,
-      full_customer_name: record.full_customer_name,
-      date_prepared: record.date_prepared,
-      created_at: record.created_at,
-      status: record.status,
-      requester_name: record.requester
-        ? `${record.requester.firstname} ${record.requester.lastname}`
-        : "Unknown",
-      requester_address: record.requester?.address || "",
-    }));
+    let records = (data || []).map((record: any) => {
+      const requester = creatorMap.get(record.created_by);
+      return {
+        id: record.id,
+        jo_number: record.shop_field_jo_number,
+        full_customer_name: record.full_customer_name,
+        date_prepared: record.date_prepared,
+        created_at: record.created_at,
+        status: record.status,
+        requester_name: requester
+          ? `${requester.firstname} ${requester.lastname}`
+          : "Unknown",
+        requester_address: requester?.address || "",
+      };
+    });
+
+    // Filter by branch address if user has branch-scoped permission
+    if (filterByAddress && userAddress) {
+      records = records.filter((r: any) => r.requester_address === userAddress);
+    }
 
     return NextResponse.json({
       success: true,
       data: records,
-      meta: { positionName, isRequester },
+      meta: { canEdit, isRequester },
     });
   } catch (error: any) {
     console.error("API error fetching JO requests:", error);

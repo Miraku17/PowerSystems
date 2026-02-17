@@ -32,7 +32,7 @@ export default function PendingJORequests() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [meta, setMeta] = useState<{ positionName: string; isRequester: boolean } | null>(null);
+  const [meta, setMeta] = useState<{ canEdit: boolean; isRequester: boolean } | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
@@ -64,15 +64,17 @@ export default function PendingJORequests() {
   const handleStatusChange = async (id: string, newStatus: string) => {
     setUpdatingStatus(id);
     try {
-      const response = await apiClient.patch(`/forms/job-order-request/${id}`, { status: newStatus });
-      if (response.data) {
+      const response = await apiClient.patch(`/forms/job-order-request/${id}/status`, { status: newStatus });
+      if (response.data.success) {
         toast.success("Status updated successfully");
         setRecords((prev) =>
           prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
         );
+      } else {
+        toast.error(response.data.message || "Failed to update status");
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || "Failed to update status");
+      toast.error(error.response?.data?.message || "Failed to update status");
     } finally {
       setUpdatingStatus(null);
     }
@@ -133,7 +135,7 @@ export default function PendingJORequests() {
     });
   };
 
-  const isAdmin = meta && !meta.isRequester;
+  const isAdmin = meta?.canEdit;
 
   const filteredRecords = records.filter(
     (r) =>
@@ -175,11 +177,6 @@ export default function PendingJORequests() {
             {meta?.isRequester
               ? "Track the status of your Job Order Requests."
               : "Manage Job Order Requests."}
-            {meta?.positionName && !meta?.isRequester && (
-              <span className="ml-1 font-medium text-gray-600">
-                ({meta.positionName})
-              </span>
-            )}
           </p>
         </div>
       </div>

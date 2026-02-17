@@ -180,14 +180,16 @@ export default function FormRecordsPage() {
   // Check if this form type uses the centralized approvals table
   const isServiceReport = SERVICE_REPORT_FORM_TYPES.includes(normalizedFormType);
   const isJORequest = normalizedFormType === "job-order-request";
+  const isDTS = normalizedFormType === "daily-time-sheet";
 
   // Status dropdown state (for service reports and JO requests)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
-  const [statusConfirmModal, setStatusConfirmModal] = useState<{ approvalId: string; newStatus: string; jobOrder: string; isJORequest?: boolean; recordId?: string } | null>(null);
+  const [statusConfirmModal, setStatusConfirmModal] = useState<{ approvalId: string; newStatus: string; jobOrder: string; isJORequest?: boolean; isDTS?: boolean; recordId?: string } | null>(null);
 
   const { canEdit: canEditPermission } = usePermissions();
   const canChangeStatus = isServiceReport && canEditPermission("approvals");
   const canChangeJOStatus = isJORequest && canEditPermission("approvals");
+  const canChangeDTSStatus = isDTS && canEditPermission("approvals");
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
@@ -288,15 +290,29 @@ export default function FormRecordsPage() {
     });
   };
 
+  const handleDTSStatusChangeRequest = (record: FormRecord, newStatus: string) => {
+    const currentStatus = record.data?.status;
+    if (newStatus === currentStatus) return;
+    setStatusConfirmModal({
+      approvalId: record.id,
+      newStatus,
+      jobOrder: getJobOrder(record),
+      isDTS: true,
+      recordId: record.id,
+    });
+  };
+
   const handleStatusChangeConfirm = async () => {
     if (!statusConfirmModal) return;
-    const { approvalId, newStatus, isJORequest: isJO, recordId } = statusConfirmModal;
-    const trackingId = isJO ? recordId! : approvalId;
+    const { approvalId, newStatus, isJORequest: isJO, isDTS: isDTSRecord, recordId } = statusConfirmModal;
+    const trackingId = (isJO || isDTSRecord) ? recordId! : approvalId;
     setUpdatingStatus(trackingId);
     setStatusConfirmModal(null);
     try {
       const endpoint = isJO
         ? `/forms/job-order-request/${recordId}/status`
+        : isDTSRecord
+        ? `/forms/daily-time-sheet/${recordId}/status`
         : `/approvals/${approvalId}`;
       const response = await apiClient.patch(endpoint, { status: newStatus });
       if (response.data.success) {
@@ -645,6 +661,20 @@ export default function FormRecordsPage() {
                             </select>
                             <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                           </div>
+                        ) : canChangeDTSStatus ? (
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={record.data?.status || "Pending"}
+                              onChange={(e) => handleDTSStatusChangeRequest(record, e.target.value)}
+                              disabled={updatingStatus === record.id}
+                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                            >
+                              {STATUS_OPTIONS.map((opt) => (
+                                <option key={opt} value={opt}>{opt}</option>
+                              ))}
+                            </select>
+                            <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
+                          </div>
                         ) : canChangeStatus && record.approval?.approval_id ? (
                           <div className="relative inline-flex items-center">
                             <select
@@ -660,7 +690,7 @@ export default function FormRecordsPage() {
                             <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                           </div>
                         ) : (
-                          <ApprovalStatusBadge status={isJORequest ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
+                          <ApprovalStatusBadge status={(isJORequest || isDTS) ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
                         )}
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
@@ -672,7 +702,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canWritePermission("form_records") && (normalizedFormType === "job-order-request" ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
+                          {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -750,6 +780,20 @@ export default function FormRecordsPage() {
                         </select>
                         <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                       </div>
+                    ) : canChangeDTSStatus ? (
+                      <div className="relative inline-flex items-center">
+                        <select
+                          value={record.data?.status || "Pending"}
+                          onChange={(e) => handleDTSStatusChangeRequest(record, e.target.value)}
+                          disabled={updatingStatus === record.id}
+                          className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                        >
+                          {STATUS_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
+                      </div>
                     ) : canChangeStatus && record.approval?.approval_id ? (
                       <div className="relative inline-flex items-center">
                         <select
@@ -765,7 +809,7 @@ export default function FormRecordsPage() {
                         <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                       </div>
                     ) : (
-                      <ApprovalStatusBadge status={isJORequest ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
+                      <ApprovalStatusBadge status={(isJORequest || isDTS) ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
                     )}
                   </div>
 
@@ -780,7 +824,7 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canWritePermission("form_records") && (normalizedFormType === "job-order-request" ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
+                        {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"

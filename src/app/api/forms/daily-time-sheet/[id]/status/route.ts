@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 
 const VALID_STATUSES = ["In-Progress", "Pending", "Close", "Cancelled"];
 
-// PATCH: Set status on a job order request (requires approvals/edit permission)
+// PATCH: Set status on a daily time sheet (requires approvals/edit permission)
 export const PATCH = withAuth(async (request, { params, user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -29,17 +29,17 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       );
     }
 
-    // Fetch the job order request record
-    const { data: joRecord, error: joError } = await supabase
-      .from("job_order_request_form")
+    // Fetch the DTS record
+    const { data: dtsRecord, error: dtsError } = await supabase
+      .from("daily_time_sheet")
       .select("*")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
 
-    if (joError || !joRecord) {
+    if (dtsError || !dtsRecord) {
       return NextResponse.json(
-        { success: false, message: "Job order request not found" },
+        { success: false, message: "Daily time sheet not found" },
         { status: 404 }
       );
     }
@@ -65,7 +65,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
         const { data: creatorData } = await supabase
           .from("users")
           .select("address")
-          .eq("id", joRecord.created_by)
+          .eq("id", dtsRecord.created_by)
           .single();
 
         const creatorAddress = creatorData?.address;
@@ -78,18 +78,18 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
-    const oldStatus = joRecord.status;
+    const oldStatus = dtsRecord.status;
     const now = new Date().toISOString();
 
     const { data: updatedRecord, error: updateError } = await supabase
-      .from("job_order_request_form")
+      .from("daily_time_sheet")
       .update({ status, updated_at: now })
       .eq("id", id)
       .select()
       .single();
 
     if (updateError) {
-      console.error("Error updating JO request status:", updateError);
+      console.error("Error updating DTS status:", updateError);
       return NextResponse.json(
         { success: false, message: updateError.message },
         { status: 500 }
@@ -98,7 +98,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
 
     // Audit log
     await supabase.from("audit_logs").insert({
-      table_name: "job_order_request_form",
+      table_name: "daily_time_sheet",
       record_id: id,
       action: "STATUS_CHANGE",
       old_data: { status: oldStatus },
@@ -113,7 +113,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       data: updatedRecord,
     });
   } catch (error: any) {
-    console.error("Error updating JO request status:", error);
+    console.error("Error updating DTS status:", error);
     return NextResponse.json(
       { success: false, message: "Internal Server Error" },
       { status: 500 }

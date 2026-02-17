@@ -356,7 +356,7 @@ export default function JobOrderRequestForm() {
               name="status"
               value={formData.status}
               onChange={handleChange}
-              options={["In-Progress", "Pending", "Close", "Cancelled"]}
+              options={["Pending", "In-Progress", "Close", "Cancelled"]}
             />
             <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
             <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />

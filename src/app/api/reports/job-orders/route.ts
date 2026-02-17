@@ -102,7 +102,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     // Helper: filter records by branch (creator's address must match user's address)
     async function applyBranchFilter(records: any[]): Promise<any[]> {
-      if (!filterByBranch || !userData.address || records.length === 0) return records;
+      if (!filterByBranch || !userData?.address || records.length === 0) return records;
 
       const creatorIds = [...new Set(records.map((r: any) => r.created_by).filter(Boolean))];
       if (creatorIds.length === 0) return records;

@@ -25,7 +25,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -206,6 +206,12 @@ export default function DashboardLayout({
       href: "/dashboard/audit-logs",
       section: "System",
     },
+    {
+      name: "Reports",
+      icon: DocumentChartBarIcon,
+      href: "/dashboard/reports",
+      permission: { module: "reports" },
+    },
   ];
 
   const navigation = allNavigation.filter((item: any) => {
@@ -243,7 +249,8 @@ export default function DashboardLayout({
         pathname.startsWith("/dashboard/pending-dts") ||
         (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||
         (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
-        (pathname.startsWith("/dashboard/products") && canRead("products"));
+        (pathname.startsWith("/dashboard/products") && canRead("products")) ||
+        (pathname.startsWith("/dashboard/reports") && canAccess("reports"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

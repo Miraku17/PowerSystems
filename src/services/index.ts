@@ -6,3 +6,4 @@ export { companyService } from "./companies";
 export { companyFormService } from "./companyForms";
 export { formRecordService } from "./formRecords";
 export { userService } from "./users";
+export { knowledgeBaseService } from "./knowledgeBase";

@@ -25,7 +25,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -157,6 +157,7 @@ export default function DashboardLayout({
   const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
+    { name: "Knowledge Base", icon: BookOpenIcon, href: "/dashboard/knowledge-base", permissionModule: "knowledge_base" },
     { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
     {
       name: "Products",

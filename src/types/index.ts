@@ -168,6 +168,54 @@ export interface BackendField {
   section?: FormSection;
 }
 
+/**
+ * Knowledge Base Types
+ */
+export type KBCategory = "engine" | "pump";
+
+export interface KBArticle {
+  id: string;
+  category: KBCategory;
+  kbNumber: number;
+  kbCode: string;
+  title: string;
+  content: string;
+  videoLinks: string[];
+  images: KBArticleImage[];
+  createdBy: string;
+  createdByName: string | null;
+  updatedBy: string | null;
+  updatedByName: string | null;
+  deletedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt: string | null;
+}
+
+export interface KBArticleImage {
+  id: string;
+  articleId: string;
+  fileUrl: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  sortOrder: number;
+  createdAt: string;
+}
+
+export type CreateKBArticleData = {
+  category: KBCategory;
+  title: string;
+  content: string;
+  videoLinks: string[];
+};
+
+export type UpdateKBArticleData = {
+  title?: string;
+  content?: string;
+  videoLinks?: string[];
+};
+
 export interface CompanyForm {
   id: string;
   name: string;

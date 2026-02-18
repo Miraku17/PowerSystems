@@ -1,16 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useCurrentUser } from "@/stores/authStore";
 import SignaturePad from "./SignaturePad";
-
-interface User {
-  id: string;
-  fullName: string;
-}
+import { useUsers } from "@/hooks/useSharedQueries";
 
 interface EditEngineTeardownProps {
   data: any;
@@ -99,7 +95,7 @@ const CylinderServiceable = ({ bank, prefix, formData, onChange }: { bank: strin
 
 export default function EditEngineTeardown({ data, recordId, onClose, onSaved }: EditEngineTeardownProps) {
   const currentUser = useCurrentUser();
-  const [users, setUsers] = useState<User[]>([]);
+  const { data: users = [] } = useUsers();
   const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
   const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
 
@@ -119,20 +115,6 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
       toast.error(message);
     }
   };
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-    fetchUsers();
-  }, []);
 
   // Extract nested data
   const cylinderBlock = data.cylinder_block_inspections?.[0] || {};
@@ -993,9 +975,18 @@ const SelectDropdown = ({ label, name, value, onChange, options }: SelectDropdow
           value={value || ''}
           onChange={(e) => onChange(name, e.target.value)}
           onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16"
           placeholder="Select or type a name"
         />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
+            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
           <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
         </button>

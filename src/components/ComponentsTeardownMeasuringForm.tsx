@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/axios';
 import ConfirmationModal from './ConfirmationModal';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import {
@@ -19,11 +18,7 @@ import {
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
-
-interface User {
-  id: string;
-  fullName: string;
-}
+import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 
 interface Customer {
   id: string;
@@ -37,8 +32,8 @@ export default function ComponentsTeardownMeasuringForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
-  const [users, setUsers] = useState<User[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const approvedJOs = useApprovedJobOrders();
 
   // Collapsible sections state
@@ -70,33 +65,6 @@ export default function ComponentsTeardownMeasuringForm() {
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
-    fetchUsers();
-    fetchCustomers();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;

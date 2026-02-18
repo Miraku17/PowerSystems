@@ -7,17 +7,13 @@ import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
+import { useUsers } from "@/hooks/useSharedQueries";
 
 interface EditDeutzServiceProps {
   data: Record<string, any>;
   recordId: string;
   onClose: () => void;
   onSaved: () => void;
-}
-
-interface User {
-  id: string;
-  fullName: string;
 }
 
 // Helper Components - Moved outside to prevent re-creation on every render
@@ -78,10 +74,19 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
           value={value || ''}
           onChange={(e) => onChange(name, e.target.value)}
           onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8 shadow-sm"
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm"
           placeholder="Select or type a name"
           autoComplete="off"
         />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
+            className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}
@@ -152,24 +157,12 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
     warrantable_failure: data.warrantable_failure === true || data.warrantable_failure === "true" || data.warrantable_failure === "Yes" ? "Yes" : "No",
   }));
   const [isSaving, setIsSaving] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const { data: users = [] } = useUsers();
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-        toast.error("Failed to load users for signature fields.");
-      }
-    };
-
     const fetchAttachments = async () => {
       try {
         const { data: attachmentsData, error } = await supabase
@@ -188,7 +181,6 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved }: E
       }
     };
 
-    fetchUsers();
     fetchAttachments();
   }, [recordId]);
 

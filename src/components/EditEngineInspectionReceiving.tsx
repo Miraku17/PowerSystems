@@ -5,6 +5,7 @@ import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useCurrentUser } from "@/stores/authStore";
+import { useUsers } from "@/hooks/useSharedQueries";
 import SignaturePad from "./SignaturePad";
 import {
   SECTION_DEFINITIONS,
@@ -12,11 +13,6 @@ import {
   type SectionItem,
   type InspectionItemData,
 } from "@/stores/engineInspectionReceivingFormStore";
-
-interface User {
-  id: string;
-  fullName: string;
-}
 
 interface EditEngineInspectionReceivingProps {
   data: any;
@@ -77,7 +73,7 @@ const SectionHeader = ({ title, children }: { title: string; children: React.Rea
 
 export default function EditEngineInspectionReceiving({ data, recordId, onClose, onSaved }: EditEngineInspectionReceivingProps) {
   const currentUser = useCurrentUser();
-  const [users, setUsers] = useState<User[]>([]);
+  const { data: users = [] } = useUsers();
   const [isSaving, setIsSaving] = useState(false);
   const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
   const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
@@ -141,20 +137,6 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
       inspectionItems: items,
     };
   });
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-    fetchUsers();
-  }, []);
 
   const handleFieldChange = (name: string, value: any) => {
     const updates: Record<string, any> = { [name]: value };
@@ -541,9 +523,18 @@ function UserSelect({ label, value, onChange, options, placeholder = "Select or 
           value={value}
           onChange={handleInputChange}
           onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm pr-10"
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm pr-16"
           placeholder={placeholder}
         />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(""); setShowDropdown(false); }}
+            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}

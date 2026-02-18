@@ -7,6 +7,7 @@ import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
+import { useUsers } from "@/hooks/useSharedQueries";
 
 interface EditEngineSurfacePumpCommissioningProps {
   data: Record<string, any>;
@@ -15,7 +16,6 @@ interface EditEngineSurfacePumpCommissioningProps {
   onSaved: () => void;
 }
 
-interface User { id: string; fullName: string; }
 interface Attachment { id: string; file_url: string; file_name: string; created_at: string; }
 
 const Input = ({ label, name, value, type = "text", disabled = false, onChange }: { label: string; name: string; value: any; type?: string; disabled?: boolean; onChange: (name: string, value: any) => void; }) => (
@@ -33,7 +33,8 @@ const Select = ({ label, name, value, onChange, options }: { label: string; name
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
       <div className="relative">
-        <input type="text" name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8 shadow-sm" placeholder="Select or type a name" autoComplete="off" />
+        <input type="text" name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm" placeholder="Select or type a name" autoComplete="off" />
+        {value && (<button type="button" onClick={() => { onChange(name, ""); setShowDropdown(false); }} className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"><XMarkIcon className="h-4 w-4" /></button>)}
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 focus:outline-none"><svg className="fill-current h-4 w-4" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg></button>
         {showDropdown && options.length > 0 && (<div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">{options.map((opt: string) => (<div key={opt} onClick={() => { onChange(name, opt); setShowDropdown(false); }} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900">{opt}</div>))}</div>)}
       </div>
@@ -43,9 +44,9 @@ const Select = ({ label, name, value, onChange, options }: { label: string; name
 
 export default function EditEngineSurfacePumpCommissioning({ data, recordId, onClose, onSaved }: EditEngineSurfacePumpCommissioningProps) {
   const currentUser = useCurrentUser();
+  const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -70,9 +71,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
   };
 
   useEffect(() => {
-    const fetchUsers = async () => { try { const response = await apiClient.get('/users'); if (response.data.success) setUsers(response.data.data); } catch (error) { console.error("Failed to fetch users", error); } };
     const fetchAttachments = async () => { try { const { data: attachmentsData, error } = await supabase.from('engine_surface_pump_commissioning_attachments').select('*').eq('report_id', recordId).order('created_at', { ascending: true }); if (!error) setExistingAttachments(attachmentsData || []); } catch (error) { console.error('Error fetching attachments:', error); } };
-    fetchUsers();
     fetchAttachments();
   }, [recordId]);
 

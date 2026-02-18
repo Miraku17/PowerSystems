@@ -20,38 +20,43 @@ import {
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { TableSkeleton } from "@/components/Skeletons";
-import ViewDeutzCommissioning from "@/components/ViewDeutzCommissioning";
-import ViewDeutzService from "@/components/ViewDeutzService";
-import ViewSubmersiblePumpCommissioning from "@/components/ViewSubmersiblePumpCommissioning";
-import ViewSubmersiblePumpService from "@/components/ViewSubmersiblePumpService";
-import ViewSubmersiblePumpTeardown from "@/components/ViewSubmersiblePumpTeardown";
-import ViewElectricSurfacePumpCommissioning from "@/components/ViewElectricSurfacePumpCommissioning";
-import ViewElectricSurfacePumpService from "@/components/ViewElectricSurfacePumpService";
-import ViewEngineSurfacePumpService from "@/components/ViewEngineSurfacePumpService";
-import ViewEngineSurfacePumpCommissioning from "@/components/ViewEngineSurfacePumpCommissioning";
-import EditDeutzCommissioning from "@/components/EditDeutzCommissioning";
-import EditDeutzService from "@/components/EditDeutzService";
-import EditSubmersiblePumpCommissioning from "@/components/EditSubmersiblePumpCommissioning";
-import EditSubmersiblePumpService from "@/components/EditSubmersiblePumpService";
-import EditSubmersiblePumpTeardown from "@/components/EditSubmersiblePumpTeardown";
-import EditElectricSurfacePumpCommissioning from "@/components/EditElectricSurfacePumpCommissioning";
-import EditElectricSurfacePumpService from "@/components/EditElectricSurfacePumpService";
-import EditEngineSurfacePumpService from "@/components/EditEngineSurfacePumpService";
-import EditEngineSurfacePumpCommissioning from "@/components/EditEngineSurfacePumpCommissioning";
-import ViewEngineTeardown from "@/components/ViewEngineTeardown";
-import EditEngineTeardown from "@/components/EditEngineTeardown";
-import ViewElectricSurfacePumpTeardown from "@/components/ViewElectricSurfacePumpTeardown";
-import EditElectricSurfacePumpTeardown from "@/components/EditElectricSurfacePumpTeardown";
-import ViewEngineInspectionReceiving from "@/components/ViewEngineInspectionReceiving";
-import EditEngineInspectionReceiving from "@/components/EditEngineInspectionReceiving";
-import ViewComponentsTeardownMeasuring from "@/components/ViewComponentsTeardownMeasuring";
-import EditComponentsTeardownMeasuring from "@/components/EditComponentsTeardownMeasuring";
-import ViewJobOrderRequest from "@/components/ViewJobOrderRequest";
-import EditJobOrderRequest from "@/components/EditJobOrderRequest";
-import ViewDailyTimeSheet from "@/components/ViewDailyTimeSheet";
-import EditDailyTimeSheet from "@/components/EditDailyTimeSheet";
+import dynamic from "next/dynamic";
 import ConfirmationModal from "@/components/ConfirmationModal";
+
+const modalLoading = () => <div className="py-8 text-center text-gray-400">Loading...</div>;
+
+const ViewDeutzCommissioning = dynamic(() => import("@/components/ViewDeutzCommissioning"), { loading: modalLoading });
+const ViewDeutzService = dynamic(() => import("@/components/ViewDeutzService"), { loading: modalLoading });
+const ViewSubmersiblePumpCommissioning = dynamic(() => import("@/components/ViewSubmersiblePumpCommissioning"), { loading: modalLoading });
+const ViewSubmersiblePumpService = dynamic(() => import("@/components/ViewSubmersiblePumpService"), { loading: modalLoading });
+const ViewSubmersiblePumpTeardown = dynamic(() => import("@/components/ViewSubmersiblePumpTeardown"), { loading: modalLoading });
+const ViewElectricSurfacePumpCommissioning = dynamic(() => import("@/components/ViewElectricSurfacePumpCommissioning"), { loading: modalLoading });
+const ViewElectricSurfacePumpService = dynamic(() => import("@/components/ViewElectricSurfacePumpService"), { loading: modalLoading });
+const ViewEngineSurfacePumpService = dynamic(() => import("@/components/ViewEngineSurfacePumpService"), { loading: modalLoading });
+const ViewEngineSurfacePumpCommissioning = dynamic(() => import("@/components/ViewEngineSurfacePumpCommissioning"), { loading: modalLoading });
+const EditDeutzCommissioning = dynamic(() => import("@/components/EditDeutzCommissioning"), { loading: modalLoading });
+const EditDeutzService = dynamic(() => import("@/components/EditDeutzService"), { loading: modalLoading });
+const EditSubmersiblePumpCommissioning = dynamic(() => import("@/components/EditSubmersiblePumpCommissioning"), { loading: modalLoading });
+const EditSubmersiblePumpService = dynamic(() => import("@/components/EditSubmersiblePumpService"), { loading: modalLoading });
+const EditSubmersiblePumpTeardown = dynamic(() => import("@/components/EditSubmersiblePumpTeardown"), { loading: modalLoading });
+const EditElectricSurfacePumpCommissioning = dynamic(() => import("@/components/EditElectricSurfacePumpCommissioning"), { loading: modalLoading });
+const EditElectricSurfacePumpService = dynamic(() => import("@/components/EditElectricSurfacePumpService"), { loading: modalLoading });
+const EditEngineSurfacePumpService = dynamic(() => import("@/components/EditEngineSurfacePumpService"), { loading: modalLoading });
+const EditEngineSurfacePumpCommissioning = dynamic(() => import("@/components/EditEngineSurfacePumpCommissioning"), { loading: modalLoading });
+const ViewEngineTeardown = dynamic(() => import("@/components/ViewEngineTeardown"), { loading: modalLoading });
+const EditEngineTeardown = dynamic(() => import("@/components/EditEngineTeardown"), { loading: modalLoading });
+const ViewElectricSurfacePumpTeardown = dynamic(() => import("@/components/ViewElectricSurfacePumpTeardown"), { loading: modalLoading });
+const EditElectricSurfacePumpTeardown = dynamic(() => import("@/components/EditElectricSurfacePumpTeardown"), { loading: modalLoading });
+const ViewEngineInspectionReceiving = dynamic(() => import("@/components/ViewEngineInspectionReceiving"), { loading: modalLoading });
+const EditEngineInspectionReceiving = dynamic(() => import("@/components/EditEngineInspectionReceiving"), { loading: modalLoading });
+const ViewComponentsTeardownMeasuring = dynamic(() => import("@/components/ViewComponentsTeardownMeasuring"), { loading: modalLoading });
+const EditComponentsTeardownMeasuring = dynamic(() => import("@/components/EditComponentsTeardownMeasuring"), { loading: modalLoading });
+const ViewJobOrderRequest = dynamic(() => import("@/components/ViewJobOrderRequest"), { loading: modalLoading });
+const EditJobOrderRequest = dynamic(() => import("@/components/EditJobOrderRequest"), { loading: modalLoading });
+const ViewDailyTimeSheet = dynamic(() => import("@/components/ViewDailyTimeSheet"), { loading: modalLoading });
+const EditDailyTimeSheet = dynamic(() => import("@/components/EditDailyTimeSheet"), { loading: modalLoading });
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/stores/authStore";
 
 interface FormRecord {
   id: string;
@@ -195,7 +200,16 @@ export default function FormRecordsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const { canDelete: canDeletePermission, canWrite: canWritePermission } = usePermissions();
+  const { canDelete: canDeletePermission, canWrite: canWritePermission, getScope } = usePermissions();
+  const currentUser = useAuthStore((state) => state.user);
+  const writeScope = getScope("form_records", "write");
+
+  const canEditRecord = (record: FormRecord): boolean => {
+    if (!canWritePermission("form_records")) return false;
+    if (writeScope === "all") return true;
+    // scope is "own" or unset — only allow editing own records
+    return !!currentUser && record.created_by === currentUser.id;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -702,7 +716,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
+                          {canEditRecord(record) && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -824,7 +838,7 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
+                        {canEditRecord(record) && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"

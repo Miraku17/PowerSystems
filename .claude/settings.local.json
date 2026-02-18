@@ -24,7 +24,8 @@
       "Bash(wc:*)",
       "Bash(npx shadcn@latest init:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(xargs basename:*)"
+      "Bash(xargs basename:*)",
+      "Bash(done)"
     ]
   }
 }

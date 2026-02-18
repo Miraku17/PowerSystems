@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from './ConfirmationModal';
-import { ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import {
   useEngineInspectionReceivingFormStore,
   SECTION_DEFINITIONS,
@@ -15,17 +14,7 @@ import {
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
-
-interface User {
-  id: string;
-  fullName: string;
-  position?: {
-    id: string;
-    name: string;
-    display_name: string;
-    description: string | null;
-  };
-}
+import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function EngineInspectionReceivingForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,8 +22,8 @@ export default function EngineInspectionReceivingForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
-  const [users, setUsers] = useState<User[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const approvedJOs = useApprovedJobOrders();
 
   const allUserOptions = users.map(user => user.fullName);
@@ -50,33 +39,6 @@ export default function EngineInspectionReceivingForm() {
       return posName === 'super admin' || posName === 'admin 1';
     })
     .map(user => user.fullName);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
-    fetchUsers();
-    fetchCustomers();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -630,9 +592,21 @@ function UserSelect({ label, name, value, onChange, options, placeholder = "Sele
           value={value}
           readOnly
           onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer"
           placeholder={placeholder}
         />
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
+              onChange(syntheticEvent);
+            }}
+            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}

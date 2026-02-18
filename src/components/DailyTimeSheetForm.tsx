@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';

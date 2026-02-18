@@ -56,6 +56,7 @@ const EditJobOrderRequest = dynamic(() => import("@/components/EditJobOrderReque
 const ViewDailyTimeSheet = dynamic(() => import("@/components/ViewDailyTimeSheet"), { loading: modalLoading });
 const EditDailyTimeSheet = dynamic(() => import("@/components/EditDailyTimeSheet"), { loading: modalLoading });
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/stores/authStore";
 
 interface FormRecord {
   id: string;
@@ -199,7 +200,16 @@ export default function FormRecordsPage() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const { canDelete: canDeletePermission, canWrite: canWritePermission } = usePermissions();
+  const { canDelete: canDeletePermission, canWrite: canWritePermission, getScope } = usePermissions();
+  const currentUser = useAuthStore((state) => state.user);
+  const writeScope = getScope("form_records", "write");
+
+  const canEditRecord = (record: FormRecord): boolean => {
+    if (!canWritePermission("form_records")) return false;
+    if (writeScope === "all") return true;
+    // scope is "own" or unset — only allow editing own records
+    return !!currentUser && record.created_by === currentUser.id;
+  };
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -706,7 +716,7 @@ export default function FormRecordsPage() {
                           >
                             <EyeIcon className="h-4 w-4" />
                           </button>
-                          {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
+                          {canEditRecord(record) && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.approval?.approval_status !== "Close" && record.approval?.approval_status !== "Cancelled")) && (
                             <button
                               onClick={() => setEditingRecord(record)}
                               className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
@@ -828,7 +838,7 @@ export default function FormRecordsPage() {
                         </button>
                      </div>
                      <div className="flex gap-1">
-                        {canWritePermission("form_records") && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
+                        {canEditRecord(record) && ((isJORequest || isDTS) ? record.data?.status !== "Close" : (record.data?.approval_status !== "Close" && record.data?.approval_status !== "Cancelled")) && (
                           <button
                             onClick={() => setEditingRecord(record)}
                             className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"

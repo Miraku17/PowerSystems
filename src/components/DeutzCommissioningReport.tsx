@@ -1,27 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import { supabase } from '@/lib/supabase';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
-
-interface User {
-  id: string;
-  fullName: string;
-  position?: {
-    id: string;
-    name: string;
-    display_name: string;
-    description: string | null;
-  };
-}
+import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
 
 export default function DeutzCommissioningReport() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -33,64 +22,22 @@ export default function DeutzCommissioningReport() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [engines, setEngines] = useState<any[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
+  const { data: engines = [] } = useEngines();
   const approvedJOs = useApprovedJobOrders();
 
-  const allUserOptions = users.map(user => user.fullName);
-  const approvedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
-    })
-    .map(user => user.fullName);
-  const notedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1';
-    })
-    .map(user => user.fullName);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-        toast.error("Failed to load users for signature fields.");
-      }
-    };
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
-    const fetchEngines = async () => {
-      try {
-        const response = await apiClient.get('/engines');
-        if (response.data.success) {
-          setEngines(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch engines", error);
-      }
-    };
-
-    fetchUsers();
-    fetchCustomers();
-    fetchEngines();
-  }, []);
+  const allUserOptions = useMemo(() => users.map(u => u.fullName), [users]);
+  const approvedByUsers = useMemo(() =>
+    users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase()))
+         .map(u => u.fullName),
+    [users]
+  );
+  const notedByUsers = useMemo(() =>
+    users.filter(u => ['super admin','admin 1'].includes((u.position?.name||'').toLowerCase()))
+         .map(u => u.fullName),
+    [users]
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -818,9 +765,21 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
           value={value}
           readOnly
           onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer"
           placeholder="Select a name"
         />
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
+              onChange(syntheticEvent);
+            }}
+            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setShowDropdown(!showDropdown)}

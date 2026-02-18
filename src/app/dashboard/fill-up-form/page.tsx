@@ -1,21 +1,25 @@
 "use client";
 
 import React, { useState } from "react";
-import DeutzServiceForm from "@/components/DeutzServiceForm";
-import DeutzCommissioningReport from "@/components/DeutzCommissioningReport";
-import SubmersiblePumpCommissioningForm from "@/components/SubmersiblePumpCommissioningForm";
-import SubmersiblePumpServiceForm from "@/components/SubmersiblePumpServiceForm";
-import SubmersiblePumpTeardownForm from "@/components/SubmersiblePumpTeardownForm";
-import ElectricSurfacePumpCommissioningForm from "@/components/ElectricSurfacePumpCommissioningForm";
-import ElectricSurfacePumpServiceForm from "@/components/ElectricSurfacePumpServiceForm";
-import EngineSurfacePumpServiceForm from "@/components/EngineSurfacePumpServiceForm";
-import EngineSurfacePumpCommissioningForm from "@/components/EngineSurfacePumpCommissioningForm";
-import EngineTeardownForm from "@/components/EngineTeardownForm";
-import ElectricSurfacePumpTeardownForm from "@/components/ElectricSurfacePumpTeardownForm";
-import EngineInspectionReceivingForm from "@/components/EngineInspectionReceivingForm";
-import ComponentsTeardownMeasuringForm from "@/components/ComponentsTeardownMeasuringForm";
-import JobOrderRequestForm from "@/components/JobOrderRequestForm";
+import dynamic from "next/dynamic";
 import CustomSelect from "@/components/CustomSelect";
+
+const loading = () => <div className="py-12 text-center text-gray-400">Loading form...</div>;
+
+const DeutzServiceForm = dynamic(() => import("@/components/DeutzServiceForm"), { loading });
+const DeutzCommissioningReport = dynamic(() => import("@/components/DeutzCommissioningReport"), { loading });
+const SubmersiblePumpCommissioningForm = dynamic(() => import("@/components/SubmersiblePumpCommissioningForm"), { loading });
+const SubmersiblePumpServiceForm = dynamic(() => import("@/components/SubmersiblePumpServiceForm"), { loading });
+const SubmersiblePumpTeardownForm = dynamic(() => import("@/components/SubmersiblePumpTeardownForm"), { loading });
+const ElectricSurfacePumpCommissioningForm = dynamic(() => import("@/components/ElectricSurfacePumpCommissioningForm"), { loading });
+const ElectricSurfacePumpServiceForm = dynamic(() => import("@/components/ElectricSurfacePumpServiceForm"), { loading });
+const EngineSurfacePumpServiceForm = dynamic(() => import("@/components/EngineSurfacePumpServiceForm"), { loading });
+const EngineSurfacePumpCommissioningForm = dynamic(() => import("@/components/EngineSurfacePumpCommissioningForm"), { loading });
+const EngineTeardownForm = dynamic(() => import("@/components/EngineTeardownForm"), { loading });
+const ElectricSurfacePumpTeardownForm = dynamic(() => import("@/components/ElectricSurfacePumpTeardownForm"), { loading });
+const EngineInspectionReceivingForm = dynamic(() => import("@/components/EngineInspectionReceivingForm"), { loading });
+const ComponentsTeardownMeasuringForm = dynamic(() => import("@/components/ComponentsTeardownMeasuringForm"), { loading });
+const JobOrderRequestForm = dynamic(() => import("@/components/JobOrderRequestForm"), { loading });
 
 const FillUpFormPage = () => {
   const [activeForm, setActiveForm] = useState<string>("job-order-request");

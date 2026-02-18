@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CompanyForm, DynamicField, FormSection } from "@/types";
-import { companyFormService, customerService, engineService, formRecordService, userService } from "@/services";
+import { companyFormService, formRecordService } from "@/services";
+import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
 import {
   PlusIcon,
   DocumentTextIcon,
@@ -23,50 +24,10 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Autocomplete state
-  const [customers, setCustomers] = useState<any[]>([]);
-  const [engines, setEngines] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
+  const { data: engines = [] } = useEngines();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-
-  // Load customers, engines, and users on mount
-  useEffect(() => {
-    loadCustomers();
-    loadEngines();
-    loadUsers();
-  }, []);
-
-  const loadCustomers = async () => {
-    try {
-      const response = await customerService.getAll();
-      const customersData = response.data || [];
-      setCustomers(Array.isArray(customersData) ? customersData : []);
-    } catch (error) {
-      console.error("Error loading customers:", error);
-      setCustomers([]);
-    }
-  };
-
-  const loadEngines = async () => {
-    try {
-      const response = await engineService.getAll();
-      const enginesData = response.data || [];
-      setEngines(Array.isArray(enginesData) ? enginesData : []);
-    } catch (error) {
-      console.error("Error loading engines:", error);
-      setEngines([]);
-    }
-  };
-
-  const loadUsers = async () => {
-    try {
-      const response = await userService.getAll();
-      const usersData = response.data || [];
-      setUsers(Array.isArray(usersData) ? usersData : []);
-    } catch (error) {
-      console.error("Error loading users:", error);
-      setUsers([]);
-    }
-  };
 
   // Close dropdowns when clicking outside
   useEffect(() => {

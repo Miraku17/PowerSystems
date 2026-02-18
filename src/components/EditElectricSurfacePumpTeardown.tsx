@@ -8,17 +8,13 @@ import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useCurrentUser } from "@/stores/authStore";
+import { useUsers } from "@/hooks/useSharedQueries";
 
 interface EditElectricSurfacePumpTeardownProps {
   data: Record<string, any>;
   recordId: string;
   onClose: () => void;
   onSaved: () => void;
-}
-
-interface User {
-  id: string;
-  fullName: string;
 }
 
 interface Attachment {
@@ -75,7 +71,16 @@ const Select = ({ label, name, value, onChange, options }: { label: string; name
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
       <div className="relative">
-        <input type="text" name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8 shadow-sm" placeholder="Select or type a name" autoComplete="off" />
+        <input type="text" name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm" placeholder="Select or type a name" autoComplete="off" />
+        {value && (
+          <button
+            type="button"
+            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
+            className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 focus:outline-none">
           <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
         </button>
@@ -117,7 +122,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const currentUser = useCurrentUser();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
+  const { data: users = [] } = useUsers();
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newMotorComponentsAttachments, setNewMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -146,16 +151,6 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) setUsers(response.data.data);
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-        toast.error("Failed to load users for signature fields.");
-      }
-    };
-
     const fetchAttachments = async () => {
       try {
         const { data: attachmentsData, error } = await supabase
@@ -171,7 +166,6 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
       }
     };
 
-    fetchUsers();
     fetchAttachments();
   }, [recordId]);
 

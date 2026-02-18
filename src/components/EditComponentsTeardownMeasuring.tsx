@@ -4,11 +4,7 @@ import React, { useState, useEffect } from "react";
 import { XMarkIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
-
-interface User {
-  id: string;
-  fullName: string;
-}
+import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 
 interface EditComponentsTeardownMeasuringProps {
   data: any;
@@ -43,8 +39,8 @@ const DateInput = ({ label, value, onChange }: { label: string; value: any; onCh
 );
 
 export default function EditComponentsTeardownMeasuring({ data, recordId, onClose, onSaved }: EditComponentsTeardownMeasuringProps) {
-  const [users, setUsers] = useState<User[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fullData, setFullData] = useState<any>(null);
@@ -112,31 +108,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
       }
     };
 
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
     fetchFullData();
-    fetchUsers();
-    fetchCustomers();
   }, [recordId]);
 
   const handleFieldChange = (name: string, value: any) => {

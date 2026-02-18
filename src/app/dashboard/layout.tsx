@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   HomeIcon,
@@ -32,11 +32,24 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <Suspense>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </Suspense>
+  );
+}
+
+function DashboardLayoutInner({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   // Protect this route - redirect to login if not authenticated
   useAuth();
 
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [formsExpanded, setFormsExpanded] = useState(false);
@@ -105,32 +118,19 @@ export default function DashboardLayout({
 
   // Update active tabs whenever URL changes
   useEffect(() => {
-    const updateActiveTabs = () => {
-      if (typeof window !== "undefined") {
-        const params = new URLSearchParams(window.location.search);
-        const tabParam = params.get("tab");
+    const tabParam = searchParams.get("tab");
 
-        if (pathname.includes("/forms")) {
-          setActiveFormTab(tabParam);
-          setActiveProductTab(null);
-        } else if (pathname.includes("/products")) {
-          setActiveProductTab(tabParam);
-          setActiveFormTab(null);
-        } else {
-          setActiveFormTab(null);
-          setActiveProductTab(null);
-        }
-      }
-    };
-
-    // Update on mount and pathname/search changes
-    updateActiveTabs();
-
-    // Set up interval to check for URL changes (handles Next.js routing)
-    const interval = setInterval(updateActiveTabs, 100);
-
-    return () => clearInterval(interval);
-  }, [pathname]);
+    if (pathname.includes("/forms")) {
+      setActiveFormTab(tabParam);
+      setActiveProductTab(null);
+    } else if (pathname.includes("/products")) {
+      setActiveProductTab(tabParam);
+      setActiveFormTab(null);
+    } else {
+      setActiveFormTab(null);
+      setActiveProductTab(null);
+    }
+  }, [pathname, searchParams]);
 
   const handleLogout = async () => {
     try {

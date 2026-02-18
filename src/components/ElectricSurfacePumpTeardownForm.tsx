@@ -1,27 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/axios';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useElectricSurfacePumpTeardownFormStore } from "@/stores/electricSurfacePumpTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
-
-interface User {
-  id: string;
-  fullName: string;
-  position?: {
-    id: string;
-    name: string;
-    display_name: string;
-    description: string | null;
-  };
-}
+import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function ElectricSurfacePumpTeardownForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -38,8 +27,8 @@ export default function ElectricSurfacePumpTeardownForm() {
 
   const [motorComponentsAttachments, setMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
   const [wetEndAttachments, setWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [customers, setCustomers] = useState<any[]>([]);
+  const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
 
   const allUserOptions = users.map(user => user.fullName);
   const approvedByUsers = users
@@ -54,33 +43,6 @@ export default function ElectricSurfacePumpTeardownForm() {
       return posName === 'super admin' || posName === 'admin 1';
     })
     .map(user => user.fullName);
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const response = await apiClient.get('/users');
-        if (response.data.success) {
-          setUsers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch users", error);
-      }
-    };
-
-    const fetchCustomers = async () => {
-      try {
-        const response = await apiClient.get('/customers');
-        if (response.data.success) {
-          setCustomers(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch customers", error);
-      }
-    };
-
-    fetchUsers();
-    fetchCustomers();
-  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -903,7 +865,19 @@ const Select = ({ label, name, value, onChange, options }: SelectProps) => {
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
       <div className="relative">
-        <input type="text" name={name} value={value} readOnly onClick={() => setShowDropdown(!showDropdown)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-10 cursor-pointer" placeholder="Select a name" />
+        <input type="text" name={name} value={value} readOnly onClick={() => setShowDropdown(!showDropdown)} className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer" placeholder="Select a name" />
+        {value && (
+          <button
+            type="button"
+            onClick={() => {
+              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
+              onChange(syntheticEvent);
+            }}
+            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
+          >
+            <XMarkIcon className="h-4 w-4" />
+          </button>
+        )}
         <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
           <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
         </button>

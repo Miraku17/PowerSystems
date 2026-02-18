@@ -1,10 +1,12 @@
 import apiClient from "@/lib/axios";
 
 export interface ReportParams {
-  reportType: "generated" | "status" | "wip" | "cancelled";
+  reportType: "generated" | "status" | "wip" | "cancelled" | "engine";
   startDate?: string;
   endDate?: string;
   status?: string[];
+  engineModel?: string;
+  serialNumber?: string;
 }
 
 export const reportService = {
@@ -16,11 +18,31 @@ export const reportService = {
     if (params.status && params.status.length > 0) {
       searchParams.set("status", params.status.join(","));
     }
+    if (params.engineModel) searchParams.set("engineModel", params.engineModel);
+    if (params.serialNumber) searchParams.set("serialNumber", params.serialNumber);
 
-    const response = await apiClient.get(
-      `/reports/job-orders?${searchParams.toString()}`,
-      { responseType: "blob" }
-    );
+    let response;
+    try {
+      response = await apiClient.get(
+        `/reports/job-orders?${searchParams.toString()}`,
+        { responseType: "blob" }
+      );
+    } catch (err: any) {
+      // When responseType is "blob", error response data is a Blob — parse it to get the JSON message
+      if (err?.response?.data instanceof Blob) {
+        const text = await err.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          throw new Error(json.message || "Failed to generate report");
+        } catch (parseErr) {
+          if (parseErr instanceof SyntaxError) {
+            throw new Error(text || "Failed to generate report");
+          }
+          throw parseErr;
+        }
+      }
+      throw err;
+    }
 
     // Extract filename from Content-Disposition header
     const contentDisposition = response.headers["content-disposition"];

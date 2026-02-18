@@ -84,6 +84,8 @@ export const GET = withAuth(async (request, { user }) => {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const statusParam = searchParams.get("status"); // comma-separated
+    const engineModel = searchParams.get("engineModel");
+    const serialNumber = searchParams.get("serialNumber");
 
     if (!reportType) {
       return NextResponse.json(
@@ -92,7 +94,7 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const validTypes = ["generated", "status", "wip", "cancelled"];
+    const validTypes = ["generated", "status", "wip", "cancelled", "engine"];
     if (!validTypes.includes(reportType)) {
       return NextResponse.json(
         { success: false, message: `Invalid reportType. Must be one of: ${validTypes.join(", ")}` },
@@ -318,6 +320,67 @@ export const GET = withAuth(async (request, { user }) => {
       ]);
       csv = buildCsv(headers, rows);
       filename = `cancelled_job_orders_${startDate}_to_${endDate}.csv`;
+
+    } else if (reportType === "engine") {
+      if (!engineModel && !serialNumber) {
+        return NextResponse.json(
+          { success: false, message: "At least one of engineModel or serialNumber is required" },
+          { status: 400 }
+        );
+      }
+
+      let engineQuery = supabase
+        .from("job_order_request_form")
+        .select("*")
+        .is("deleted_at", null);
+
+      if (engineModel) {
+        engineQuery = engineQuery.ilike("engine_model", `%${engineModel}%`);
+      }
+      if (serialNumber) {
+        engineQuery = engineQuery.ilike("esn", `%${serialNumber}%`);
+      }
+      engineQuery = engineQuery.order("date_prepared", { ascending: true });
+
+      const { data: rawData, error } = await engineQuery;
+      if (error) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      }
+
+      const data = await applyBranchFilter(rawData || []);
+
+      if (data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "No job orders found for the specified engine model or serial number" },
+          { status: 404 }
+        );
+      }
+
+      // Header metadata from first record
+      const first = data[0];
+      const headerRows = [
+        `ENGINE MODEL,${escapeCsvField(first.engine_model || "")},EQUIPMENT MODEL,${escapeCsvField(first.equipment_model || "")}`,
+        `ENGINE SERIAL NUMBER,${escapeCsvField(first.esn || "")},EQPMT. SERIAL NUMBER,${escapeCsvField(first.equipment_number || "")}`,
+        "",
+      ];
+
+      const tableHeaders = ["DATE", "FAILURE DESCRIPTION", "J.O NUMBER", "PARTS USED", "PERFORMED BY"];
+      const tableRows = data.map((r: any) => [
+        formatDate(r.date_prepared),
+        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
+        r.shop_field_jo_number || "",
+        r.particulars || "",
+        r.technicians_involved || "",
+      ]);
+
+      const tableHeaderLine = tableHeaders.map(escapeCsvField).join(",");
+      const tableDataLines = tableRows.map((row: string[]) => row.map(escapeCsvField).join(","));
+      csv = [...headerRows, tableHeaderLine, ...tableDataLines].join("\n");
+
+      const modelPart = engineModel ? engineModel.replace(/\s+/g, "_") : "";
+      const snPart = serialNumber ? serialNumber.replace(/\s+/g, "_") : "";
+      const parts = [modelPart, snPart].filter(Boolean).join("_");
+      filename = `engine_report_${parts}.csv`;
     }
 
     return new NextResponse(csv, {

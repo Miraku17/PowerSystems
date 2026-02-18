@@ -23,13 +23,23 @@ export const GET = withAuth(async (request, { user }) => {
 
     const approvalMap = await getApprovalsByTable(supabase, "job_order_request_form");
 
+    // Normalize DB status to match frontend STATUS_OPTIONS casing
+    const STATUS_MAP: Record<string, string> = {
+      "pending": "Pending",
+      "in-progress": "In-Progress",
+      "close": "Close",
+      "cancelled": "Cancelled",
+    };
+
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
+      const rawStatus = (record.status || "").trim();
+      const normalizedStatus = STATUS_MAP[rawStatus.toLowerCase()] || rawStatus;
       return {
         id: record.id,
         companyFormId: null,
         job_order: record.shop_field_jo_number,
-        data: { ...record }, // Don't overwrite approval_status - use the actual database value
+        data: { ...record, status: normalizedStatus },
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,

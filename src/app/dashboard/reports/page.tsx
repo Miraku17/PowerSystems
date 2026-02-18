@@ -12,9 +12,10 @@ import {
   WrenchScrewdriverIcon,
   XCircleIcon,
   ArrowDownTrayIcon,
+  CogIcon,
 } from "@heroicons/react/24/outline";
 
-type ReportType = "generated" | "status" | "wip" | "cancelled";
+type ReportType = "generated" | "status" | "wip" | "cancelled" | "engine";
 
 const REPORT_TYPES: {
   value: ReportType;
@@ -46,6 +47,12 @@ const REPORT_TYPES: {
     description: "Job orders that were cancelled within a date range",
     icon: XCircleIcon,
   },
+  {
+    value: "engine",
+    label: "Engine Report",
+    description: "Job order history filtered by engine model or serial number",
+    icon: CogIcon,
+  },
 ];
 
 const STATUS_OPTIONS = ["Pending", "In-Progress", "Close", "Cancelled"];
@@ -63,9 +70,12 @@ export default function ReportsPage() {
     "Close",
     "Cancelled",
   ]);
+  const [engineModel, setEngineModel] = useState("");
+  const [serialNumber, setSerialNumber] = useState("");
 
+  const isEngineReport = reportType === "engine";
   const showStatusFilter = reportType === "generated";
-  const showStartDate = reportType !== "wip";
+  const showStartDate = reportType !== "wip" && !isEngineReport;
 
   const downloadMutation = useMutation({
     mutationFn: (params: ReportParams) => reportService.downloadReport(params),
@@ -80,7 +90,21 @@ export default function ReportsPage() {
   });
 
   const handleDownload = () => {
-    // Validation
+    if (isEngineReport) {
+      if (!engineModel.trim() && !serialNumber.trim()) {
+        toast.error("Please enter an engine model or serial number");
+        return;
+      }
+      const params: ReportParams = {
+        reportType: "engine",
+        engineModel: engineModel.trim() || undefined,
+        serialNumber: serialNumber.trim() || undefined,
+      };
+      downloadMutation.mutate(params);
+      return;
+    }
+
+    // Validation for date-based reports
     if (showStartDate && !startDate) {
       toast.error("Please select a start date");
       return;
@@ -152,7 +176,7 @@ export default function ReportsPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">
           Select Report Type
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {REPORT_TYPES.map((type) => {
             const Icon = type.icon;
             const isSelected = reportType === type.value;
@@ -197,62 +221,102 @@ export default function ReportsPage() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Date Range */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-700">
-              {reportType === "wip" ? "As of Date" : "Date Range"}
-            </h3>
-            <div className="flex flex-col sm:flex-row gap-3">
-              {showStartDate && (
+          {isEngineReport ? (
+            /* Engine Report Filters */
+            <div className="space-y-4 md:col-span-2">
+              <h3 className="text-sm font-medium text-gray-700">
+                Engine / Equipment Search
+              </h3>
+              <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
                   <label className="block text-xs text-gray-500 mb-1">
-                    Start Date
+                    Engine Model
                   </label>
                   <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    type="text"
+                    value={engineModel}
+                    onChange={(e) => setEngineModel(e.target.value)}
+                    placeholder="e.g. C15, QSK60..."
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#083459]/20 focus:border-[#083459] outline-none"
                   />
                 </div>
-              )}
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">
-                  {reportType === "wip" ? "As of Date" : "End Date"}
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#083459]/20 focus:border-[#083459] outline-none"
-                />
+                <div className="flex-1">
+                  <label className="block text-xs text-gray-500 mb-1">
+                    Serial Number
+                  </label>
+                  <input
+                    type="text"
+                    value={serialNumber}
+                    onChange={(e) => setSerialNumber(e.target.value)}
+                    placeholder="e.g. BXS00456..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#083459]/20 focus:border-[#083459] outline-none"
+                  />
+                </div>
               </div>
+              <p className="text-xs text-gray-400">
+                Enter at least one field. Results will include all matching job orders.
+              </p>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Date Range */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-700">
+                  {reportType === "wip" ? "As of Date" : "Date Range"}
+                </h3>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  {showStartDate && (
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#083459]/20 focus:border-[#083459] outline-none"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <label className="block text-xs text-gray-500 mb-1">
+                      {reportType === "wip" ? "As of Date" : "End Date"}
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#083459]/20 focus:border-[#083459] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
 
-          {/* Status Filter */}
-          {showStatusFilter && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-gray-700">Status</h3>
-              <div className="flex flex-wrap gap-2">
-                {STATUS_OPTIONS.map((status) => {
-                  const isChecked = selectedStatuses.includes(status);
-                  return (
-                    <button
-                      key={status}
-                      onClick={() => toggleStatus(status)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                        isChecked
-                          ? "bg-[#083459] text-white border-[#083459]"
-                          : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
-                      }`}
-                    >
-                      {status}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+              {/* Status Filter */}
+              {showStatusFilter && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-medium text-gray-700">Status</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {STATUS_OPTIONS.map((status) => {
+                      const isChecked = selectedStatuses.includes(status);
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => toggleStatus(status)}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${
+                            isChecked
+                              ? "bg-[#083459] text-white border-[#083459]"
+                              : "bg-white text-gray-600 border-gray-300 hover:border-gray-400"
+                          }`}
+                        >
+                          {status}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

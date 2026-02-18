@@ -78,16 +78,25 @@ export const GET = withAuth(async (request, { user }) => {
 
     const creatorMap = new Map((creators || []).map((u: any) => [u.id, u]));
 
+    // Normalize DB status to match frontend STATUS_OPTIONS casing
+    const STATUS_MAP: Record<string, string> = {
+      "pending": "Pending",
+      "in-progress": "In-Progress",
+      "close": "Close",
+      "cancelled": "Cancelled",
+    };
+
     // Map to frontend format
     let records = (data || []).map((record: any) => {
       const requester = creatorMap.get(record.created_by);
+      const rawStatus = (record.status || "").trim();
       return {
         id: record.id,
         jo_number: record.shop_field_jo_number,
         full_customer_name: record.full_customer_name,
         date_prepared: record.date_prepared,
         created_at: record.created_at,
-        status: record.status,
+        status: STATUS_MAP[rawStatus.toLowerCase()] || rawStatus,
         requester_name: requester
           ? `${requester.firstname} ${requester.lastname}`
           : "Unknown",

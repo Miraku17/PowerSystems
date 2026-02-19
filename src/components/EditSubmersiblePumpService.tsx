@@ -8,12 +8,16 @@ import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface EditSubmersiblePumpServiceProps {
   data: Record<string, any>;
   recordId: string;
   onClose: () => void;
   onSaved: () => void;
+  onSignatoryChange?: (field: "noted_by" | "approved_by", checked: boolean) => void;
 }
 
 interface Attachment {
@@ -210,33 +214,33 @@ export default function EditSubmersiblePumpService({
   recordId,
   onClose,
   onSaved,
+  onSignatoryChange,
 }: EditSubmersiblePumpServiceProps) {
   const currentUser = useCurrentUser();
+  const { hasPermission } = usePermissions();
+  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
-  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+  const {
+    notedByChecked,
+    approvedByChecked,
+    isLoading: approvalLoading,
+    showConfirm,
+    confirmTitle,
+    confirmMessage,
+    initCheckedState,
+    requestToggle,
+    cancelToggle,
+    confirmToggle,
+  } = useSignatoryApproval({ table: "submersible_pump_service_report", recordId: data.id, onChanged: onSignatoryChange });
 
-  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
-    try {
-      await apiClient.patch('/forms/signatory-approval', {
-        table: 'submersible_pump_service_report',
-        recordId: data.id,
-        field,
-        checked,
-      });
-      if (field === 'noted_by') setNotedByChecked(checked);
-      else setApprovedByChecked(checked);
-      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
-    } catch (error: any) {
-      const message = error?.response?.data?.error || 'Failed to update approval';
-      toast.error(message);
-    }
-  };
+  useEffect(() => {
+    initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
+  }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -633,8 +637,8 @@ export default function EditSubmersiblePumpService({
                     <SignaturePad label="Signature" value={formData.checked_approved_by_signature} onChange={(val) => handleChange("checked_approved_by_signature", val)} subtitle="Svc. Supvr. / Supt." />
                   )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Approved</span>
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
 
@@ -653,8 +657,8 @@ export default function EditSubmersiblePumpService({
                     <SignaturePad label="Signature" value={formData.noted_by_signature} onChange={(val) => handleChange("noted_by_signature", val)} subtitle="Svc. Manager" />
                   )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Noted</span>
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>
 
@@ -696,6 +700,16 @@ export default function EditSubmersiblePumpService({
           </button>
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={showConfirm}
+        onClose={cancelToggle}
+        onConfirm={confirmToggle}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="Yes, proceed"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 }

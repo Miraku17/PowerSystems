@@ -368,6 +368,17 @@ export default function FormRecordsPage() {
     }
   };
 
+  const handleSignatoryChange = (recordId: string, field: "noted_by" | "approved_by", checked: boolean) => {
+    const checkedKey = `${field}_checked`;
+    setRecords((prev) =>
+      prev.map((r) =>
+        r.id === recordId
+          ? { ...r, data: { ...r.data, [checkedKey]: checked } }
+          : r
+      )
+    );
+  };
+
   const handleBackToFolders = () => {
     router.push("/dashboard/records/folders");
     setSearchTerm("");
@@ -929,6 +940,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -937,6 +949,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -945,6 +958,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -953,6 +967,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -961,6 +976,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -971,6 +987,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -980,6 +997,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -989,6 +1007,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -998,6 +1017,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1007,6 +1027,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1015,6 +1036,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1024,6 +1046,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1032,6 +1055,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1041,6 +1065,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1049,6 +1074,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1058,6 +1084,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1066,6 +1093,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1075,6 +1103,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1083,6 +1112,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1092,6 +1122,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1100,6 +1131,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1109,6 +1141,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1117,6 +1150,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1126,6 +1160,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1134,6 +1169,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1143,6 +1179,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1151,6 +1188,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1160,6 +1198,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 
@@ -1168,6 +1207,7 @@ export default function FormRecordsPage() {
           data={selectedRecord.data}
           onClose={() => setSelectedRecord(null)}
           onExportPDF={() => handleExportPDF(selectedRecord.id)}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(selectedRecord.id, field, checked)}
         />
       )}
 
@@ -1177,6 +1217,7 @@ export default function FormRecordsPage() {
           recordId={editingRecord.id}
           onClose={() => setEditingRecord(null)}
           onSaved={loadRecords}
+          onSignatoryChange={(field, checked) => handleSignatoryChange(editingRecord.id, field, checked)}
         />
       )}
 

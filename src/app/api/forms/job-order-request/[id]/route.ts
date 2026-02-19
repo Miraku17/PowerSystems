@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission } from "@/lib/permissions";
+import { checkRecordPermission, hasPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -115,6 +115,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     const { data: currentRecord, error: fetchError } = await supabase
       .from("job_order_request_form")
       .select(`
+        shop_field_jo_number,
         requested_by_signature,
         approved_by_signature,
         received_by_service_dept_signature,
@@ -153,8 +154,23 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       );
     }
 
+    // Check if user is trying to edit the JO number
+    const bodyRaw = body;
+    if (
+      bodyRaw.shop_field_jo_number !== undefined &&
+      bodyRaw.shop_field_jo_number !== currentRecord.shop_field_jo_number
+    ) {
+      const canEditJoNumber = await hasPermission(supabase, user.id, 'job_order_number', 'edit');
+      if (!canEditJoNumber) {
+        return NextResponse.json(
+          { error: "Permission denied: you do not have permission to edit the JO number" },
+          { status: 403 }
+        );
+      }
+    }
+
     const {
-      // shop_field_jo_number is auto-generated, not editable
+      shop_field_jo_number,
       date_prepared,
       full_customer_name,
       address,
@@ -265,8 +281,11 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
-    // Construct update object (shop_field_jo_number excluded — auto-generated)
     const updateData: any = {
+      ...(shop_field_jo_number !== undefined &&
+        shop_field_jo_number !== currentRecord.shop_field_jo_number && {
+          shop_field_jo_number,
+        }),
       date_prepared: date_prepared || null,
       full_customer_name,
       address,

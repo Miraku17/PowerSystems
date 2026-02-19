@@ -7,6 +7,7 @@ import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditJobOrderRequestProps {
   data: Record<string, any>;
@@ -144,6 +145,8 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
+  const { hasPermission } = usePermissions();
+  const canEditJoNumber = hasPermission("job_order_number", "edit");
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
@@ -248,7 +251,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Job Order Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleFieldChange} disabled />
+                <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleFieldChange} disabled={!canEditJoNumber} />
                 <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleFieldChange} />
               </div>
             </div>

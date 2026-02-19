@@ -337,12 +337,12 @@ export default function EngineSurfacePumpCommissioningForm() {
               <SignaturePad label="Draw Signature" value={formData.commissioned_by_signature} onChange={(signature: string) => handleSignatureChange('commissioned_by_signature', signature)} subtitle="Svc Engineer/Technician" />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={notedByUsers} />
-              <SignaturePad label="Draw Signature" value={formData.noted_by_signature} onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)} subtitle="Svc. Manager" />
-            </div>
-            <div className="flex flex-col space-y-4">
               <Select label="Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={approvedByUsers} />
               <SignaturePad label="Draw Signature" value={formData.checked_approved_by_signature} onChange={(signature: string) => handleSignatureChange('checked_approved_by_signature', signature)} subtitle="Svc. Supvr. / Supt." />
+            </div>
+            <div className="flex flex-col space-y-4">
+              <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={notedByUsers} />
+              <SignaturePad label="Draw Signature" value={formData.noted_by_signature} onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)} subtitle="Svc. Manager" />
             </div>
             <div className="flex flex-col space-y-4">
               <Select label="Acknowledged By" name="acknowledged_by_name" value={formData.acknowledged_by_name} onChange={handleChange} options={allUserOptions} />

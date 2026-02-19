@@ -496,16 +496,16 @@ export const GET = withAuth(async (request, { user, params }) => {
           imageUrl: record.performed_by_signature,
         },
         {
-          label: "Svc. Manager",
-          title: "Noted By",
-          name: record.noted_by_name,
-          imageUrl: record.noted_by_signature,
-        },
-        {
           label: "Svc. Supvr. / Supt.",
           title: "Approved By",
           name: record.checked_approved_by_name,
           imageUrl: record.checked_approved_by_signature,
+        },
+        {
+          label: "Svc. Manager",
+          title: "Noted By",
+          name: record.noted_by_name,
+          imageUrl: record.noted_by_signature,
         },
         {
           label: "Customer Representative",

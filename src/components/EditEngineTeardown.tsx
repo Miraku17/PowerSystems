@@ -858,25 +858,6 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SelectDropdown
-                    label="Noted By"
-                    name="noted_by_name"
-                    value={formData.noted_by_name}
-                    onChange={handleChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formData.noted_by_signature}
-                    onChange={(signature) => handleChange('noted_by_signature', signature)}
-                    subtitle="Service Manager"
-                  />
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Noted</span>
-                  </label>
-                </div>
-                <div className="flex flex-col space-y-4">
-                  <SelectDropdown
                     label="Approved By"
                     name="approved_by_name"
                     value={formData.approved_by_name}
@@ -892,6 +873,25 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved }:
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">Approved</span>
+                  </label>
+                </div>
+                <div className="flex flex-col space-y-4">
+                  <SelectDropdown
+                    label="Noted By"
+                    name="noted_by_name"
+                    value={formData.noted_by_name}
+                    onChange={handleChange}
+                    options={users.map(user => user.fullName)}
+                  />
+                  <SignaturePad
+                    label="Draw Signature"
+                    value={formData.noted_by_signature}
+                    onChange={(signature) => handleChange('noted_by_signature', signature)}
+                    subtitle="Service Manager"
+                  />
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Noted</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">

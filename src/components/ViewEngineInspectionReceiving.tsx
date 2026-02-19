@@ -322,24 +322,6 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Noted By</p>
-                    {data.noted_by_signature ? (
-                      <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
-                        <img src={data.noted_by_signature} alt="Noted By Signature" className="h-24 w-auto object-contain" />
-                      </div>
-                    ) : (
-                      <div className="h-24 w-full border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">No signature</div>
-                    )}
-                    <div className="border-t border-gray-400 w-48 pt-2 text-center">
-                      <p className="text-sm font-medium text-gray-900">{data.noted_by_name || "________________________"}</p>
-                      <p className="text-xs text-gray-500">Service Manager</p>
-                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                        <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                        <span className="text-xs font-medium text-gray-600">Noted</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Approved By</p>
                     {data.approved_by_signature ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
@@ -354,6 +336,24 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
                       <label className="flex items-center gap-2 mt-2 cursor-pointer">
                         <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                         <span className="text-xs font-medium text-gray-600">Approved</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Noted By</p>
+                    {data.noted_by_signature ? (
+                      <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
+                        <img src={data.noted_by_signature} alt="Noted By Signature" className="h-24 w-auto object-contain" />
+                      </div>
+                    ) : (
+                      <div className="h-24 w-full border border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 text-sm mb-2">No signature</div>
+                    )}
+                    <div className="border-t border-gray-400 w-48 pt-2 text-center">
+                      <p className="text-sm font-medium text-gray-900">{data.noted_by_name || "________________________"}</p>
+                      <p className="text-xs text-gray-500">Service Manager</p>
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                        <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                        <span className="text-xs font-medium text-gray-600">Noted</span>
                       </label>
                     </div>
                   </div>

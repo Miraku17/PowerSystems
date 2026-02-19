@@ -421,21 +421,6 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.noted_by_signature ? (
-                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
-                    </div>
-                    <Field label="Noted By" value={data.noted_by} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
-                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                      <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                      <span className="text-xs font-medium text-gray-600">Noted</span>
-                    </label>
-                  </div>
-                  <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
                          {data.approved_by_signature ? (
                              <img src={data.approved_by_signature} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
@@ -447,6 +432,21 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                     <label className="flex items-center gap-2 mt-2 cursor-pointer">
                       <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                       <span className="text-xs font-medium text-gray-600">Approved</span>
+                    </label>
+                  </div>
+                  <div className="text-center flex flex-col items-center">
+                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.noted_by_signature ? (
+                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
+                    <Field label="Noted By" value={data.noted_by} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                      <span className="text-xs font-medium text-gray-600">Noted</span>
                     </label>
                   </div>
                   <div className="text-center flex flex-col items-center">

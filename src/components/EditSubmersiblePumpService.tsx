@@ -618,26 +618,6 @@ export default function EditSubmersiblePumpService({
                   )}
                 </div>
 
-                {/* Noted By */}
-                <div className="flex flex-col space-y-4">
-                  <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-                  {formData.noted_by_signature && formData.noted_by_signature.startsWith('http') ? (
-                    <div className="flex flex-col items-center">
-                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
-                        <img src={formData.noted_by_signature} alt="Signature" className="max-h-24 object-contain" />
-                      </div>
-                      <button type="button" onClick={() => handleChange("noted_by_signature", "")} className="text-xs text-red-600 hover:text-red-800 underline">Remove Signature</button>
-                      <p className="text-xs text-gray-400 mt-1 italic">Svc. Manager</p>
-                    </div>
-                  ) : (
-                    <SignaturePad label="Signature" value={formData.noted_by_signature} onChange={(val) => handleChange("noted_by_signature", val)} subtitle="Svc. Manager" />
-                  )}
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Noted</span>
-                  </label>
-                </div>
-
                 {/* Approved By */}
                 <div className="flex flex-col space-y-4">
                   <Select label="Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
@@ -655,6 +635,26 @@ export default function EditSubmersiblePumpService({
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">Approved</span>
+                  </label>
+                </div>
+
+                {/* Noted By */}
+                <div className="flex flex-col space-y-4">
+                  <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
+                  {formData.noted_by_signature && formData.noted_by_signature.startsWith('http') ? (
+                    <div className="flex flex-col items-center">
+                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
+                        <img src={formData.noted_by_signature} alt="Signature" className="max-h-24 object-contain" />
+                      </div>
+                      <button type="button" onClick={() => handleChange("noted_by_signature", "")} className="text-xs text-red-600 hover:text-red-800 underline">Remove Signature</button>
+                      <p className="text-xs text-gray-400 mt-1 italic">Svc. Manager</p>
+                    </div>
+                  ) : (
+                    <SignaturePad label="Signature" value={formData.noted_by_signature} onChange={(val) => handleChange("noted_by_signature", val)} subtitle="Svc. Manager" />
+                  )}
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">Noted</span>
                   </label>
                 </div>
 

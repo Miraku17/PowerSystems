@@ -621,21 +621,21 @@ export default function DeutzCommissioningReport() {
                     />
                 </div>
                 <div className="flex flex-col space-y-4">
-                    <Select label="Noted By" name="noted_by" value={formData.noted_by} onChange={handleChange} options={notedByUsers} />
-                    <SignaturePad
-                        label="Draw Signature"
-                        value={formData.noted_by_signature}
-                        onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
-                        subtitle="Service Manager"
-                    />
-                </div>
-                <div className="flex flex-col space-y-4">
                     <Select label="Approved By" name="approved_by" value={formData.approved_by} onChange={handleChange} options={approvedByUsers} />
                     <SignaturePad
                         label="Draw Signature"
                         value={formData.approved_by_signature}
                         onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
                         subtitle="Authorized Signature"
+                    />
+                </div>
+                <div className="flex flex-col space-y-4">
+                    <Select label="Noted By" name="noted_by" value={formData.noted_by} onChange={handleChange} options={notedByUsers} />
+                    <SignaturePad
+                        label="Draw Signature"
+                        value={formData.noted_by_signature}
+                        onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
+                        subtitle="Service Manager"
                     />
                 </div>
                 <div className="flex flex-col space-y-4">

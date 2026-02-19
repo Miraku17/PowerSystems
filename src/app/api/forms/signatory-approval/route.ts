@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from "@/lib/permissions";
 
 const ALLOWED_TABLES = [
   "deutz_commissioning_report",
@@ -66,12 +67,15 @@ export const PATCH = withAuth(async (request, { user }) => {
       );
     }
 
-    // Verify the current user is the designated signatory
+    // Verify the current user is the designated signatory or has signatory_approval permission
     if ((record as any)[userIdColumn] !== user.id) {
-      return NextResponse.json(
-        { error: "Only the designated signatory can toggle this approval" },
-        { status: 403 }
-      );
+      const canApprove = await hasPermission(supabase, user.id, "signatory_approval", "approve");
+      if (!canApprove) {
+        return NextResponse.json(
+          { error: "Only the designated signatory or authorized users can toggle this approval" },
+          { status: 403 }
+        );
+      }
     }
 
     // Update the checked column

@@ -463,24 +463,6 @@ export default function EngineInspectionReceivingForm() {
               />
             </div>
 
-            {/* Noted By */}
-            <div className="space-y-4">
-              <UserSelect
-                label="Noted By"
-                name="noted_by_name"
-                value={formData.noted_by_name}
-                onChange={handleChange}
-                options={notedByUsers}
-                placeholder="Select manager"
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.noted_by_signature}
-                onChange={(sig) => handleSignatureChange('noted_by_signature', sig)}
-                subtitle="Service Manager"
-              />
-            </div>
-
             {/* Approved By */}
             <div className="space-y-4">
               <UserSelect
@@ -496,6 +478,24 @@ export default function EngineInspectionReceivingForm() {
                 value={formData.approved_by_signature}
                 onChange={(sig) => handleSignatureChange('approved_by_signature', sig)}
                 subtitle="Authorized Signature"
+              />
+            </div>
+
+            {/* Noted By */}
+            <div className="space-y-4">
+              <UserSelect
+                label="Noted By"
+                name="noted_by_name"
+                value={formData.noted_by_name}
+                onChange={handleChange}
+                options={notedByUsers}
+                placeholder="Select manager"
+              />
+              <SignaturePad
+                label="Draw Signature"
+                value={formData.noted_by_signature}
+                onChange={(sig) => handleSignatureChange('noted_by_signature', sig)}
+                subtitle="Service Manager"
               />
             </div>
 

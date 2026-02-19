@@ -431,8 +431,8 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     const signatures = [
       { label: "Signed by Technician", title: "Service Technician", name: record.service_technician_name, imageUrl: record.service_technician_signature },
-      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature },
       { label: "Authorized Signature", title: "Approved By", name: record.approved_by_name, imageUrl: record.approved_by_signature },
+      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature },
       { label: "Customer Signature", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature },
     ];
 

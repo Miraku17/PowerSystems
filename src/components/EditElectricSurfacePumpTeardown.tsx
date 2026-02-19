@@ -9,12 +9,16 @@ import { supabase } from "@/lib/supabase";
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface EditElectricSurfacePumpTeardownProps {
   data: Record<string, any>;
   recordId: string;
   onClose: () => void;
   onSaved: () => void;
+  onSignatoryChange?: (field: "noted_by" | "approved_by", checked: boolean) => void;
 }
 
 interface Attachment {
@@ -118,8 +122,10 @@ const OthersTableRowInput = ({ num, nameField, nameValue, valueField, valueValue
   </tr>
 );
 
-export default function EditElectricSurfacePumpTeardown({ data, recordId, onClose, onSaved }: EditElectricSurfacePumpTeardownProps) {
+export default function EditElectricSurfacePumpTeardown({ data, recordId, onClose, onSaved, onSignatoryChange }: EditElectricSurfacePumpTeardownProps) {
   const currentUser = useCurrentUser();
+  const { hasPermission } = usePermissions();
+  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const { data: users = [] } = useUsers();
@@ -127,25 +133,22 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newMotorComponentsAttachments, setNewMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
   const [newWetEndAttachments, setNewWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
-  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+  const {
+    notedByChecked,
+    approvedByChecked,
+    isLoading: approvalLoading,
+    showConfirm,
+    confirmTitle,
+    confirmMessage,
+    initCheckedState,
+    requestToggle,
+    cancelToggle,
+    confirmToggle,
+  } = useSignatoryApproval({ table: "electric_surface_pump_teardown_report", recordId: data.id, onChanged: onSignatoryChange });
 
-  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
-    try {
-      await apiClient.patch('/forms/signatory-approval', {
-        table: 'electric_surface_pump_teardown_report',
-        recordId: data.id,
-        field,
-        checked,
-      });
-      if (field === 'noted_by') setNotedByChecked(checked);
-      else setApprovedByChecked(checked);
-      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
-    } catch (error: any) {
-      const message = error?.response?.data?.error || 'Failed to update approval';
-      toast.error(message);
-    }
-  };
+  useEffect(() => {
+    initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
+  }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
 
   // Supabase upload hook
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
@@ -725,16 +728,16 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                   <Select label="Checked & Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
                   <SignaturePad label="Draw Signature" value={formData.checked_approved_by_signature} onChange={(signature: string) => handleChange('checked_approved_by_signature', signature)} subtitle="Svc. Supvr. / Supt." />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Approved</span>
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
                   <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
                   <SignaturePad label="Draw Signature" value={formData.noted_by_signature} onChange={(signature: string) => handleChange('noted_by_signature', signature)} subtitle="Svc. Manager" />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                    <span className="text-xs font-medium text-gray-600">Noted</span>
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -756,6 +759,16 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
           </div>
         </form>
       </div>
+      <ConfirmationModal
+        isOpen={showConfirm}
+        onClose={cancelToggle}
+        onConfirm={confirmToggle}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="Yes, proceed"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 }

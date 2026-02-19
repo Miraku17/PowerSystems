@@ -6,6 +6,9 @@ import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface Attachment {
   id: string;
@@ -18,9 +21,10 @@ interface ViewDeutzServiceProps {
   data: Record<string, any>;
   onClose: () => void;
   onExportPDF?: () => void;
+  onSignatoryChange?: (field: "noted_by" | "approved_by", checked: boolean) => void;
 }
 
-export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeutzServiceProps) {
+export default function ViewDeutzService({ data, onClose, onExportPDF, onSignatoryChange }: ViewDeutzServiceProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loadingAttachments, setLoadingAttachments] = useState(true);
   const [auditInfo, setAuditInfo] = useState<{
@@ -29,25 +33,24 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
     deletedBy?: string;
   }>({});
   const currentUser = useCurrentUser();
-  const [notedByChecked, setNotedByChecked] = useState(data.noted_by_checked || false);
-  const [approvedByChecked, setApprovedByChecked] = useState(data.approved_by_checked || false);
+  const { hasPermission } = usePermissions();
+  const canApproveSignatory = hasPermission("signatory_approval", "approve");
+  const {
+    notedByChecked,
+    approvedByChecked,
+    isLoading: approvalLoading,
+    showConfirm,
+    confirmTitle,
+    confirmMessage,
+    initCheckedState,
+    requestToggle,
+    cancelToggle,
+    confirmToggle,
+  } = useSignatoryApproval({ table: "deutz_service_report", recordId: data.id, onChanged: onSignatoryChange });
 
-  const handleApprovalToggle = async (field: 'noted_by' | 'approved_by', checked: boolean) => {
-    try {
-      await apiClient.patch('/forms/signatory-approval', {
-        table: 'deutz_service_report',
-        recordId: data.id,
-        field,
-        checked,
-      });
-      if (field === 'noted_by') setNotedByChecked(checked);
-      else setApprovedByChecked(checked);
-      toast.success(`${field === 'noted_by' ? 'Noted' : 'Approved'} status updated`);
-    } catch (error: any) {
-      const message = error?.response?.data?.error || 'Failed to update approval';
-      toast.error(message);
-    }
-  };
+  useEffect(() => {
+    initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
+  }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -421,21 +424,6 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.noted_by_signature ? (
-                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
-                         ) : (
-                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
-                         )}
-                    </div>
-                    <Field label="Noted By" value={data.noted_by} />
-                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
-                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                      <input type="checkbox" checked={notedByChecked} disabled={!currentUser || currentUser.id !== data.noted_by_user_id} onChange={(e) => handleApprovalToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                      <span className="text-xs font-medium text-gray-600">Noted</span>
-                    </label>
-                  </div>
-                  <div className="text-center flex flex-col items-center">
-                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
                          {data.approved_by_signature ? (
                              <img src={data.approved_by_signature} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
@@ -445,8 +433,23 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
                     <Field label="Approved By" value={data.approved_by} />
                     <p className="text-xs text-gray-400 mt-1 italic">Authorized Signature</p>
                     <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                      <input type="checkbox" checked={approvedByChecked} disabled={!currentUser || currentUser.id !== data.approved_by_user_id} onChange={(e) => handleApprovalToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                      <span className="text-xs font-medium text-gray-600">Approved</span>
+                      <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                      <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
+                    </label>
+                  </div>
+                  <div className="text-center flex flex-col items-center">
+                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
+                         {data.noted_by_signature ? (
+                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
+                         ) : (
+                             <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
+                         )}
+                    </div>
+                    <Field label="Noted By" value={data.noted_by} />
+                    <p className="text-xs text-gray-400 mt-1 italic">Service Manager</p>
+                    <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                      <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                      <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                     </label>
                   </div>
                   <div className="text-center flex flex-col items-center">
@@ -485,6 +488,16 @@ export default function ViewDeutzService({ data, onClose, onExportPDF }: ViewDeu
           )}
         </div>
       </div>
+      <ConfirmationModal
+        isOpen={showConfirm}
+        onClose={cancelToggle}
+        onConfirm={confirmToggle}
+        title={confirmTitle}
+        message={confirmMessage}
+        confirmText="Yes, proceed"
+        cancelText="Cancel"
+        type="info"
+      />
     </div>
   );
 }

@@ -7,8 +7,10 @@ ALTER TABLE daily_time_sheet_entries
   ADD COLUMN expense_lodging DECIMAL(10, 2) DEFAULT 0,
   ADD COLUMN expense_others DECIMAL(10, 2) DEFAULT 0,
   ADD COLUMN expense_total DECIMAL(10, 2) DEFAULT 0,
-  ADD COLUMN expense_remarks TEXT DEFAULT '';
+  ADD COLUMN expense_remarks TEXT DEFAULT '',
+  ADD COLUMN travel_hours DECIMAL(10, 2) DEFAULT 0;
 
+COMMENT ON COLUMN daily_time_sheet_entries.travel_hours IS 'Optional travel hours for this entry';
 COMMENT ON COLUMN daily_time_sheet_entries.expense_breakfast IS 'Breakfast expense for this entry';
 COMMENT ON COLUMN daily_time_sheet_entries.expense_lunch IS 'Lunch expense for this entry';
 COMMENT ON COLUMN daily_time_sheet_entries.expense_dinner IS 'Dinner expense for this entry';

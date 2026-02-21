@@ -17,6 +17,7 @@ export interface TimeSheetEntry {
   expense_others: string;
   expense_total: string;
   expense_remarks: string;
+  travel_hours: string;
 }
 
 interface DailyTimeSheetFormData {
@@ -86,6 +87,7 @@ const createEntry = (hasDate: boolean): TimeSheetEntry => ({
   expense_others: '',
   expense_total: '',
   expense_remarks: '',
+  travel_hours: '',
 });
 
 const initialFormData: DailyTimeSheetFormData = {
@@ -175,6 +177,7 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
             expense_others: entry.expense_others || '',
             expense_total: entry.expense_total || '',
             expense_remarks: entry.expense_remarks || '',
+            travel_hours: entry.travel_hours || '',
           }));
 
           // Remove dateSections if it exists

@@ -36,6 +36,7 @@ interface TimeSheetEntry {
   expense_others: number;
   expense_total: number;
   expense_remarks: string;
+  travel_hours: number;
 }
 
 export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
@@ -275,6 +276,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Start</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Stop</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Total</th>
+                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Travel Hrs</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Job Descriptions</th>
                     </tr>
                   </thead>
@@ -287,41 +289,46 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.start_time)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.stop_time)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm font-medium">{formatNumber(entry.total_hours)}</td>
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatNumber(entry.travel_hours)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{entry.job_description || '-'}</td>
                           </tr>
-                          <tr className="bg-green-50/50">
-                            <td colSpan={5} className="border border-gray-300 px-3 py-2">
+                          <tr className="bg-gray-50/50">
+                            <td colSpan={6} className="border border-gray-300 px-3 py-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
+                                <div className="flex-1 border-t border-gray-200"></div>
+                              </div>
                               <div className="grid grid-cols-8 gap-3 text-sm">
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Breakfast</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Breakfast</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_breakfast)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Lunch</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Lunch</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_lunch)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Dinner</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Dinner</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_dinner)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Transport</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Transport</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_transport)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Lodging</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Lodging</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_lodging)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Others</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Others</span>
                                   <span className="text-gray-900">{formatNumber(entry.expense_others)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Total</span>
-                                  <span className="text-gray-900 font-bold">{formatNumber(entry.expense_total)}</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Total</span>
+                                  <span className="text-gray-900 font-bold">₱{formatNumber(entry.expense_total)}</span>
                                 </div>
                                 <div>
-                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Remarks</span>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Remarks</span>
                                   <span className="text-gray-900">{entry.expense_remarks || '-'}</span>
                                 </div>
                               </div>
@@ -331,7 +338,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="border border-gray-300 px-3 py-4 text-sm text-center text-gray-500">
+                        <td colSpan={6} className="border border-gray-300 px-3 py-4 text-sm text-center text-gray-500">
                           No time entries recorded
                         </td>
                       </tr>
@@ -341,12 +348,17 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                     <tr className="bg-blue-50 font-bold">
                       <td colSpan={3} className="border border-gray-300 px-3 py-2 text-right text-sm uppercase">Total Manhours</td>
                       <td className="border border-gray-300 px-3 py-2 text-sm">{formatNumber(data.total_manhours)}</td>
-                      <td className="border border-gray-300 px-3 py-2"></td>
+                      <td className="border border-gray-300 px-3 py-2" colSpan={2}></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Field label="Regular Hours (8AM - 5PM)" value={formatNumber(data.total_manhours)} />
+                <div>
+                  <label className="block text-xs font-semibold text-orange-600 uppercase mb-1">Overtime Hours</label>
+                  <div className="text-sm text-gray-900 font-bold">{formatNumber((parseFloat(data.grand_total_manhours || '0') - parseFloat(data.total_manhours || '0')))}</div>
+                </div>
                 <Field label="Grand Total Manhours (REG. + O.T.)" value={formatNumber(data.grand_total_manhours)} />
               </div>
             </div>

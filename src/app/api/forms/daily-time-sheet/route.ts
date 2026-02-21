@@ -185,6 +185,7 @@ export const POST = withAuth(async (request, { user }) => {
             expense_others: entry.expense_others ? parseFloat(entry.expense_others) : 0,
             expense_total: entry.expense_total ? parseFloat(entry.expense_total) : 0,
             expense_remarks: entry.expense_remarks || '',
+            travel_hours: entry.travel_hours ? parseFloat(entry.travel_hours) : 0,
           }));
 
           const { error: entriesError } = await supabase

@@ -38,15 +38,54 @@ export default function DailyTimeSheetForm() {
     fetchApprovedJOs();
   }, []);
 
-  // Auto-calculate total manhours when entries change
+  // Calculate regular and OT hours for an entry based on 8AM-5PM work schedule
+  const calculateRegularAndOT = (startTime: string, stopTime: string) => {
+    if (!startTime || !stopTime) return { regular: 0, ot: 0 };
+
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [stopHour, stopMin] = stopTime.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMin;
+    let stopMinutes = stopHour * 60 + stopMin;
+    if (stopMinutes <= startMinutes) stopMinutes += 24 * 60; // overnight
+
+    const workStart = 8 * 60;  // 8:00 AM
+    const workEnd = 17 * 60;   // 5:00 PM
+
+    // Regular hours = overlap between [startMinutes, stopMinutes] and [8:00, 17:00]
+    const overlapStart = Math.max(startMinutes, workStart);
+    const overlapEnd = Math.min(stopMinutes, workEnd);
+    const regularMinutes = Math.max(0, overlapEnd - overlapStart);
+
+    // OT hours = total worked - regular
+    const totalWorkedMinutes = stopMinutes - startMinutes;
+    const otMinutes = totalWorkedMinutes - regularMinutes;
+
+    return {
+      regular: regularMinutes / 60,
+      ot: otMinutes / 60,
+    };
+  };
+
+  // Auto-calculate total manhours (regular) and grand total (reg + OT) when entries change
   useEffect(() => {
-    const totalHours = formData.entries.reduce((sum, entry) => {
-      const hours = parseFloat(entry.total_hours) || 0;
-      return sum + hours;
-    }, 0);
-    const total = totalHours.toFixed(2);
-    if (formData.total_manhours !== total) {
-      setFormData({ total_manhours: total });
+    let totalRegular = 0;
+    let totalOT = 0;
+
+    formData.entries.forEach((entry) => {
+      const { regular, ot } = calculateRegularAndOT(entry.start_time, entry.stop_time);
+      totalRegular += regular;
+      totalOT += ot;
+    });
+
+    const regStr = totalRegular.toFixed(2);
+    const grandStr = (totalRegular + totalOT).toFixed(2);
+
+    if (formData.total_manhours !== regStr) {
+      setFormData({ total_manhours: regStr });
+    }
+    if (formData.grand_total_manhours !== grandStr) {
+      setFormData({ grand_total_manhours: grandStr });
     }
   }, [formData.entries]);
 
@@ -249,6 +288,7 @@ export default function DailyTimeSheetForm() {
                   <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Start</th>
                   <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Stop</th>
                   <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[80px]">Total</th>
+                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[90px]">Travel Hrs</th>
                   <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2">Job Descriptions<br/><span className="font-normal text-gray-500">(Pls. indicate specific component & Eng. Model)</span></th>
                   <th className="w-[50px]"></th>
                 </tr>
@@ -295,6 +335,16 @@ export default function DailyTimeSheetForm() {
                       </td>
                       <td className="pt-2 pb-1 px-2">
                         <input
+                          type="number"
+                          step="0.01"
+                          value={entry.travel_hours}
+                          onChange={(e) => handleEntryChange(entry.id, 'travel_hours', e.target.value)}
+                          placeholder="0.00"
+                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                        />
+                      </td>
+                      <td className="pt-2 pb-1 px-2">
+                        <input
                           type="text"
                           value={entry.job_description}
                           onChange={(e) => handleEntryChange(entry.id, 'job_description', e.target.value)}
@@ -314,40 +364,47 @@ export default function DailyTimeSheetForm() {
                         )}
                       </td>
                     </tr>
-                    <tr className="border-b border-gray-300">
-                      <td colSpan={5} className="pt-1 pb-2 px-2">
+                    <tr className="border-b border-gray-300 bg-gray-50/50">
+                      <td colSpan={6} className="pt-1 pb-2 px-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
+                          <div className="flex-1 border-t border-gray-200"></div>
+                        </div>
                         <div className="grid grid-cols-8 gap-2">
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Breakfast</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_breakfast} onChange={(e) => handleEntryChange(entry.id, 'expense_breakfast', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Breakfast</label>
+                            <input type="number" step="0.01" value={entry.expense_breakfast} onChange={(e) => handleEntryChange(entry.id, 'expense_breakfast', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Lunch</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_lunch} onChange={(e) => handleEntryChange(entry.id, 'expense_lunch', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lunch</label>
+                            <input type="number" step="0.01" value={entry.expense_lunch} onChange={(e) => handleEntryChange(entry.id, 'expense_lunch', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Dinner</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_dinner} onChange={(e) => handleEntryChange(entry.id, 'expense_dinner', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Dinner</label>
+                            <input type="number" step="0.01" value={entry.expense_dinner} onChange={(e) => handleEntryChange(entry.id, 'expense_dinner', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Transport</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_transport} onChange={(e) => handleEntryChange(entry.id, 'expense_transport', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Transport</label>
+                            <input type="number" step="0.01" value={entry.expense_transport} onChange={(e) => handleEntryChange(entry.id, 'expense_transport', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Lodging</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_lodging} onChange={(e) => handleEntryChange(entry.id, 'expense_lodging', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lodging</label>
+                            <input type="number" step="0.01" value={entry.expense_lodging} onChange={(e) => handleEntryChange(entry.id, 'expense_lodging', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Others</label>
-                            <input type="text" inputMode="decimal" value={entry.expense_others} onChange={(e) => handleEntryChange(entry.id, 'expense_others', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Others</label>
+                            <input type="number" step="0.01" value={entry.expense_others} onChange={(e) => handleEntryChange(entry.id, 'expense_others', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Total</label>
-                            <input type="text" value={entry.expense_total} readOnly className="w-full bg-green-100 border border-green-400 text-gray-900 text-sm rounded-md p-1.5 font-bold" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Total</label>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₱</span>
+                              <input type="text" value={entry.expense_total} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 pl-5 font-bold" />
+                            </div>
                           </div>
                           <div>
-                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Remarks</label>
-                            <input type="text" value={entry.expense_remarks} onChange={(e) => handleEntryChange(entry.id, 'expense_remarks', e.target.value)} placeholder="Remarks" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Remarks</label>
+                            <input type="text" value={entry.expense_remarks} onChange={(e) => handleEntryChange(entry.id, 'expense_remarks', e.target.value)} placeholder="Remarks" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
                           </div>
                         </div>
                       </td>
@@ -362,25 +419,38 @@ export default function DailyTimeSheetForm() {
                     <input
                       type="text"
                       value={formData.total_manhours}
-                      className="w-full bg-blue-50 border border-blue-300 text-gray-900 text-sm rounded-md p-2 font-bold"
+                      className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2 font-bold"
                       readOnly
                     />
                   </td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
           <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <Input
-              label="Grand Total Manhours (REG. + O.T.)"
-              name="grand_total_manhours"
-              type="number"
-              step="0.01"
-              value={formData.grand_total_manhours}
-              onChange={handleChange}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col w-full">
+                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Regular Hours (8AM - 5PM)</label>
+                <input type="text" value={formData.total_manhours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
+              </div>
+              <div className="flex flex-col w-full">
+                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Overtime Hours</label>
+                <input
+                  type="text"
+                  value={
+                    (parseFloat(formData.grand_total_manhours || '0') - parseFloat(formData.total_manhours || '0')).toFixed(2)
+                  }
+                  readOnly
+                  className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold"
+                />
+              </div>
+              <div className="flex flex-col w-full">
+                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Grand Total Manhours (REG. + O.T.)</label>
+                <input type="text" value={formData.grand_total_manhours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
+              </div>
+            </div>
           </div>
         </div>
 

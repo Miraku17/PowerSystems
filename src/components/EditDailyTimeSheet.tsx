@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
@@ -32,6 +32,16 @@ interface TimeSheetEntry {
   stop_time: string;
   total_hours: string;
   job_description: string;
+  has_date: boolean;
+  expense_breakfast: string;
+  expense_lunch: string;
+  expense_dinner: string;
+  expense_transport: string;
+  expense_lodging: string;
+  expense_others: string;
+  expense_total: string;
+  expense_remarks: string;
+  travel_hours: string;
 }
 
 // Helper Components
@@ -182,8 +192,18 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             stop_time: entry.stop_time || '',
             total_hours: entry.total_hours?.toString() || '',
             job_description: entry.job_description || '',
+            has_date: !!entry.entry_date,
+            expense_breakfast: entry.expense_breakfast?.toString() || '',
+            expense_lunch: entry.expense_lunch?.toString() || '',
+            expense_dinner: entry.expense_dinner?.toString() || '',
+            expense_transport: entry.expense_transport?.toString() || '',
+            expense_lodging: entry.expense_lodging?.toString() || '',
+            expense_others: entry.expense_others?.toString() || '',
+            expense_total: entry.expense_total?.toString() || '',
+            expense_remarks: entry.expense_remarks || '',
+            travel_hours: entry.travel_hours?.toString() || '',
           }));
-          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '' }]);
+          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
         }
       } catch (error) {
         console.error('Error fetching entries:', error);
@@ -214,6 +234,16 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         stop_time: entry.stop_time || '',
         total_hours: entry.total_hours?.toString() || '',
         job_description: entry.job_description || '',
+        has_date: !!entry.entry_date,
+        expense_breakfast: entry.expense_breakfast?.toString() || '',
+        expense_lunch: entry.expense_lunch?.toString() || '',
+        expense_dinner: entry.expense_dinner?.toString() || '',
+        expense_transport: entry.expense_transport?.toString() || '',
+        expense_lodging: entry.expense_lodging?.toString() || '',
+        expense_others: entry.expense_others?.toString() || '',
+        expense_total: entry.expense_total?.toString() || '',
+        expense_remarks: entry.expense_remarks || '',
+        travel_hours: entry.travel_hours?.toString() || '',
       }));
       if (mappedEntries.length > 0) {
         setEntries(mappedEntries);
@@ -221,16 +251,48 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
     }
   }, [recordId, data.daily_time_sheet_entries]);
 
-  // Auto-calculate total manhours
+  // Calculate regular and OT hours for an entry based on 8AM-5PM work schedule
+  const calculateRegularAndOT = (startTime: string, stopTime: string) => {
+    if (!startTime || !stopTime) return { regular: 0, ot: 0 };
+
+    const [startHour, startMin] = startTime.split(':').map(Number);
+    const [stopHour, stopMin] = stopTime.split(':').map(Number);
+
+    const startMinutes = startHour * 60 + startMin;
+    let stopMinutes = stopHour * 60 + stopMin;
+    if (stopMinutes <= startMinutes) stopMinutes += 24 * 60;
+
+    const workStart = 8 * 60;
+    const workEnd = 17 * 60;
+
+    const overlapStart = Math.max(startMinutes, workStart);
+    const overlapEnd = Math.min(stopMinutes, workEnd);
+    const regularMinutes = Math.max(0, overlapEnd - overlapStart);
+
+    const totalWorkedMinutes = stopMinutes - startMinutes;
+    const otMinutes = totalWorkedMinutes - regularMinutes;
+
+    return { regular: regularMinutes / 60, ot: otMinutes / 60 };
+  };
+
+  // Auto-calculate total manhours (regular) and grand total (reg + OT)
   useEffect(() => {
-    const totalHours = entries.reduce((sum, entry) => {
-      const hours = parseFloat(entry.total_hours) || 0;
-      return sum + hours;
-    }, 0);
-    const total = totalHours.toFixed(2);
-    if (formData.total_manhours !== total) {
-      handleFieldChange('total_manhours', total);
-    }
+    let totalRegular = 0;
+    let totalOT = 0;
+
+    entries.forEach((entry) => {
+      const { regular, ot } = calculateRegularAndOT(entry.start_time, entry.stop_time);
+      totalRegular += regular;
+      totalOT += ot;
+    });
+
+    const regStr = totalRegular.toFixed(2);
+    const grandStr = (totalRegular + totalOT).toFixed(2);
+
+    setFormData((prev) => {
+      if (prev.total_manhours === regStr && prev.grand_total_manhours === grandStr) return prev;
+      return { ...prev, total_manhours: regStr, grand_total_manhours: grandStr };
+    });
   }, [entries]);
 
   // Auto-calculate performance
@@ -264,11 +326,15 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   };
 
   const addEntry = () => {
-    setEntries([...entries, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '' }]);
+    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: false, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+  };
+
+  const addDateEntry = () => {
+    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
   };
 
   const updateEntry = (id: string, field: keyof TimeSheetEntry, value: string) => {
-    setEntries(entries.map(entry => {
+    setEntries(prev => prev.map(entry => {
       if (entry.id === id) {
         const updated = { ...entry, [field]: value };
         // Recalculate total hours if time changed
@@ -279,6 +345,12 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
           if (totalMinutes < 0) totalMinutes += 24 * 60;
           updated.total_hours = (totalMinutes / 60).toFixed(2);
         }
+        // Recalculate expense total if any expense field changed
+        const expenseFields = ['expense_breakfast', 'expense_lunch', 'expense_dinner', 'expense_transport', 'expense_lodging', 'expense_others'] as const;
+        if (expenseFields.includes(field as any)) {
+          const total = expenseFields.reduce((sum, f) => sum + (parseFloat(updated[f]) || 0), 0);
+          updated.expense_total = total.toFixed(2);
+        }
         return updated;
       }
       return entry;
@@ -286,17 +358,15 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   };
 
   const removeEntry = (id: string) => {
-    if (entries.length > 1) {
-      setEntries(entries.filter(entry => entry.id !== id));
-    }
+    setEntries(prev => prev.length > 1 ? prev.filter(entry => entry.id !== id) : prev);
   };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
 
-      // Prepare entries data
-      const entriesData = entries.map(({ id, ...rest }, index) => ({
+      // Prepare entries data (strip client-only fields)
+      const entriesData = entries.map(({ id, has_date, ...rest }, index) => ({
         ...rest,
         sort_order: index,
       }));
@@ -376,84 +446,155 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                 <h4 className="text-base font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h4>
-                <button
-                  type="button"
-                  onClick={addEntry}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add Row
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={addEntry}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Add Row
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addDateEntry}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    <CalendarDaysIcon className="h-4 w-4" />
+                    Add New Date
+                  </button>
+                </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+              <div>
+                <table className="w-full">
                   <thead>
                     <tr className="border-b-2 border-gray-300">
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[110px]">Date</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Start</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Stop</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[70px]">Total</th>
+                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[85px]">Travel Hrs</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2">Job Description</th>
                       <th className="w-[40px]"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {entries.map((entry) => (
-                      <tr key={entry.id} className="border-b border-gray-200">
-                        <td className="py-2 px-2">
-                          <input
-                            type="date"
-                            value={entry.entry_date}
-                            onChange={(e) => updateEntry(entry.id, 'entry_date', e.target.value)}
-                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input
-                            type="time"
-                            value={entry.start_time}
-                            onChange={(e) => updateEntry(entry.id, 'start_time', e.target.value)}
-                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input
-                            type="time"
-                            value={entry.stop_time}
-                            onChange={(e) => updateEntry(entry.id, 'stop_time', e.target.value)}
-                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={entry.total_hours}
-                            readOnly
-                            className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          <input
-                            type="text"
-                            value={entry.job_description}
-                            onChange={(e) => updateEntry(entry.id, 'job_description', e.target.value)}
-                            placeholder="Enter job description"
-                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                          />
-                        </td>
-                        <td className="py-2 px-2">
-                          {entries.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeEntry(entry.id)}
-                              className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          )}
-                        </td>
-                      </tr>
+                      <React.Fragment key={entry.id}>
+                        <tr className="border-b border-gray-100">
+                          <td className="pt-2 pb-1 px-2">
+                            {entry.has_date ? (
+                              <input
+                                type="date"
+                                value={entry.entry_date}
+                                onChange={(e) => updateEntry(entry.id, 'entry_date', e.target.value)}
+                                className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                              />
+                            ) : (
+                              <div className="w-full h-[34px]"></div>
+                            )}
+                          </td>
+                          <td className="pt-2 pb-1 px-2">
+                            <input
+                              type="time"
+                              value={entry.start_time}
+                              onChange={(e) => updateEntry(entry.id, 'start_time', e.target.value)}
+                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                            />
+                          </td>
+                          <td className="pt-2 pb-1 px-2">
+                            <input
+                              type="time"
+                              value={entry.stop_time}
+                              onChange={(e) => updateEntry(entry.id, 'stop_time', e.target.value)}
+                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                            />
+                          </td>
+                          <td className="pt-2 pb-1 px-2">
+                            <input
+                              type="text"
+                              value={entry.total_hours}
+                              readOnly
+                              className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                            />
+                          </td>
+                          <td className="pt-2 pb-1 px-2">
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={entry.travel_hours}
+                              onChange={(e) => updateEntry(entry.id, 'travel_hours', e.target.value)}
+                              placeholder="0.00"
+                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                            />
+                          </td>
+                          <td className="pt-2 pb-1 px-2">
+                            <input
+                              type="text"
+                              value={entry.job_description}
+                              onChange={(e) => updateEntry(entry.id, 'job_description', e.target.value)}
+                              placeholder="Enter job description"
+                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                            />
+                          </td>
+                          <td className="pt-2 pb-1 px-2" rowSpan={2}>
+                            {entries.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeEntry(entry.id)}
+                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <TrashIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                        <tr className="border-b border-gray-300 bg-gray-50/50">
+                          <td colSpan={6} className="pt-1 pb-2 px-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
+                              <div className="flex-1 border-t border-gray-200"></div>
+                            </div>
+                            <div className="grid grid-cols-8 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Breakfast</label>
+                                <input type="number" step="0.01" value={entry.expense_breakfast} onChange={(e) => updateEntry(entry.id, 'expense_breakfast', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lunch</label>
+                                <input type="number" step="0.01" value={entry.expense_lunch} onChange={(e) => updateEntry(entry.id, 'expense_lunch', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Dinner</label>
+                                <input type="number" step="0.01" value={entry.expense_dinner} onChange={(e) => updateEntry(entry.id, 'expense_dinner', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Transport</label>
+                                <input type="number" step="0.01" value={entry.expense_transport} onChange={(e) => updateEntry(entry.id, 'expense_transport', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lodging</label>
+                                <input type="number" step="0.01" value={entry.expense_lodging} onChange={(e) => updateEntry(entry.id, 'expense_lodging', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Others</label>
+                                <input type="number" step="0.01" value={entry.expense_others} onChange={(e) => updateEntry(entry.id, 'expense_others', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Total</label>
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₱</span>
+                                  <input type="text" value={entry.expense_total} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 pl-5 font-bold" />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Remarks</label>
+                                <input type="text" value={entry.expense_remarks} onChange={(e) => updateEntry(entry.id, 'expense_remarks', e.target.value)} placeholder="Remarks" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </React.Fragment>
                     ))}
                   </tbody>
                   <tfoot>
@@ -461,20 +602,32 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                       <td colSpan={3} className="py-2 px-2 text-right font-bold text-gray-700 uppercase text-sm">Total Manhours</td>
                       <td className="py-2 px-2">
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text"
                           value={formData.total_manhours || ''}
                           readOnly
-                          className="w-full bg-blue-50 border border-blue-300 text-gray-900 text-sm rounded-md p-1.5 font-bold"
+                          className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 font-bold"
                         />
                       </td>
-                      <td colSpan={2}></td>
+                      <td colSpan={3}></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
               <div className="mt-4">
-                <Input label="Grand Total Manhours (REG. + O.T.)" name="grand_total_manhours" type="number" step="0.01" value={formData.grand_total_manhours} onChange={handleFieldChange} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col w-full">
+                    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Regular Hours (8AM - 5PM)</label>
+                    <input type="text" value={formData.total_manhours || ''} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
+                  </div>
+                  <div className="flex flex-col w-full">
+                    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Overtime Hours</label>
+                    <input type="text" value={(parseFloat(formData.grand_total_manhours || '0') - parseFloat(formData.total_manhours || '0')).toFixed(2)} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
+                  </div>
+                  <div className="flex flex-col w-full">
+                    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Grand Total Manhours (REG. + O.T.)</label>
+                    <input type="text" value={formData.grand_total_manhours || ''} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
+                  </div>
+                </div>
               </div>
             </div>
 

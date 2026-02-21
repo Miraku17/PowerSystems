@@ -171,7 +171,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       service_coordinator,
       approved_by_service,
       service_manager,
-      status = 'PENDING',
+      status = 'Pending',
       entries,
     } = body;
 
@@ -265,6 +265,15 @@ export const PATCH = withAuth(async (request, { params, user }) => {
           total_hours: entry.total_hours ? parseFloat(entry.total_hours) : null,
           job_description: entry.job_description || '',
           sort_order: entry.sort_order ?? index,
+          expense_breakfast: entry.expense_breakfast ? parseFloat(entry.expense_breakfast) : 0,
+          expense_lunch: entry.expense_lunch ? parseFloat(entry.expense_lunch) : 0,
+          expense_dinner: entry.expense_dinner ? parseFloat(entry.expense_dinner) : 0,
+          expense_transport: entry.expense_transport ? parseFloat(entry.expense_transport) : 0,
+          expense_lodging: entry.expense_lodging ? parseFloat(entry.expense_lodging) : 0,
+          expense_others: entry.expense_others ? parseFloat(entry.expense_others) : 0,
+          expense_total: entry.expense_total ? parseFloat(entry.expense_total) : 0,
+          expense_remarks: entry.expense_remarks || '',
+          travel_hours: entry.travel_hours ? parseFloat(entry.travel_hours) : 0,
         }));
 
         const { error: entriesError } = await supabase

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignaturePad from "./SignaturePad";
@@ -32,6 +32,7 @@ interface TimeSheetEntry {
   stop_time: string;
   total_hours: string;
   job_description: string;
+  has_date: boolean;
   expense_breakfast: string;
   expense_lunch: string;
   expense_dinner: string;
@@ -191,6 +192,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             stop_time: entry.stop_time || '',
             total_hours: entry.total_hours?.toString() || '',
             job_description: entry.job_description || '',
+            has_date: !!entry.entry_date,
             expense_breakfast: entry.expense_breakfast?.toString() || '',
             expense_lunch: entry.expense_lunch?.toString() || '',
             expense_dinner: entry.expense_dinner?.toString() || '',
@@ -201,7 +203,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             expense_remarks: entry.expense_remarks || '',
             travel_hours: entry.travel_hours?.toString() || '',
           }));
-          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
         }
       } catch (error) {
         console.error('Error fetching entries:', error);
@@ -232,6 +234,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         stop_time: entry.stop_time || '',
         total_hours: entry.total_hours?.toString() || '',
         job_description: entry.job_description || '',
+        has_date: !!entry.entry_date,
         expense_breakfast: entry.expense_breakfast?.toString() || '',
         expense_lunch: entry.expense_lunch?.toString() || '',
         expense_dinner: entry.expense_dinner?.toString() || '',
@@ -286,12 +289,10 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
     const regStr = totalRegular.toFixed(2);
     const grandStr = (totalRegular + totalOT).toFixed(2);
 
-    if (formData.total_manhours !== regStr) {
-      handleFieldChange('total_manhours', regStr);
-    }
-    if (formData.grand_total_manhours !== grandStr) {
-      handleFieldChange('grand_total_manhours', grandStr);
-    }
+    setFormData((prev) => {
+      if (prev.total_manhours === regStr && prev.grand_total_manhours === grandStr) return prev;
+      return { ...prev, total_manhours: regStr, grand_total_manhours: grandStr };
+    });
   }, [entries]);
 
   // Auto-calculate performance
@@ -325,11 +326,15 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   };
 
   const addEntry = () => {
-    setEntries([...entries, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: false, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+  };
+
+  const addDateEntry = () => {
+    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
   };
 
   const updateEntry = (id: string, field: keyof TimeSheetEntry, value: string) => {
-    setEntries(entries.map(entry => {
+    setEntries(prev => prev.map(entry => {
       if (entry.id === id) {
         const updated = { ...entry, [field]: value };
         // Recalculate total hours if time changed
@@ -353,17 +358,15 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   };
 
   const removeEntry = (id: string) => {
-    if (entries.length > 1) {
-      setEntries(entries.filter(entry => entry.id !== id));
-    }
+    setEntries(prev => prev.length > 1 ? prev.filter(entry => entry.id !== id) : prev);
   };
 
   const handleSave = async () => {
     try {
       setIsSaving(true);
 
-      // Prepare entries data
-      const entriesData = entries.map(({ id, ...rest }, index) => ({
+      // Prepare entries data (strip client-only fields)
+      const entriesData = entries.map(({ id, has_date, ...rest }, index) => ({
         ...rest,
         sort_order: index,
       }));
@@ -443,14 +446,24 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             <div className="bg-white p-6 rounded-xl border border-gray-200">
               <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-200">
                 <h4 className="text-base font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h4>
-                <button
-                  type="button"
-                  onClick={addEntry}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  Add Row
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={addEntry}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    Add Row
+                  </button>
+                  <button
+                    type="button"
+                    onClick={addDateEntry}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                  >
+                    <CalendarDaysIcon className="h-4 w-4" />
+                    Add New Date
+                  </button>
+                </div>
               </div>
               <div>
                 <table className="w-full">
@@ -470,12 +483,16 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                       <React.Fragment key={entry.id}>
                         <tr className="border-b border-gray-100">
                           <td className="pt-2 pb-1 px-2">
-                            <input
-                              type="date"
-                              value={entry.entry_date}
-                              onChange={(e) => updateEntry(entry.id, 'entry_date', e.target.value)}
-                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                            />
+                            {entry.has_date ? (
+                              <input
+                                type="date"
+                                value={entry.entry_date}
+                                onChange={(e) => updateEntry(entry.id, 'entry_date', e.target.value)}
+                                className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
+                              />
+                            ) : (
+                              <div className="w-full h-[34px]"></div>
+                            )}
                           </td>
                           <td className="pt-2 pb-1 px-2">
                             <input

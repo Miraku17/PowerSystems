@@ -9,6 +9,14 @@ export interface TimeSheetEntry {
   total_hours: string;
   job_description: string;
   has_date: boolean;
+  expense_breakfast: string;
+  expense_lunch: string;
+  expense_dinner: string;
+  expense_transport: string;
+  expense_lodging: string;
+  expense_others: string;
+  expense_total: string;
+  expense_remarks: string;
 }
 
 interface DailyTimeSheetFormData {
@@ -70,6 +78,14 @@ const createEntry = (hasDate: boolean): TimeSheetEntry => ({
   total_hours: '',
   job_description: '',
   has_date: hasDate,
+  expense_breakfast: '',
+  expense_lunch: '',
+  expense_dinner: '',
+  expense_transport: '',
+  expense_lodging: '',
+  expense_others: '',
+  expense_total: '',
+  expense_remarks: '',
 });
 
 const initialFormData: DailyTimeSheetFormData = {
@@ -138,7 +154,7 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
     }),
     {
       name: 'psi-daily-time-sheet-form-draft',
-      version: 2,
+      version: 3,
       migrate: (persistedState: any, version: number) => {
         const state = persistedState as any;
         if (state.formData) {
@@ -151,6 +167,14 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
             total_hours: entry.total_hours || '',
             job_description: entry.job_description || '',
             has_date: entry.has_date !== undefined ? entry.has_date : true,
+            expense_breakfast: entry.expense_breakfast || '',
+            expense_lunch: entry.expense_lunch || '',
+            expense_dinner: entry.expense_dinner || '',
+            expense_transport: entry.expense_transport || '',
+            expense_lodging: entry.expense_lodging || '',
+            expense_others: entry.expense_others || '',
+            expense_total: entry.expense_total || '',
+            expense_remarks: entry.expense_remarks || '',
           }));
 
           // Remove dateSections if it exists

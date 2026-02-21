@@ -111,6 +111,14 @@ export default function DailyTimeSheetForm() {
         const updatedEntry = { ...entry, [field]: value };
         setTimeout(() => calculateTotalHours(updatedEntry), 0);
       }
+
+      // Recalculate expense total if any expense field changed
+      const expenseFields = ['expense_breakfast', 'expense_lunch', 'expense_dinner', 'expense_transport', 'expense_lodging', 'expense_others'] as const;
+      if (expenseFields.includes(field as any)) {
+        const updatedEntry = { ...entry, [field]: value };
+        const total = expenseFields.reduce((sum, f) => sum + (parseFloat(updatedEntry[f]) || 0), 0);
+        setTimeout(() => updateEntry(entryId, { expense_total: total.toFixed(2) }), 0);
+      }
     }
   };
 
@@ -233,8 +241,8 @@ export default function DailyTimeSheetForm() {
             </div>
           </div>
 
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100 overflow-x-auto">
-            <table className="w-full min-w-[700px]">
+          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
+            <table className="w-full">
               <thead>
                 <tr className="border-b-2 border-gray-300">
                   <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[120px]">Date</th>
@@ -247,66 +255,104 @@ export default function DailyTimeSheetForm() {
               </thead>
               <tbody>
                 {formData.entries.map((entry) => (
-                  <tr key={entry.id} className="border-b border-gray-200">
-                    <td className="py-2 px-2">
-                      {entry.has_date ? (
+                  <React.Fragment key={entry.id}>
+                    <tr className="border-b border-gray-100">
+                      <td className="pt-2 pb-1 px-2">
+                        {entry.has_date ? (
+                          <input
+                            type="date"
+                            value={entry.entry_date}
+                            onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
+                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                          />
+                        ) : (
+                          <div className="w-full h-10"></div>
+                        )}
+                      </td>
+                      <td className="pt-2 pb-1 px-2">
                         <input
-                          type="date"
-                          value={entry.entry_date}
-                          onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
+                          type="time"
+                          value={entry.start_time}
+                          onChange={(e) => handleEntryChange(entry.id, 'start_time', e.target.value)}
                           className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
                         />
-                      ) : (
-                        <div className="w-full h-10"></div>
-                      )}
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="time"
-                        value={entry.start_time}
-                        onChange={(e) => handleEntryChange(entry.id, 'start_time', e.target.value)}
-                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="time"
-                        value={entry.stop_time}
-                        onChange={(e) => handleEntryChange(entry.id, 'stop_time', e.target.value)}
-                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={entry.total_hours}
-                        onChange={(e) => handleEntryChange(entry.id, 'total_hours', e.target.value)}
-                        className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2"
-                        readOnly
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      <input
-                        type="text"
-                        value={entry.job_description}
-                        onChange={(e) => handleEntryChange(entry.id, 'job_description', e.target.value)}
-                        placeholder="Enter job description"
-                        className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                      />
-                    </td>
-                    <td className="py-2 px-2">
-                      {formData.entries.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeEntry(entry.id)}
-                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      )}
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="pt-2 pb-1 px-2">
+                        <input
+                          type="time"
+                          value={entry.stop_time}
+                          onChange={(e) => handleEntryChange(entry.id, 'stop_time', e.target.value)}
+                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                        />
+                      </td>
+                      <td className="pt-2 pb-1 px-2">
+                        <input
+                          type="text"
+                          value={entry.total_hours}
+                          className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2"
+                          readOnly
+                        />
+                      </td>
+                      <td className="pt-2 pb-1 px-2">
+                        <input
+                          type="text"
+                          value={entry.job_description}
+                          onChange={(e) => handleEntryChange(entry.id, 'job_description', e.target.value)}
+                          placeholder="Enter job description"
+                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
+                        />
+                      </td>
+                      <td className="pt-2 pb-1 px-2" rowSpan={2}>
+                        {formData.entries.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => removeEntry(entry.id)}
+                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                    <tr className="border-b border-gray-300">
+                      <td colSpan={5} className="pt-1 pb-2 px-2">
+                        <div className="grid grid-cols-8 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Breakfast</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_breakfast} onChange={(e) => handleEntryChange(entry.id, 'expense_breakfast', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Lunch</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_lunch} onChange={(e) => handleEntryChange(entry.id, 'expense_lunch', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Dinner</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_dinner} onChange={(e) => handleEntryChange(entry.id, 'expense_dinner', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Transport</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_transport} onChange={(e) => handleEntryChange(entry.id, 'expense_transport', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Lodging</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_lodging} onChange={(e) => handleEntryChange(entry.id, 'expense_lodging', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Others</label>
+                            <input type="text" inputMode="decimal" value={entry.expense_others} onChange={(e) => handleEntryChange(entry.id, 'expense_others', e.target.value)} placeholder="0.00" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Total</label>
+                            <input type="text" value={entry.expense_total} readOnly className="w-full bg-green-100 border border-green-400 text-gray-900 text-sm rounded-md p-1.5 font-bold" />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-semibold text-green-700 uppercase mb-0.5">Remarks</label>
+                            <input type="text" value={entry.expense_remarks} onChange={(e) => handleEntryChange(entry.id, 'expense_remarks', e.target.value)} placeholder="Remarks" className="w-full bg-green-50 border border-green-300 text-gray-900 text-sm rounded-md focus:ring-green-500 focus:border-green-500 p-1.5" />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
               <tfoot>
@@ -314,8 +360,7 @@ export default function DailyTimeSheetForm() {
                   <td colSpan={3} className="py-3 px-2 text-right font-bold text-gray-700 uppercase">Total Manhours</td>
                   <td className="py-3 px-2">
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
                       value={formData.total_manhours}
                       className="w-full bg-blue-50 border border-blue-300 text-gray-900 text-sm rounded-md p-2 font-bold"
                       readOnly

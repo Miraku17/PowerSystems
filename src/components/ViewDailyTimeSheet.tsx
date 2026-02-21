@@ -28,6 +28,14 @@ interface TimeSheetEntry {
   total_hours: number;
   job_description: string;
   sort_order: number;
+  expense_breakfast: number;
+  expense_lunch: number;
+  expense_dinner: number;
+  expense_transport: number;
+  expense_lodging: number;
+  expense_others: number;
+  expense_total: number;
+  expense_remarks: string;
 }
 
 export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
@@ -259,7 +267,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
             {/* Manhours & Job Descriptions Table */}
             <div className="mb-6">
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Manhours & Job Descriptions</h3>
-              <div className="overflow-x-auto">
+              <div>
                 <table className="w-full border-collapse border border-gray-300">
                   <thead>
                     <tr className="bg-gray-100">
@@ -273,13 +281,53 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                   <tbody>
                     {entries.length > 0 ? (
                       entries.map((entry, index) => (
-                        <tr key={entry.id || index} className="hover:bg-gray-50">
-                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatDate(entry.entry_date)}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatTime(entry.start_time)}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-sm">{formatTime(entry.stop_time)}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-sm font-medium">{formatNumber(entry.total_hours)}</td>
-                          <td className="border border-gray-300 px-3 py-2 text-sm">{entry.job_description || '-'}</td>
-                        </tr>
+                        <React.Fragment key={entry.id || index}>
+                          <tr className="hover:bg-gray-50">
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatDate(entry.entry_date)}</td>
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.start_time)}</td>
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.stop_time)}</td>
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm font-medium">{formatNumber(entry.total_hours)}</td>
+                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{entry.job_description || '-'}</td>
+                          </tr>
+                          <tr className="bg-green-50/50">
+                            <td colSpan={5} className="border border-gray-300 px-3 py-2">
+                              <div className="grid grid-cols-8 gap-3 text-sm">
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Breakfast</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_breakfast)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Lunch</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_lunch)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Dinner</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_dinner)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Transport</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_transport)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Lodging</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_lodging)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Others</span>
+                                  <span className="text-gray-900">{formatNumber(entry.expense_others)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Total</span>
+                                  <span className="text-gray-900 font-bold">{formatNumber(entry.expense_total)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-green-700 uppercase">Remarks</span>
+                                  <span className="text-gray-900">{entry.expense_remarks || '-'}</span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        </React.Fragment>
                       ))
                     ) : (
                       <tr>

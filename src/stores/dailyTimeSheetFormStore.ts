@@ -111,7 +111,7 @@ const initialFormData: DailyTimeSheetFormData = {
   service_coordinator: '',
   approved_by_service: '',
   service_manager: '',
-  status: 'PENDING',
+  status: 'Pending',
 };
 
 export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(

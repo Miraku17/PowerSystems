@@ -216,6 +216,69 @@ export type UpdateKBArticleData = {
   videoLinks?: string[];
 };
 
+/**
+ * Leave Types
+ */
+export type LeaveType = 'VL' | 'SL' | 'EL';
+export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+
+export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
+  VL: 'Vacation Leave',
+  SL: 'Sick Leave',
+  EL: 'Emergency Leave',
+};
+
+export interface LeaveCredits {
+  id: string;
+  user_id: string;
+  total_credits: number;
+  used_credits: number;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
+}
+
+export interface LeaveRequest {
+  id: string;
+  user_id: string;
+  leave_type: LeaveType;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  reason: string | null;
+  status: LeaveStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  rejection_reason: string | null;
+  created_at: string;
+  updated_at: string;
+  user?: {
+    id: string;
+    firstname: string;
+    lastname: string;
+    email: string;
+  };
+  approver?: {
+    id: string;
+    firstname: string;
+    lastname: string;
+  };
+}
+
+export interface CreateLeaveRequestData {
+  leave_type: LeaveType;
+  start_date: string;
+  end_date: string;
+  total_days: number;
+  reason?: string;
+}
+
 export interface CompanyForm {
   id: string;
   name: string;

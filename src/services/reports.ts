@@ -1,7 +1,7 @@
 import apiClient from "@/lib/axios";
 
 export interface ReportParams {
-  reportType: "generated" | "status" | "wip" | "cancelled" | "engine";
+  reportType: "generated" | "status" | "wip" | "cancelled" | "engine" | "manhour";
   startDate?: string;
   endDate?: string;
   status?: string[];

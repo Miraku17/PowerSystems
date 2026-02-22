@@ -17,6 +17,7 @@ import {
   DocumentTextIcon,
   ChevronRightIcon,
   ClockIcon,
+  CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 import apiClient from "@/lib/axios";
 import Chatbot from "@/components/Chatbot";
@@ -190,6 +191,19 @@ function DashboardLayoutInner({
       href: "/dashboard/pending-forms",
     },
     {
+      name: "File Leave",
+      icon: CalendarDaysIcon,
+      href: "/dashboard/leave",
+      section: "Leave",
+      permission: { module: "leave" },
+    },
+    {
+      name: "Leave Management",
+      icon: CalendarDaysIcon,
+      href: "/dashboard/leave-management",
+      permission: { module: "leave_approval" },
+    },
+    {
       name: "JO Requests",
       icon: ShieldCheckIcon,
       href: "/dashboard/pending-jo-requests",
@@ -231,7 +245,9 @@ function DashboardLayoutInner({
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
         item.href === "/dashboard/pending-jo-requests" ||
-        item.href === "/dashboard/pending-dts"
+        item.href === "/dashboard/pending-dts" ||
+        item.href === "/dashboard/leave" ||
+        item.href === "/dashboard/leave-management"
       );
     }
     return true;
@@ -250,7 +266,9 @@ function DashboardLayoutInner({
         (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||
         (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
         (pathname.startsWith("/dashboard/products") && canRead("products")) ||
-        (pathname.startsWith("/dashboard/reports") && canAccess("reports"));
+        (pathname.startsWith("/dashboard/reports") && canAccess("reports")) ||
+        (pathname.startsWith("/dashboard/leave") && canAccess("leave")) ||
+        (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

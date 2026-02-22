@@ -13,9 +13,10 @@ import {
   XCircleIcon,
   ArrowDownTrayIcon,
   CogIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
-type ReportType = "generated" | "status" | "wip" | "cancelled" | "engine";
+type ReportType = "generated" | "status" | "wip" | "cancelled" | "engine" | "manhour";
 
 const REPORT_TYPES: {
   value: ReportType;
@@ -53,6 +54,12 @@ const REPORT_TYPES: {
     description: "Job order history filtered by engine model or serial number",
     icon: CogIcon,
   },
+  {
+    value: "manhour",
+    label: "Manhour Utilization",
+    description: "Employee utilization based on DTS hours vs available hours",
+    icon: ClockIcon,
+  },
 ];
 
 const STATUS_OPTIONS = ["Pending", "In-Progress", "Close", "Cancelled"];
@@ -74,6 +81,7 @@ export default function ReportsPage() {
   const [serialNumber, setSerialNumber] = useState("");
 
   const isEngineReport = reportType === "engine";
+  const isManhourReport = reportType === "manhour";
   const showStatusFilter = reportType === "generated";
   const showStartDate = reportType !== "wip" && !isEngineReport;
 
@@ -176,7 +184,7 @@ export default function ReportsPage() {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-4">
           Select Report Type
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {REPORT_TYPES.map((type) => {
             const Icon = type.icon;
             const isSelected = reportType === type.value;

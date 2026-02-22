@@ -94,7 +94,7 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const validTypes = ["generated", "status", "wip", "cancelled", "engine"];
+    const validTypes = ["generated", "status", "wip", "cancelled", "engine", "manhour"];
     if (!validTypes.includes(reportType)) {
       return NextResponse.json(
         { success: false, message: `Invalid reportType. Must be one of: ${validTypes.join(", ")}` },
@@ -381,6 +381,131 @@ export const GET = withAuth(async (request, { user }) => {
       const snPart = serialNumber ? serialNumber.replace(/\s+/g, "_") : "";
       const parts = [modelPart, snPart].filter(Boolean).join("_");
       filename = `engine_report_${parts}.csv`;
+
+    } else if (reportType === "manhour") {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { success: false, message: "startDate and endDate are required for this report type" },
+          { status: 400 }
+        );
+      }
+
+      // Calculate business days (Mon-Fri) in date range
+      function countBusinessDays(start: string, end: string): number {
+        let count = 0;
+        const current = new Date(start + "T00:00:00");
+        const last = new Date(end + "T00:00:00");
+        while (current <= last) {
+          const day = current.getDay();
+          if (day !== 0 && day !== 6) count++;
+          current.setDate(current.getDate() + 1);
+        }
+        return count;
+      }
+
+      const businessDays = countBusinessDays(startDate, endDate);
+
+      // Fetch DTS entries in date range (total_hours = work manhours, travel_hours = travel)
+      const { data: dtsEntries, error: dtsError } = await supabase
+        .from("daily_time_sheet_entries")
+        .select("entry_date, total_hours, travel_hours, daily_time_sheet!inner(created_by, deleted_at)")
+        .gte("entry_date", startDate)
+        .lte("entry_date", endDate)
+        .is("daily_time_sheet.deleted_at", null);
+
+      if (dtsError) {
+        return NextResponse.json({ success: false, message: dtsError.message }, { status: 500 });
+      }
+
+      // Group work manhours and travel hours by user
+      const userWorkHours = new Map<string, number>();
+      const userTravelHours = new Map<string, number>();
+      for (const entry of dtsEntries || []) {
+        const dts = entry.daily_time_sheet as any;
+        const userId = dts?.created_by;
+        if (!userId) continue;
+        const workHrs = typeof entry.total_hours === "string" ? parseFloat(entry.total_hours) : (entry.total_hours || 0);
+        const travelHrs = typeof entry.travel_hours === "string" ? parseFloat(entry.travel_hours as string) : ((entry.travel_hours as number) || 0);
+        userWorkHours.set(userId, (userWorkHours.get(userId) || 0) + workHrs);
+        userTravelHours.set(userId, (userTravelHours.get(userId) || 0) + travelHrs);
+      }
+
+      // Collect all user IDs that have any DTS data
+      const allUserIds = new Set([...userWorkHours.keys(), ...userTravelHours.keys()]);
+      if (allUserIds.size === 0) {
+        return NextResponse.json(
+          { success: false, message: "No DTS entries found for the selected date range" },
+          { status: 404 }
+        );
+      }
+
+      // Fetch approved leave requests overlapping the date range
+      const { data: leaveRequests, error: leaveError } = await supabase
+        .from("leave_requests")
+        .select("user_id, start_date, end_date, total_days")
+        .eq("status", "approved")
+        .lte("start_date", endDate)
+        .gte("end_date", startDate);
+
+      if (leaveError) {
+        return NextResponse.json({ success: false, message: leaveError.message }, { status: 500 });
+      }
+
+      // Calculate leave days per user (only business days within the filter range)
+      const userLeaveDays = new Map<string, number>();
+      for (const leave of leaveRequests || []) {
+        const leaveStart = leave.start_date > startDate ? leave.start_date : startDate;
+        const leaveEnd = leave.end_date < endDate ? leave.end_date : endDate;
+        const leaveBizDays = countBusinessDays(leaveStart, leaveEnd);
+        if (leaveBizDays > 0) {
+          userLeaveDays.set(leave.user_id, (userLeaveDays.get(leave.user_id) || 0) + leaveBizDays);
+        }
+      }
+
+      // Fetch user names
+      const userIds = [...allUserIds];
+      const { data: users, error: usersError } = await supabase
+        .from("users")
+        .select("id, firstname, lastname")
+        .in("id", userIds);
+
+      if (usersError) {
+        return NextResponse.json({ success: false, message: usersError.message }, { status: 500 });
+      }
+
+      const userNameMap = new Map((users || []).map((u: any) => [u.id, `${u.firstname || ""} ${u.lastname || ""}`.trim()]));
+
+      // Build CSV rows matching the Monthly Utilization format
+      // Utilization % = (Travel Hours + Work Manhours) / Available Manhours × 100
+      // Unaccounted = Available Manhours - (Travel + Work Manhours + Leave)
+      const headers = ["Technician", "Available Manhours", "Travel Hours", "Work Manhour (Reg + OT)", "Utilization %", "Leave", "Unaccounted"];
+      const rows: string[][] = [];
+      for (const userId of userIds) {
+        const name = userNameMap.get(userId) || "Unknown";
+        const leaveDays = userLeaveDays.get(userId) || 0;
+        const leaveHours = leaveDays * 8;
+        const availableManhours = (businessDays * 8) - leaveHours;
+        const workManhours = userWorkHours.get(userId) || 0;
+        const travelHours = userTravelHours.get(userId) || 0;
+        const utilization = availableManhours > 0 ? ((travelHours + workManhours) / availableManhours) * 100 : 0;
+        const unaccounted = availableManhours - (travelHours + workManhours + leaveHours);
+
+        rows.push([
+          name,
+          String(availableManhours),
+          travelHours.toFixed(2),
+          workManhours.toFixed(2),
+          Math.round(utilization) + "%",
+          String(leaveHours),
+          unaccounted.toFixed(2),
+        ]);
+      }
+
+      // Sort by technician name
+      rows.sort((a, b) => a[0].localeCompare(b[0]));
+
+      csv = buildCsv(headers, rows);
+      filename = `manhour_utilization_${startDate}_to_${endDate}.csv`;
     }
 
     return new NextResponse(csv, {

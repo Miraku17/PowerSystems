@@ -89,6 +89,7 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
           'Content-Type': 'multipart/form-data',
         },
         signal: abortSignal,
+        timeout: 120000, // 2 minutes per file upload
       });
 
       if (!response.data.success) {
@@ -113,7 +114,12 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
       console.error(`Upload error for ${file.name}:`, error);
       return {
         success: false,
-        error: error.response?.data?.error || error.message || 'Upload failed',
+        error: (() => {
+          const apiErr = error.response?.data?.error;
+          if (typeof apiErr === 'string') return apiErr;
+          if (apiErr && typeof apiErr === 'object') return apiErr.message || JSON.stringify(apiErr);
+          return error.message || 'Upload failed';
+        })(),
         fileName: file.name,
       };
     }

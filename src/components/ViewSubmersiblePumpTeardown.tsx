@@ -55,17 +55,8 @@ export default function ViewSubmersiblePumpTeardown({ data, onClose, onExportPDF
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('submersible_pump_teardown_attachments')
-          .select('*')
-          .eq('report_id', data.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setAttachments(attachmentsData || []);
-        }
+        const attachmentResponse = await apiClient.get('/forms/submersible-pump-teardown/attachments', { params: { report_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

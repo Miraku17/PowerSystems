@@ -54,17 +54,8 @@ export default function ViewSubmersiblePumpCommissioning({ data, onClose, onExpo
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('submersible_pump_commissioning_attachments')
-          .select('*')
-          .eq('report_id', data.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setAttachments(attachmentsData || []);
-        }
+        const attachmentResponse = await apiClient.get('/forms/submersible-pump-commissioning/attachments', { params: { report_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

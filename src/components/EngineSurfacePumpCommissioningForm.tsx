@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useEngineSurfacePumpCommissioningFormStore } from "@/stores/engineSurfacePumpCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -315,7 +316,7 @@ export default function EngineSurfacePumpCommissioningForm() {
                 <div className="flex text-sm text-gray-600">
                   <label htmlFor="file-upload-engine-commissioning" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
                     <span>Upload an image</span>
-                    <input id="file-upload-engine-commissioning" type="file" accept="image/*" className="sr-only" onChange={(e) => { if (e.target.files && e.target.files[0]) { const file = e.target.files[0]; if (!file.type.startsWith('image/')) { toast.error('Please select only image files'); return; } setAttachments([...attachments, { file, title: '' }]); e.target.value = ''; } }} />
+                    <input id="file-upload-engine-commissioning" type="file" accept="image/*" className="sr-only" onChange={async (e) => { if (e.target.files && e.target.files[0]) { const file = e.target.files[0]; if (!file.type.startsWith('image/')) { toast.error('Please select only image files'); return; } const compressed = await compressImageIfNeeded(file); setAttachments([...attachments, { file: compressed, title: '' }]); e.target.value = ''; } }} />
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>

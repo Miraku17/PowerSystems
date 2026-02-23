@@ -183,7 +183,8 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
       onClose();
     } catch (error: any) {
       console.error('Save error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Failed to save changes.';
+      const errMsg = error.response?.data?.error;
+      const errorMessage = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : (error.message || 'Failed to save changes.'));
       toast.error(errorMessage, { id: loadingToast });
     } finally {
       setIsSaving(false);

@@ -470,6 +470,7 @@ export const DELETE = withAuth(async (request, { params, user }) => {
       .update({
         deleted_at: new Date().toISOString(),
         deleted_by: user.id,
+        shop_field_jo_number: null,
       })
       .eq("id", id)
       .select()

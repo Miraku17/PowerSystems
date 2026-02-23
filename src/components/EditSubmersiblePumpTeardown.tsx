@@ -5,7 +5,6 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import { useSupabaseUpload } from "@/hooks/useSupabaseUpload";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
@@ -337,17 +336,8 @@ export default function EditSubmersiblePumpTeardown({
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('submersible_pump_teardown_attachments')
-          .select('*')
-          .eq('report_id', recordId)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setExistingAttachments(attachmentsData || []);
-        }
+        const response = await apiClient.get('/forms/submersible-pump-teardown/attachments', { params: { report_id: recordId } });
+        setExistingAttachments(response.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -245,17 +245,8 @@ export default function EditElectricSurfacePumpService({
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('electric_surface_pump_service_attachments')
-          .select('*')
-          .eq('report_id', recordId)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setExistingAttachments(attachmentsData || []);
-        }
+        const response = await apiClient.get('/forms/electric-surface-pump-service/attachments', { params: { report_id: recordId } });
+        setExistingAttachments(response.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }
@@ -314,10 +305,9 @@ export default function EditElectricSurfacePumpService({
       }
     } catch (error: any) {
       console.error("Error updating report:", error);
-      toast.error(
-        `Failed to update report: ${error.response?.data?.error || "Unknown error"}`,
-        { id: loadingToast }
-      );
+      const errMsg = error.response?.data?.error;
+      const displayError = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Unknown error");
+      toast.error(`Failed to update report: ${displayError}`, { id: loadingToast });
     } finally {
       setIsSaving(false);
     }
@@ -601,14 +591,15 @@ export default function EditElectricSurfacePumpService({
                           type="file"
                           accept="image/*"
                           className="sr-only"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             if (e.target.files && e.target.files[0]) {
                               const file = e.target.files[0];
                               if (!file.type.startsWith('image/')) {
                                 toast.error('Please select only image files (PNG, JPG, etc.)');
                                 return;
                               }
-                              setNewAttachments([...newAttachments, { file, title: '' }]);
+                              const compressed = await compressImageIfNeeded(file);
+                              setNewAttachments([...newAttachments, { file: compressed, title: '' }]);
                               e.target.value = '';
                             }
                           }}

@@ -55,17 +55,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('deutz_commission_attachments')
-          .select('*')
-          .eq('form_id', data.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setAttachments(attachmentsData || []);
-        }
+        const attachmentResponse = await apiClient.get('/forms/deutz-commissioning/attachments', { params: { form_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

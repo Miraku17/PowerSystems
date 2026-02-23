@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/axios";
 
 interface ViewDailyTimeSheetProps {
   data: Record<string, any>;
@@ -51,17 +52,8 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('daily_time_sheet_attachments')
-          .select('*')
-          .eq('daily_time_sheet_id', data.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setAttachments(attachmentsData || []);
-        }
+        const attachmentResponse = await apiClient.get('/forms/daily-time-sheet/attachments', { params: { daily_time_sheet_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

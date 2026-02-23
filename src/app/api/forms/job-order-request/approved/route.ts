@@ -8,7 +8,6 @@ export const GET = withAuth(async (request, { user }) => {
     const { data, error } = await supabase
       .from("job_order_request_form")
       .select("id, shop_field_jo_number, full_customer_name, address")
-      .eq("status", "Pending")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 

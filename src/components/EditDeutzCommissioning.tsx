@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -208,17 +207,8 @@ export default function EditDeutzCommissioning({
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('deutz_commission_attachments')
-          .select('*')
-          .eq('form_id', recordId)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setExistingAttachments(attachmentsData || []);
-        }
+        const response = await apiClient.get('/forms/deutz-commissioning/attachments', { params: { form_id: recordId } });
+        setExistingAttachments(response.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

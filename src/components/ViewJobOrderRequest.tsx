@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/axios";
 
 interface ViewJobOrderRequestProps {
   data: Record<string, any>;
@@ -31,17 +32,8 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('job_order_attachments')
-          .select('*')
-          .eq('job_order_id', data.id)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setAttachments(attachmentsData || []);
-        }
+        const attachmentResponse = await apiClient.get('/forms/job-order-request/attachments', { params: { job_order_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

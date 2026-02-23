@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -155,17 +154,8 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('job_order_attachments')
-          .select('*')
-          .eq('job_order_id', recordId)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setExistingAttachments(attachmentsData || []);
-        }
+        const response = await apiClient.get('/forms/job-order-request/attachments', { params: { job_order_id: recordId } });
+        setExistingAttachments(response.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

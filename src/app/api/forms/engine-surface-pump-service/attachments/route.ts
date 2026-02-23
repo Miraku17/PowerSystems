@@ -19,6 +19,34 @@ const getFilePathFromUrl = (url: string | null): string | null => {
   return null;
 };
 
+export const GET = withAuth(async (request, { user }) => {
+  try {
+    const supabase = getServiceSupabase();
+    const { searchParams } = new URL(request.url);
+    const reportId = searchParams.get('report_id');
+
+    if (!reportId) {
+      return NextResponse.json({ error: 'report_id is required' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('engine_surface_pump_service_attachments')
+      .select('*')
+      .eq('report_id', reportId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching attachments:', error);
+      return NextResponse.json({ error: 'Failed to fetch attachments' }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: data || [] }, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching attachments:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+});
+
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();

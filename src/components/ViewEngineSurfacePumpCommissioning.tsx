@@ -50,8 +50,8 @@ export default function ViewEngineSurfacePumpCommissioning({ data, onClose, onEx
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase.from('engine_surface_pump_commissioning_attachments').select('*').eq('report_id', data.id).order('created_at', { ascending: true });
-        if (!error) setAttachments(attachmentsData || []);
+        const attachmentResponse = await apiClient.get('/forms/engine-surface-pump-commissioning/attachments', { params: { report_id: data.id } });
+        setAttachments(attachmentResponse.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

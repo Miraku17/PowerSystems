@@ -159,17 +159,8 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   useEffect(() => {
     const fetchAttachments = async () => {
       try {
-        const { data: attachmentsData, error } = await supabase
-          .from('daily_time_sheet_attachments')
-          .select('*')
-          .eq('daily_time_sheet_id', recordId)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching attachments:', error);
-        } else {
-          setExistingAttachments(attachmentsData || []);
-        }
+        const response = await apiClient.get('/forms/daily-time-sheet/attachments', { params: { daily_time_sheet_id: recordId } });
+        setExistingAttachments(response.data.data || []);
       } catch (error) {
         console.error('Error fetching attachments:', error);
       }

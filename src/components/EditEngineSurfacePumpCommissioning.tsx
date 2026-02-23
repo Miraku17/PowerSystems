@@ -6,7 +6,6 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignaturePad from "./SignaturePad";
-import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -75,7 +74,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
   }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
 
   useEffect(() => {
-    const fetchAttachments = async () => { try { const { data: attachmentsData, error } = await supabase.from('engine_surface_pump_commissioning_attachments').select('*').eq('report_id', recordId).order('created_at', { ascending: true }); if (!error) setExistingAttachments(attachmentsData || []); } catch (error) { console.error('Error fetching attachments:', error); } };
+    const fetchAttachments = async () => { try { const response = await apiClient.get('/forms/engine-surface-pump-commissioning/attachments', { params: { report_id: recordId } }); setExistingAttachments(response.data.data || []); } catch (error) { console.error('Error fetching attachments:', error); } };
     fetchAttachments();
   }, [recordId]);
 

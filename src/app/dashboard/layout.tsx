@@ -26,7 +26,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -191,6 +191,12 @@ function DashboardLayoutInner({
       href: "/dashboard/pending-forms",
     },
     {
+      name: "My Signatures",
+      icon: PencilSquareIcon,
+      href: "/dashboard/my-signatures",
+      permission: { module: "signatures" },
+    },
+    {
       name: "File Leave",
       icon: CalendarDaysIcon,
       href: "/dashboard/leave",
@@ -263,6 +269,7 @@ function DashboardLayoutInner({
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
         pathname.startsWith("/dashboard/pending-dts") ||
+        (pathname.startsWith("/dashboard/my-signatures") && canAccess("signatures")) ||
         (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||
         (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
         (pathname.startsWith("/dashboard/products") && canRead("products")) ||

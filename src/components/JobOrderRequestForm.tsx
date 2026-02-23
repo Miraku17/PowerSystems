@@ -3,13 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
-import SignaturePad from './SignaturePad';
+import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
-import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
+import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
 
 export default function JobOrderRequestForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,9 +64,15 @@ export default function JobOrderRequestForm() {
     });
   };
 
-  const handleSignatureChange = (name: string, signature: string) => {
-    setFormData({ [name]: signature });
+  const handleSignatoryChange = (name: string, value: string) => {
+    setFormData({ [name]: value });
   };
+
+  const verifiedByUsers = React.useMemo<FormUser[]>(() =>
+    users.filter(user => {
+      const posName = (user.position?.name || '').toLowerCase();
+      return posName === 'admin 1' || posName === 'admin 2' || posName === 'accounting';
+    }), [users]);
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
@@ -254,24 +260,26 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Request & Approval</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div className="space-y-4">
-              <Select label="Requested By (Sales/Service Engineer)" name="requested_by_name" value={formData.requested_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.requested_by_signature}
-                onChange={(signature: string) => handleSignatureChange('requested_by_signature', signature)}
-                subtitle="Sales/Service Engineer"
-              />
-            </div>
-            <div className="space-y-4">
-              <Select label="Approved By (Department Head)" name="approved_by_name" value={formData.approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.approved_by_signature}
-                onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
-                subtitle="Department Head"
-              />
-            </div>
+            <SignatorySelect
+              label="Requested By (Sales/Service Engineer)"
+              name="requested_by_name"
+              value={formData.requested_by_name}
+              signatureValue={formData.requested_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ requested_by_signature: sig })}
+              users={users}
+              subtitle="Sales/Service Engineer"
+            />
+            <SignatorySelect
+              label="Approved By (Department Head)"
+              name="approved_by_name"
+              value={formData.approved_by_name}
+              signatureValue={formData.approved_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+              users={users}
+              subtitle="Department Head"
+            />
           </div>
         </div>
 
@@ -282,24 +290,26 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Request Received By</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div className="space-y-4">
-              <Select label="Service Dept." name="received_by_service_dept_name" value={formData.received_by_service_dept_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.received_by_service_dept_signature}
-                onChange={(signature: string) => handleSignatureChange('received_by_service_dept_signature', signature)}
-                subtitle="Service Department"
-              />
-            </div>
-            <div className="space-y-4">
-              <Select label="Credit & Collection" name="received_by_credit_collection_name" value={formData.received_by_credit_collection_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.received_by_credit_collection_signature}
-                onChange={(signature: string) => handleSignatureChange('received_by_credit_collection_signature', signature)}
-                subtitle="Credit & Collection"
-              />
-            </div>
+            <SignatorySelect
+              label="Service Dept."
+              name="received_by_service_dept_name"
+              value={formData.received_by_service_dept_name}
+              signatureValue={formData.received_by_service_dept_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ received_by_service_dept_signature: sig })}
+              users={users}
+              subtitle="Service Department"
+            />
+            <SignatorySelect
+              label="Credit & Collection"
+              name="received_by_credit_collection_name"
+              value={formData.received_by_credit_collection_name}
+              signatureValue={formData.received_by_credit_collection_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ received_by_credit_collection_signature: sig })}
+              users={users}
+              subtitle="Credit & Collection"
+            />
           </div>
         </div>
 
@@ -332,28 +342,15 @@ export default function JobOrderRequestForm() {
             <div className="lg:col-span-3">
               <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} />
             </div>
-            <div className="lg:col-span-3 space-y-4">
-              <SelectDropdown
+            <div className="lg:col-span-3">
+              <SignatorySelect
                 label="Verified By"
                 name="verified_by_name"
                 value={formData.verified_by_name}
-                onChange={handleChange}
-                options={users
-                  .filter(user => {
-                    const posName = (user.position?.name || '').toLowerCase();
-                    return posName === 'admin 1' || posName === 'admin 2' || posName === 'accounting';
-                  })
-                  .map(user => ({
-                    label: user.fullName,
-                    subtitle: user.position?.name || '',
-                    value: user.fullName,
-                  }))}
-                placeholder="Select verified by"
-              />
-              <SignaturePad
-                label="Signature"
-                value={formData.verified_by_signature}
-                onChange={(signature: string) => handleSignatureChange('verified_by_signature', signature)}
+                signatureValue={formData.verified_by_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ verified_by_signature: sig })}
+                users={verifiedByUsers}
                 subtitle="Verified By"
               />
             </div>
@@ -541,81 +538,6 @@ const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => 
     />
   </div>
 );
-
-interface SelectProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  options: string[];
-}
-
-const Select = ({ label, name, value, onChange, options }: SelectProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    const syntheticEvent = { target: { name, value: option } } as React.ChangeEvent<HTMLInputElement>;
-    onChange(syntheticEvent);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          onChange={onChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16"
-          placeholder="Select or type a name"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => {
-              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
-              onChange(syntheticEvent);
-            }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
-          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors ${opt === value ? "bg-[#2B4C7E] text-white font-medium" : "text-gray-900 hover:bg-[#2B4C7E] hover:text-white"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 interface SelectDropdownOption {
   label: string;

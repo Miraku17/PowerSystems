@@ -14,6 +14,7 @@ export interface FormUser {
     display_name: string;
     description: string | null;
   };
+  signature_url?: string | null;
 }
 
 export function useUsers() {

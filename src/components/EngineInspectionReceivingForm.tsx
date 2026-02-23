@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import toast from 'react-hot-toast';
-import SignaturePad from './SignaturePad';
+import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from './ConfirmationModal';
-import { ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import {
   useEngineInspectionReceivingFormStore,
   SECTION_DEFINITIONS,
@@ -26,19 +25,16 @@ export default function EngineInspectionReceivingForm() {
   const { data: customers = [] } = useCustomers();
   const approvedJOs = useApprovedJobOrders();
 
-  const allUserOptions = users.map(user => user.fullName);
   const approvedByUsers = users
     .filter(user => {
       const posName = (user.position?.name || '').toLowerCase();
       return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
-    })
-    .map(user => user.fullName);
+    });
   const notedByUsers = users
     .filter(user => {
       const posName = (user.position?.name || '').toLowerCase();
       return posName === 'super admin' || posName === 'admin 1';
-    })
-    .map(user => user.fullName);
+    });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -56,8 +52,17 @@ export default function EngineInspectionReceivingForm() {
     setFormData(updates);
   };
 
-  const handleSignatureChange = (name: string, signature: string) => {
-    setFormData({ [name]: signature });
+  const handleSignatoryChange = (name: string, value: string) => {
+    const updates: Record<string, any> = { [name]: value };
+    if (name === 'noted_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'approved_by_name') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+    setFormData(updates);
   };
 
   const handleConfirmSubmit = async () => {
@@ -445,77 +450,46 @@ export default function EngineInspectionReceivingForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Signatures</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
-            {/* Service Technician */}
-            <div className="space-y-4">
-              <UserSelect
-                label="Service Technician"
-                name="service_technician_name"
-                value={formData.service_technician_name}
-                onChange={handleChange}
-                options={allUserOptions}
-                placeholder="Select technician"
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.service_technician_signature}
-                onChange={(sig) => handleSignatureChange('service_technician_signature', sig)}
-                subtitle="Signed by Technician"
-              />
-            </div>
-
-            {/* Approved By */}
-            <div className="space-y-4">
-              <UserSelect
-                label="Approved By"
-                name="approved_by_name"
-                value={formData.approved_by_name}
-                onChange={handleChange}
-                options={approvedByUsers}
-                placeholder="Select approver"
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.approved_by_signature}
-                onChange={(sig) => handleSignatureChange('approved_by_signature', sig)}
-                subtitle="Authorized Signature"
-              />
-            </div>
-
-            {/* Noted By */}
-            <div className="space-y-4">
-              <UserSelect
-                label="Noted By"
-                name="noted_by_name"
-                value={formData.noted_by_name}
-                onChange={handleChange}
-                options={notedByUsers}
-                placeholder="Select manager"
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.noted_by_signature}
-                onChange={(sig) => handleSignatureChange('noted_by_signature', sig)}
-                subtitle="Service Manager"
-              />
-            </div>
-
-            {/* Acknowledged By */}
-            <div className="space-y-4">
-              <UserSelect
-                label="Acknowledged By"
-                name="acknowledged_by_name"
-                value={formData.acknowledged_by_name}
-                onChange={handleChange}
-                options={allUserOptions}
-                placeholder="Select customer rep"
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.acknowledged_by_signature}
-                onChange={(sig) => handleSignatureChange('acknowledged_by_signature', sig)}
-                subtitle="Customer Signature"
-              />
-            </div>
+            <SignatorySelect
+              label="Service Technician"
+              name="service_technician_name"
+              value={formData.service_technician_name}
+              signatureValue={formData.service_technician_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
+              users={users}
+              subtitle="Signed by Technician"
+            />
+            <SignatorySelect
+              label="Approved By"
+              name="approved_by_name"
+              value={formData.approved_by_name}
+              signatureValue={formData.approved_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+              users={approvedByUsers}
+              subtitle="Authorized Signature"
+            />
+            <SignatorySelect
+              label="Noted By"
+              name="noted_by_name"
+              value={formData.noted_by_name}
+              signatureValue={formData.noted_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ noted_by_signature: sig })}
+              users={notedByUsers}
+              subtitle="Service Manager"
+            />
+            <SignatorySelect
+              label="Acknowledged By"
+              name="acknowledged_by_name"
+              value={formData.acknowledged_by_name}
+              signatureValue={formData.acknowledged_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+              users={users}
+              subtitle="Customer Signature"
+            />
           </div>
         </div>
 
@@ -544,95 +518,3 @@ export default function EngineInspectionReceivingForm() {
   );
 }
 
-// Custom Select component that allows typing or selecting from dropdown
-interface UserSelectProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  options: string[];
-  placeholder?: string;
-}
-
-function UserSelect({ label, name, value, onChange, options, placeholder = "Select a name" }: UserSelectProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    const syntheticEvent = {
-      target: { name, value: option }
-    } as React.ChangeEvent<HTMLInputElement>;
-    onChange(syntheticEvent);
-    setShowDropdown(false);
-  };
-
-  // Filter options based on current input
-  const filteredOptions = options.filter(opt =>
-    opt.toLowerCase().includes((value || '').toLowerCase())
-  );
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          readOnly
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer"
-          placeholder={placeholder}
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => {
-              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
-              onChange(syntheticEvent);
-            }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
-        >
-          <ChevronDownIcon
-            className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`}
-          />
-        </button>
-        {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {filteredOptions.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors hover:bg-blue-600 hover:text-white ${
-                  opt === value ? "bg-blue-600 text-white font-medium" : "text-gray-900"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

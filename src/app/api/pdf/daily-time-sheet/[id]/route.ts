@@ -27,6 +27,30 @@ export const GET = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
+
+    // Helper: resolve signature — fall back to user's saved signature if DB record has none
+    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null) => {
+      if (dbSignature) return dbSignature;
+      if (!signatoryName) return null;
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, firstname, lastname, user_signatures(signature_url)")
+        .ilike("firstname", `%${signatoryName.split(" ")[0] || ""}%`)
+        .limit(10);
+      if (userData) {
+        const match = userData.find((u: any) => {
+          const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim();
+          return fullName === signatoryName;
+        });
+        if (match) {
+          const sigs = match.user_signatures as any;
+          const url = Array.isArray(sigs) ? sigs[0]?.signature_url : sigs?.signature_url;
+          if (url) return url;
+        }
+      }
+      return null;
+    };
+
     // Sort entries by sort_order
     const entries = (record.daily_time_sheet_entries || []).sort(
       (a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)
@@ -386,13 +410,44 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.rect(sig1X, yPos, sigBoxWidth, sigBoxHeight);
 
     // Add performed by signature if available
-    if (record.performed_by_signature) {
+    const performedBySigUrl = await resolveSignature(record.performed_by_signature, record.performed_by_name);
+    if (performedBySigUrl) {
       try {
-        const imgResponse = await fetch(record.performed_by_signature);
+        const imgResponse = await fetch(performedBySigUrl);
+        if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
+        let contentType = imgResponse.headers.get('content-type') || '';
         const arrayBuffer = await imgResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const imgBase64 = buffer.toString('base64');
-        doc.addImage(imgBase64, "PNG", sig1X + 3, yPos + 2, sigBoxWidth - 6, sigBoxHeight - 4, undefined, "FAST");
+
+        // Detect image format from URL extension (ignore query params)
+        const urlPath = performedBySigUrl.split('?')[0].toLowerCase();
+        let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+        if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+          imageFormat = 'JPEG';
+          contentType = 'image/jpeg';
+        } else if (urlPath.endsWith('.png')) {
+          imageFormat = 'PNG';
+          contentType = 'image/png';
+        } else if (urlPath.endsWith('.gif')) {
+          imageFormat = 'GIF';
+          contentType = 'image/gif';
+        } else if (urlPath.endsWith('.webp')) {
+          imageFormat = 'WEBP';
+          contentType = 'image/webp';
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          imageFormat = 'JPEG';
+        } else if (contentType.includes('png')) {
+          imageFormat = 'PNG';
+        } else if (contentType.includes('gif')) {
+          imageFormat = 'GIF';
+        } else {
+          // Default to PNG for signatures
+          contentType = 'image/png';
+          imageFormat = 'PNG';
+        }
+
+        doc.addImage(`data:${contentType};base64,${imgBase64}`, imageFormat, sig1X + 3, yPos + 2, sigBoxWidth - 6, sigBoxHeight - 4, undefined, "FAST");
       } catch (error) {
         console.error("Error loading performed by signature:", error);
       }
@@ -418,13 +473,44 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.rect(sig2X, yPos, sigBoxWidth, sigBoxHeight);
 
     // Add approved by signature if available
-    if (record.approved_by_signature) {
+    const approvedBySigUrl = await resolveSignature(record.approved_by_signature, record.approved_by_name);
+    if (approvedBySigUrl) {
       try {
-        const imgResponse = await fetch(record.approved_by_signature);
+        const imgResponse = await fetch(approvedBySigUrl);
+        if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
+        let contentType2 = imgResponse.headers.get('content-type') || '';
         const arrayBuffer = await imgResponse.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const imgBase64 = buffer.toString('base64');
-        doc.addImage(imgBase64, "PNG", sig2X + 3, yPos + 2, sigBoxWidth - 6, sigBoxHeight - 4, undefined, "FAST");
+
+        // Detect image format from URL extension (ignore query params)
+        const urlPath2 = approvedBySigUrl.split('?')[0].toLowerCase();
+        let imageFormat2: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+        if (urlPath2.endsWith('.jpg') || urlPath2.endsWith('.jpeg')) {
+          imageFormat2 = 'JPEG';
+          contentType2 = 'image/jpeg';
+        } else if (urlPath2.endsWith('.png')) {
+          imageFormat2 = 'PNG';
+          contentType2 = 'image/png';
+        } else if (urlPath2.endsWith('.gif')) {
+          imageFormat2 = 'GIF';
+          contentType2 = 'image/gif';
+        } else if (urlPath2.endsWith('.webp')) {
+          imageFormat2 = 'WEBP';
+          contentType2 = 'image/webp';
+        } else if (contentType2.includes('jpeg') || contentType2.includes('jpg')) {
+          imageFormat2 = 'JPEG';
+        } else if (contentType2.includes('png')) {
+          imageFormat2 = 'PNG';
+        } else if (contentType2.includes('gif')) {
+          imageFormat2 = 'GIF';
+        } else {
+          // Default to PNG for signatures
+          contentType2 = 'image/png';
+          imageFormat2 = 'PNG';
+        }
+
+        doc.addImage(`data:${contentType2};base64,${imgBase64}`, imageFormat2, sig2X + 3, yPos + 2, sigBoxWidth - 6, sigBoxHeight - 4, undefined, "FAST");
       } catch (error) {
         console.error("Error loading approved by signature:", error);
       }

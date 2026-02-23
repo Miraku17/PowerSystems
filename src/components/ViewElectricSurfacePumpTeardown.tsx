@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import { useResolveSignature } from "@/hooks/useSharedQueries";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface ViewElectricSurfacePumpTeardownProps {
@@ -33,8 +33,6 @@ export default function ViewElectricSurfacePumpTeardown({ data, onClose, onExpor
     deletedBy?: string;
   }>({});
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const {
     notedByChecked,
     approvedByChecked,
@@ -47,6 +45,7 @@ export default function ViewElectricSurfacePumpTeardown({ data, onClose, onExpor
     cancelToggle,
     confirmToggle,
   } = useSignatoryApproval({ table: "electric_surface_pump_teardown_report", recordId: data.id, onChanged: onSignatoryChange });
+  const resolveSignature = useResolveSignature();
 
   useEffect(() => {
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
@@ -147,6 +146,11 @@ export default function ViewElectricSurfacePumpTeardown({ data, onClose, onExpor
     if (value === false) return 'No';
     return '-';
   };
+
+  const resolvedTeardownedBySig = resolveSignature(data.teardowned_by_signature, data.teardowned_by_name);
+  const resolvedCheckedApprovedBySig = resolveSignature(data.checked_approved_by_signature, data.checked_approved_by_name);
+  const resolvedNotedBySig = resolveSignature(data.noted_by_signature, data.noted_by_name);
+  const resolvedAcknowledgedBySig = resolveSignature(data.acknowledged_by_signature, data.acknowledged_by_name);
 
   const motorComponentsAttachments = attachments.filter(a => a.attachment_category === 'motor_components');
   const wetEndAttachments = attachments.filter(a => a.attachment_category === 'wet_end');
@@ -435,36 +439,36 @@ export default function ViewElectricSurfacePumpTeardown({ data, onClose, onExpor
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                      {data.teardowned_by_signature ? (<img src={data.teardowned_by_signature} alt="Service Technician Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
+                      {resolvedTeardownedBySig ? (<img src={resolvedTeardownedBySig} alt="Service Technician Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
                     </div>
                     <Field label="Service Technician" value={data.teardowned_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc Engineer/Technician</p>
                   </div>
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                      {data.checked_approved_by_signature ? (<img src={data.checked_approved_by_signature} alt="Checked & Approved By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
+                      {resolvedCheckedApprovedBySig ? (<img src={resolvedCheckedApprovedBySig} alt="Checked & Approved By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
                     </div>
                     <Field label="Checked & Approved By" value={data.checked_approved_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc. Supvr. / Supt.</p>
                     <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                      <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                      <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                       <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                     </label>
                   </div>
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                      {data.noted_by_signature ? (<img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
+                      {resolvedNotedBySig ? (<img src={resolvedNotedBySig} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
                     </div>
                     <Field label="Noted By" value={data.noted_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Svc. Manager</p>
                     <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                      <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                      <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                       <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                     </label>
                   </div>
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                      {data.acknowledged_by_signature ? (<img src={data.acknowledged_by_signature} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
+                      {resolvedAcknowledgedBySig ? (<img src={resolvedAcknowledgedBySig} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />) : (<span className="text-xs text-gray-400 italic mb-2">No Signature</span>)}
                     </div>
                     <Field label="Acknowledged By" value={data.acknowledged_by_name} />
                     <p className="text-xs text-gray-400 mt-1 italic">Customer Representative</p>

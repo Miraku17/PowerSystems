@@ -3,14 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
-import SignaturePad from './SignaturePad';
+import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
+import { useUsers, useCustomers, FormUser } from "@/hooks/useSharedQueries";
 
 export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -137,8 +137,8 @@ export default function DailyTimeSheetForm() {
     });
   };
 
-  const handleSignatureChange = (name: string, signature: string) => {
-    setFormData({ [name]: signature });
+  const handleSignatoryChange = (name: string, value: string) => {
+    setFormData({ [name]: value });
   };
 
   const handleEntryChange = (entryId: string, field: keyof TimeSheetEntry, value: string) => {
@@ -462,24 +462,26 @@ export default function DailyTimeSheetForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Performed By</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div className="space-y-4">
-              <Select label="Print Name" name="performed_by_name" value={formData.performed_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.performed_by_signature}
-                onChange={(signature: string) => handleSignatureChange('performed_by_signature', signature)}
-                subtitle="Performed By"
-              />
-            </div>
-            <div className="space-y-4">
-              <Select label="Supervisor" name="approved_by_name" value={formData.approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-              <SignaturePad
-                label="Signature"
-                value={formData.approved_by_signature}
-                onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
-                subtitle="Approved By (Supervisor)"
-              />
-            </div>
+            <SignatorySelect
+              label="Print Name"
+              name="performed_by_name"
+              value={formData.performed_by_name}
+              signatureValue={formData.performed_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ performed_by_signature: sig })}
+              users={users as FormUser[]}
+              subtitle="Performed By"
+            />
+            <SignatorySelect
+              label="Supervisor"
+              name="approved_by_name"
+              value={formData.approved_by_name}
+              signatureValue={formData.approved_by_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+              users={users as FormUser[]}
+              subtitle="Approved By (Supervisor)"
+            />
           </div>
         </div>
 

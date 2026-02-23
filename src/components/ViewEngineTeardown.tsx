@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import { useResolveSignature } from "@/hooks/useSharedQueries";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface ViewEngineTeardownProps {
@@ -24,8 +24,6 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
   }>({});
 
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const {
     notedByChecked,
     approvedByChecked,
@@ -38,6 +36,7 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
     cancelToggle,
     confirmToggle,
   } = useSignatoryApproval({ table: "engine_teardown_reports", recordId: data.id, onChanged: onSignatoryChange });
+  const resolveSignature = useResolveSignature();
 
   useEffect(() => {
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
@@ -147,6 +146,11 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
     if (!status) return '-';
     return status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
+
+  const resolvedServiceTechnicianSig = resolveSignature(data.service_technician_signature, data.service_technician_name);
+  const resolvedApprovedBySig = resolveSignature(data.approved_by_signature, data.approved_by_name);
+  const resolvedNotedBySig = resolveSignature(data.noted_by_signature, data.noted_by_name);
+  const resolvedAcknowledgedBySig = resolveSignature(data.acknowledged_by_signature, data.acknowledged_by_name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
@@ -557,10 +561,10 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="flex flex-col items-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Service Technician</p>
-                    {data.service_technician_signature ? (
+                    {resolvedServiceTechnicianSig ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.service_technician_signature}
+                          src={resolvedServiceTechnicianSig}
                           alt="Service Technician Signature"
                           className="h-24 w-auto object-contain"
                         />
@@ -577,10 +581,10 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
                   </div>
                   <div className="flex flex-col items-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Approved By</p>
-                    {data.approved_by_signature ? (
+                    {resolvedApprovedBySig ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.approved_by_signature}
+                          src={resolvedApprovedBySig}
                           alt="Approved By Signature"
                           className="h-24 w-auto object-contain"
                         />
@@ -594,17 +598,17 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
                       <p className="text-sm font-medium text-gray-900">{data.approved_by_name || "________________________"}</p>
                       <p className="text-xs text-gray-500">Authorized Signature</p>
                       <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                        <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                        <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                         <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                       </label>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Noted By</p>
-                    {data.noted_by_signature ? (
+                    {resolvedNotedBySig ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.noted_by_signature}
+                          src={resolvedNotedBySig}
                           alt="Noted By Signature"
                           className="h-24 w-auto object-contain"
                         />
@@ -618,17 +622,17 @@ export default function ViewEngineTeardown({ data, onClose, onExportPDF, onSigna
                       <p className="text-sm font-medium text-gray-900">{data.noted_by_name || "________________________"}</p>
                       <p className="text-xs text-gray-500">Service Manager</p>
                       <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                        <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                        <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                         <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                       </label>
                     </div>
                   </div>
                   <div className="flex flex-col items-center">
                     <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Acknowledged By</p>
-                    {data.acknowledged_by_signature ? (
+                    {resolvedAcknowledgedBySig ? (
                       <div className="border border-gray-200 rounded-lg p-2 bg-white mb-2">
                         <img
-                          src={data.acknowledged_by_signature}
+                          src={resolvedAcknowledgedBySig}
                           alt="Acknowledged By Signature"
                           className="h-24 w-auto object-contain"
                         />

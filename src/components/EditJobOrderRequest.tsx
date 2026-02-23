@@ -5,7 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -54,75 +54,6 @@ const TextArea = ({ label, name, value, onChange }: { label: string; name: strin
   </div>
 );
 
-const Select = ({ label, name, value, options, onChange }: { label: string; name: string; value: any; options: string[]; onChange: (name: string, value: any) => void }) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    onChange(name, option);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value || ''}
-          onChange={(e) => onChange(name, e.target.value)}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm"
-          placeholder="Select or type a name"
-          autoComplete="off"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
-            className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 focus:outline-none"
-        >
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-          </svg>
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <div
-                key={opt}
-                onClick={() => handleSelectOption(opt)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
-              >
-                {opt}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const SelectDropdown = ({ label, name, value, options, onChange }: { label: string; name: string; value: any; options: string[]; onChange: (name: string, value: any) => void }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
@@ -143,9 +74,9 @@ const SelectDropdown = ({ label, name, value, options, onChange }: { label: stri
 
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
   const { data: users = [] } = useUsers();
+  const { hasPermission } = usePermissions();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
-  const { hasPermission } = usePermissions();
   const canEditJoNumber = hasPermission("job_order_number", "edit");
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -177,10 +108,6 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
   const handleFieldChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSignatureChange = (name: string, signature: string) => {
-    setFormData((prev) => ({ ...prev, [name]: signature }));
   };
 
   const handleSave = async () => {
@@ -318,36 +245,26 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <Select
-                    label="Requested By (Sales/Service Engineer)"
-                    name="requested_by_name"
-                    value={formData.requested_by_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.requested_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('requested_by_signature', signature)}
-                    subtitle="Sales/Service Engineer"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Select
-                    label="Approved By (Department Head)"
-                    name="approved_by_name"
-                    value={formData.approved_by_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.approved_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
-                    subtitle="Department Head"
-                  />
-                </div>
+                <SignatorySelect
+                  label="Requested By (Sales/Service Engineer)"
+                  name="requested_by_name"
+                  value={formData.requested_by_name}
+                  signatureValue={formData.requested_by_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("requested_by_signature", sig)}
+                  users={users}
+                  subtitle="Sales/Service Engineer"
+                />
+                <SignatorySelect
+                  label="Approved By (Department Head)"
+                  name="approved_by_name"
+                  value={formData.approved_by_name}
+                  signatureValue={formData.approved_by_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
+                  users={users}
+                  subtitle="Department Head"
+                />
               </div>
             </div>
 
@@ -355,36 +272,26 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request Received By</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <Select
-                    label="Service Dept."
-                    name="received_by_service_dept_name"
-                    value={formData.received_by_service_dept_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.received_by_service_dept_signature}
-                    onChange={(signature: string) => handleSignatureChange('received_by_service_dept_signature', signature)}
-                    subtitle="Service Department"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <Select
-                    label="Credit & Collection"
-                    name="received_by_credit_collection_name"
-                    value={formData.received_by_credit_collection_name}
-                    onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.received_by_credit_collection_signature}
-                    onChange={(signature: string) => handleSignatureChange('received_by_credit_collection_signature', signature)}
-                    subtitle="Credit & Collection"
-                  />
-                </div>
+                <SignatorySelect
+                  label="Service Dept."
+                  name="received_by_service_dept_name"
+                  value={formData.received_by_service_dept_name}
+                  signatureValue={formData.received_by_service_dept_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("received_by_service_dept_signature", sig)}
+                  users={users}
+                  subtitle="Service Department"
+                />
+                <SignatorySelect
+                  label="Credit & Collection"
+                  name="received_by_credit_collection_name"
+                  value={formData.received_by_credit_collection_name}
+                  signatureValue={formData.received_by_credit_collection_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("received_by_credit_collection_signature", sig)}
+                  users={users}
+                  subtitle="Credit & Collection"
+                />
               </div>
             </div>
 
@@ -414,18 +321,15 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                 <div className="lg:col-span-3">
                   <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleFieldChange} />
                 </div>
-                <div className="lg:col-span-3 space-y-4">
-                  <Select
+                <div className="lg:col-span-3">
+                  <SignatorySelect
                     label="Verified By"
                     name="verified_by_name"
                     value={formData.verified_by_name}
+                    signatureValue={formData.verified_by_signature}
                     onChange={handleFieldChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Signature"
-                    value={formData.verified_by_signature}
-                    onChange={(signature: string) => handleSignatureChange('verified_by_signature', signature)}
+                    onSignatureChange={(sig) => handleFieldChange("verified_by_signature", sig)}
+                    users={users}
                     subtitle="Verified By"
                   />
                 </div>

@@ -4,11 +4,10 @@ import React, { useState, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -58,47 +57,6 @@ const BooleanSelect = ({ label, name, value, onChange }: { label: string; name: 
   </div>
 );
 
-const Select = ({ label, name, value, onChange, options }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void; options: string[]; }) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) setShowDropdown(false);
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <input type="text" name={name} value={value || ""} onChange={(e) => onChange(name, e.target.value)} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm" placeholder="Select or type a name" autoComplete="off" />
-        {value && (
-          <button
-            type="button"
-            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
-            className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 focus:outline-none">
-          <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <div key={opt} onClick={() => { onChange(name, opt); setShowDropdown(false); }} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900">{opt}</div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 const TableRowInput = ({ num, label, name, value, onChange }: { num: number; label: string; name: string; value: any; onChange: (name: string, value: any) => void; }) => (
   <tr className="border-b border-gray-200 last:border-b-0">
     <td className="py-2 px-3 text-gray-600">{num}</td>
@@ -123,8 +81,6 @@ const OthersTableRowInput = ({ num, nameField, nameValue, valueField, valueValue
 
 export default function EditElectricSurfacePumpTeardown({ data, recordId, onClose, onSaved, onSignatoryChange }: EditElectricSurfacePumpTeardownProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const { data: users = [] } = useUsers();
@@ -716,28 +672,60 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
               <div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Signatures</h4></div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
-                  <Select label="Service Technician" name="teardowned_by_name" value={formData.teardowned_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-                  <SignaturePad label="Draw Signature" value={formData.teardowned_by_signature} onChange={(signature: string) => handleChange('teardowned_by_signature', signature)} subtitle="Svc Engineer/Technician" />
+                  <SignatorySelect
+                    label="Service Technician"
+                    name="teardowned_by_name"
+                    value={formData.teardowned_by_name}
+                    signatureValue={formData.teardowned_by_signature}
+                    onChange={handleChange}
+                    onSignatureChange={(sig) => handleChange("teardowned_by_signature", sig)}
+                    users={users}
+                    subtitle="Svc Engineer/Technician"
+                  />
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <Select label="Checked & Approved By" name="checked_approved_by_name" value={formData.checked_approved_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-                  <SignaturePad label="Draw Signature" value={formData.checked_approved_by_signature} onChange={(signature: string) => handleChange('checked_approved_by_signature', signature)} subtitle="Svc. Supvr. / Supt." />
+                  <SignatorySelect
+                    label="Checked & Approved By"
+                    name="checked_approved_by_name"
+                    value={formData.checked_approved_by_name}
+                    signatureValue={formData.checked_approved_by_signature}
+                    onChange={handleChange}
+                    onSignatureChange={(sig) => handleChange("checked_approved_by_signature", sig)}
+                    users={users}
+                    subtitle="Svc. Supvr. / Supt."
+                  />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <Select label="Noted By" name="noted_by_name" value={formData.noted_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-                  <SignaturePad label="Draw Signature" value={formData.noted_by_signature} onChange={(signature: string) => handleChange('noted_by_signature', signature)} subtitle="Svc. Manager" />
+                  <SignatorySelect
+                    label="Noted By"
+                    name="noted_by_name"
+                    value={formData.noted_by_name}
+                    signatureValue={formData.noted_by_signature}
+                    onChange={handleChange}
+                    onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
+                    users={users}
+                    subtitle="Svc. Manager"
+                  />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <Select label="Acknowledged By" name="acknowledged_by_name" value={formData.acknowledged_by_name} onChange={handleChange} options={users.map(user => user.fullName)} />
-                  <SignaturePad label="Draw Signature" value={formData.acknowledged_by_signature} onChange={(signature: string) => handleChange('acknowledged_by_signature', signature)} subtitle="Customer Representative" />
+                  <SignatorySelect
+                    label="Acknowledged By"
+                    name="acknowledged_by_name"
+                    value={formData.acknowledged_by_name}
+                    signatureValue={formData.acknowledged_by_signature}
+                    onChange={handleChange}
+                    onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    users={users}
+                    subtitle="Customer Representative"
+                  />
                 </div>
               </div>
             </div>

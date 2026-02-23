@@ -1,15 +1,14 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import {
   SECTION_DEFINITIONS,
   type SectionDefinition,
@@ -77,8 +76,6 @@ const SectionHeader = ({ title, children }: { title: string; children: React.Rea
 
 export default function EditEngineInspectionReceiving({ data, recordId, onClose, onSaved, onSignatoryChange }: EditEngineInspectionReceivingProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const { data: users = [] } = useUsers();
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -384,73 +381,61 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
             <SectionHeader title="Signatures">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="space-y-4">
-                  <UserSelect
+                  <SignatorySelect
                     label="Service Technician"
+                    name="service_technician_name"
                     value={formState.service_technician_name}
-                    onChange={(value) => handleFieldChange('service_technician_name', value)}
-                    options={users.map((user) => user.fullName)}
-                    placeholder="Select technician"
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formState.service_technician_signature}
-                    onChange={(sig) => handleFieldChange('service_technician_signature', sig)}
+                    signatureValue={formState.service_technician_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("service_technician_signature", sig)}
+                    users={users}
                     subtitle="Signed by Technician"
                   />
                 </div>
 
                 <div className="space-y-4">
-                  <UserSelect
+                  <SignatorySelect
                     label="Approved By"
+                    name="approved_by_name"
                     value={formState.approved_by_name}
-                    onChange={(value) => handleFieldChange('approved_by_name', value)}
-                    options={users.map((user) => user.fullName)}
-                    placeholder="Select approver"
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formState.approved_by_signature}
-                    onChange={(sig) => handleFieldChange('approved_by_signature', sig)}
+                    signatureValue={formState.approved_by_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
+                    users={users}
                     subtitle="Authorized Signature"
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
 
                 <div className="space-y-4">
-                  <UserSelect
+                  <SignatorySelect
                     label="Noted By"
+                    name="noted_by_name"
                     value={formState.noted_by_name}
-                    onChange={(value) => handleFieldChange('noted_by_name', value)}
-                    options={users.map((user) => user.fullName)}
-                    placeholder="Select manager"
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formState.noted_by_signature}
-                    onChange={(sig) => handleFieldChange('noted_by_signature', sig)}
+                    signatureValue={formState.noted_by_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("noted_by_signature", sig)}
+                    users={users}
                     subtitle="Service Manager"
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>
 
                 <div className="space-y-4">
-                  <UserSelect
+                  <SignatorySelect
                     label="Acknowledged By"
+                    name="acknowledged_by_name"
                     value={formState.acknowledged_by_name}
-                    onChange={(value) => handleFieldChange('acknowledged_by_name', value)}
-                    options={users.map((user) => user.fullName)}
-                    placeholder="Select customer rep"
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formState.acknowledged_by_signature}
-                    onChange={(sig) => handleFieldChange('acknowledged_by_signature', sig)}
+                    signatureValue={formState.acknowledged_by_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("acknowledged_by_signature", sig)}
+                    users={users}
                     subtitle="Customer Signature"
                   />
                 </div>
@@ -490,91 +475,3 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
   );
 }
 
-// Custom Select component that allows typing or selecting from dropdown
-interface UserSelectProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: string[];
-  placeholder?: string;
-}
-
-function UserSelect({ label, value, onChange, options, placeholder = "Select or type a name" }: UserSelectProps) {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    onChange(option);
-    setShowDropdown(false);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
-  };
-
-  // Filter options based on current input
-  const filteredOptions = options.filter(opt =>
-    opt.toLowerCase().includes(value.toLowerCase())
-  );
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide block">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          value={value}
-          onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 shadow-sm pr-16"
-          placeholder={placeholder}
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => { onChange(""); setShowDropdown(false); }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
-        >
-          <ChevronDownIcon
-            className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`}
-          />
-        </button>
-        {showDropdown && filteredOptions.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {filteredOptions.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors hover:bg-blue-600 hover:text-white ${
-                  opt === value ? "bg-blue-600 text-white font-medium" : "text-gray-900"
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}

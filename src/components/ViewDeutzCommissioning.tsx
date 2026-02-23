@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { useCurrentUser } from "@/stores/authStore";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
+import { useResolveSignature } from "@/hooks/useSharedQueries";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface ViewDeutzCommissioningProps {
@@ -26,8 +26,7 @@ interface Attachment {
 
 export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onSignatoryChange }: ViewDeutzCommissioningProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
+  const resolveSignature = useResolveSignature();
   const {
     notedByChecked,
     approvedByChecked,
@@ -169,6 +168,11 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
       return 'Error';
     }
   };
+
+  const resolvedTechSig = resolveSignature(data.attending_technician_signature, data.attending_technician);
+  const resolvedApprovedSig = resolveSignature(data.approved_by_signature, data.approved_by);
+  const resolvedNotedSig = resolveSignature(data.noted_by_signature, data.noted_by);
+  const resolvedAcknowledgedSig = resolveSignature(data.acknowledged_by_signature, data.acknowledged_by);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
@@ -473,8 +477,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.attending_technician_signature ? (
-                             <img src={data.attending_technician_signature} alt="Technician Signature" className="max-h-20 max-w-full object-contain" />
+                         {resolvedTechSig ? (
+                             <img src={resolvedTechSig} alt="Technician Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
                              <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                          )}
@@ -484,8 +488,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.approved_by_signature ? (
-                             <img src={data.approved_by_signature} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
+                         {resolvedApprovedSig ? (
+                             <img src={resolvedApprovedSig} alt="Approved By Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
                              <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                          )}
@@ -496,7 +500,7 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                       <input
                         type="checkbox"
                         checked={approvedByChecked}
-                        disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)}
+                        disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)}
                         onChange={(e) => requestToggle('approved_by', e.target.checked)}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
@@ -505,8 +509,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                   </div>
                   <div className="text-center flex flex-col items-center">
                      <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.noted_by_signature ? (
-                             <img src={data.noted_by_signature} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
+                         {resolvedNotedSig ? (
+                             <img src={resolvedNotedSig} alt="Noted By Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
                              <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                          )}
@@ -517,7 +521,7 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                       <input
                         type="checkbox"
                         checked={notedByChecked}
-                        disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)}
+                        disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)}
                         onChange={(e) => requestToggle('noted_by', e.target.checked)}
                         className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                       />
@@ -526,8 +530,8 @@ export default function ViewDeutzCommissioning({ data, onClose, onExportPDF, onS
                   </div>
                   <div className="text-center flex flex-col items-center">
                     <div className="h-24 w-full flex items-end justify-center mb-2 border-b border-gray-300 pb-2">
-                         {data.acknowledged_by_signature ? (
-                             <img src={data.acknowledged_by_signature} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />
+                         {resolvedAcknowledgedSig ? (
+                             <img src={resolvedAcknowledgedSig} alt="Acknowledged By Signature" className="max-h-20 max-w-full object-contain" />
                          ) : (
                              <span className="text-xs text-gray-400 italic mb-2">No Signature</span>
                          )}

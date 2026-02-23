@@ -220,11 +220,17 @@ export default function Users() {
     }
   };
 
+  const getRoleFromPositionId = (positionId: string): "user" | "admin" => {
+    const position = positions.find((p) => p.id === positionId);
+    return position?.name === "User 1" || position?.name === "User 2" ? "user" : "admin";
+  };
+
   const confirmCreate = async () => {
     setIsSubmitting(true);
     const loadingToast = toast.loading("Creating user...");
     try {
-      await userService.create(currentFormData);
+      const role = getRoleFromPositionId(currentFormData.position_id);
+      await userService.create({ ...currentFormData, role });
       await loadUsers();
       toast.success("User created successfully!", { id: loadingToast });
       resetFormData(); // Clear persisted form data
@@ -245,7 +251,8 @@ export default function Users() {
     setIsSubmitting(true);
     const loadingToast = toast.loading("Updating user...");
     try {
-      await userService.update(selectedUser.id, currentFormData);
+      const role = getRoleFromPositionId(editFormData.position_id);
+      await userService.update(selectedUser.id, { ...currentFormData, role });
       await loadUsers();
       toast.success("User updated successfully!", { id: loadingToast });
       handleCloseModal();

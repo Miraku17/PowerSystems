@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 import apiClient from "@/lib/axios";
+import { useResolveSignature } from "@/hooks/useSharedQueries";
 
 interface ViewDailyTimeSheetProps {
   data: Record<string, any>;
@@ -41,6 +42,7 @@ interface TimeSheetEntry {
 }
 
 export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
+  const resolveSignature = useResolveSignature();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
   const [auditInfo, setAuditInfo] = useState<{
@@ -186,6 +188,9 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
     if (isNaN(num)) return '-';
     return num.toFixed(2);
   };
+
+  const resolvedPerformedBySig = resolveSignature(data.performed_by_signature, data.performed_by_name);
+  const resolvedApprovedBySig = resolveSignature(data.approved_by_signature, data.approved_by_name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
@@ -361,17 +366,17 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Field label="Print Name" value={data.performed_by_name} />
-                  {data.performed_by_signature && (
+                  {resolvedPerformedBySig && (
                     <div className="mt-2">
-                      <img src={data.performed_by_signature} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedPerformedBySig} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
                 <div>
                   <Field label="Supervisor" value={data.approved_by_name} />
-                  {data.approved_by_signature && (
+                  {resolvedApprovedBySig && (
                     <div className="mt-2">
-                      <img src={data.approved_by_signature} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedApprovedBySig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>

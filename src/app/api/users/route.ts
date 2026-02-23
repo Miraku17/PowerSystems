@@ -13,7 +13,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     const { data: publicUsers, error: publicError } = await supabase
       .from("users")
-      .select("id, firstname, lastname, username, address, phone, position_id, positions(id, name, display_name, description)");
+      .select("id, firstname, lastname, username, address, phone, position_id, positions(id, name, display_name, description), user_signatures(signature_url)");
     if (publicError) throw publicError;
 
     // Create a map of public users for easy lookup
@@ -24,6 +24,11 @@ export const GET = withAuth(async (request, { user }) => {
       const publicUser = publicUsersMap.get(authUser.id) as any;
       const firstname = publicUser?.firstname || '';
       const lastname = publicUser?.lastname || '';
+      const signatures = publicUser?.user_signatures as any;
+      // Supabase may return an array (one-to-many) or object (one-to-one via UNIQUE)
+      const signature_url = Array.isArray(signatures)
+        ? (signatures.length > 0 ? signatures[0].signature_url : null)
+        : (signatures?.signature_url || null);
       return {
         id: authUser.id,
         email: authUser.email,
@@ -35,7 +40,7 @@ export const GET = withAuth(async (request, { user }) => {
         phone: publicUser?.phone || '',
         position_id: publicUser?.position_id || null,
         position: publicUser?.positions || null,
-        // role: publicUser?.role || 'user', // commented out - now using position_id
+        signature_url,
       };
     });
 

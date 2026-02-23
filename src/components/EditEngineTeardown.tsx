@@ -1,13 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { XMarkIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useCurrentUser } from "@/stores/authStore";
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -99,8 +98,6 @@ const CylinderServiceable = ({ bank, prefix, formData, onChange }: { bank: strin
 
 export default function EditEngineTeardown({ data, recordId, onClose, onSaved, onSignatoryChange }: EditEngineTeardownProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const { data: users = [] } = useUsers();
   const {
     notedByChecked,
@@ -845,70 +842,58 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
             <Section title="Signatures">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
-                  <SelectDropdown
+                  <SignatorySelect
                     label="Service Technician"
                     name="service_technician_name"
                     value={formData.service_technician_name}
+                    signatureValue={formData.service_technician_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formData.service_technician_signature}
-                    onChange={(signature) => handleChange('service_technician_signature', signature)}
+                    onSignatureChange={(sig) => handleChange("service_technician_signature", sig)}
+                    users={users}
                     subtitle="Signed by Technician"
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <SelectDropdown
+                  <SignatorySelect
                     label="Approved By"
                     name="approved_by_name"
                     value={formData.approved_by_name}
+                    signatureValue={formData.approved_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formData.approved_by_signature}
-                    onChange={(signature) => handleChange('approved_by_signature', signature)}
+                    onSignatureChange={(sig) => handleChange("approved_by_signature", sig)}
+                    users={users}
                     subtitle="Authorized Signature"
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <SelectDropdown
+                  <SignatorySelect
                     label="Noted By"
                     name="noted_by_name"
                     value={formData.noted_by_name}
+                    signatureValue={formData.noted_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formData.noted_by_signature}
-                    onChange={(signature) => handleChange('noted_by_signature', signature)}
+                    onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
+                    users={users}
                     subtitle="Service Manager"
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>
                 <div className="flex flex-col space-y-4">
-                  <SelectDropdown
+                  <SignatorySelect
                     label="Acknowledged By"
                     name="acknowledged_by_name"
                     value={formData.acknowledged_by_name}
+                    signatureValue={formData.acknowledged_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
-                  />
-                  <SignaturePad
-                    label="Draw Signature"
-                    value={formData.acknowledged_by_signature}
-                    onChange={(signature) => handleChange('acknowledged_by_signature', signature)}
+                    onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    users={users}
                     subtitle="Customer Signature"
                   />
                 </div>
@@ -951,73 +936,3 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
   );
 }
 
-interface SelectDropdownProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (name: string, value: any) => void;
-  options: string[];
-}
-
-const SelectDropdown = ({ label, name, value, onChange, options }: SelectDropdownProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    onChange(name, option);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value || ''}
-          onChange={(e) => onChange(name, e.target.value)}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16"
-          placeholder="Select or type a name"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
-          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors ${opt === value ? "bg-[#2B4C7E] text-white font-medium" : "text-gray-900 hover:bg-[#2B4C7E] hover:text-white"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

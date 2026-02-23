@@ -2,10 +2,9 @@
 
 import React, { useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "./ConfirmationModal";
-import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
@@ -28,15 +27,12 @@ export default function DeutzServiceForm() {
   const approvedJOs = useApprovedJobOrders();
   const { data: engines = [] } = useEngines();
 
-  const allUserOptions = useMemo(() => users.map(u => u.fullName), [users]);
-  const approvedByUsers = useMemo(() =>
-    users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase()))
-         .map(u => u.fullName),
+  const approvedByUsersList = useMemo(() =>
+    users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase())),
     [users]
   );
-  const notedByUsers = useMemo(() =>
-    users.filter(u => ['super admin','admin 1'].includes((u.position?.name||'').toLowerCase()))
-         .map(u => u.fullName),
+  const notedByUsersList = useMemo(() =>
+    users.filter(u => ['super admin','admin 1'].includes((u.position?.name||'').toLowerCase())),
     [users]
   );
 
@@ -96,8 +92,17 @@ export default function DeutzServiceForm() {
     });
   };
 
-  const handleSignatureChange = (name: string, signature: string) => {
-    setFormData({ [name]: signature });
+  const handleSignatoryChange = (name: string, value: string) => {
+    const updates: Record<string, any> = { [name]: value };
+    if (name === 'noted_by') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.noted_by_user_id = matchedUser?.id || '';
+    }
+    if (name === 'approved_by') {
+      const matchedUser = users.find(u => u.fullName === value);
+      updates.approved_by_user_id = matchedUser?.id || '';
+    }
+    setFormData(updates);
   };
 
   const handleConfirmSubmit = async () => {
@@ -693,62 +698,50 @@ export default function DeutzServiceForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 bg-gray-50 p-4 md:p-8 rounded-lg border border-gray-100">
             <div className="flex flex-col space-y-4">
-              <Select
+              <SignatorySelect
                 label="Service Technician"
                 name="service_technician"
                 value={formData.service_technician}
-                onChange={handleChange}
-                options={allUserOptions}
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.service_technician_signature}
-                onChange={(signature: string) => handleSignatureChange('service_technician_signature', signature)}
+                signatureValue={formData.service_technician_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
+                users={users}
                 subtitle="Signed by Technician"
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select
+              <SignatorySelect
                 label="Approved By"
                 name="approved_by"
                 value={formData.approved_by}
-                onChange={handleChange}
-                options={approvedByUsers}
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.approved_by_signature}
-                onChange={(signature: string) => handleSignatureChange('approved_by_signature', signature)}
+                signatureValue={formData.approved_by_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+                users={approvedByUsersList}
                 subtitle="Authorized Signature"
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select
+              <SignatorySelect
                 label="Noted By"
                 name="noted_by"
                 value={formData.noted_by}
-                onChange={handleChange}
-                options={notedByUsers}
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.noted_by_signature}
-                onChange={(signature: string) => handleSignatureChange('noted_by_signature', signature)}
+                signatureValue={formData.noted_by_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ noted_by_signature: sig })}
+                users={notedByUsersList}
                 subtitle="Service Manager"
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <Select
+              <SignatorySelect
                 label="Acknowledged By"
                 name="acknowledged_by"
                 value={formData.acknowledged_by}
-                onChange={handleChange}
-                options={allUserOptions}
-              />
-              <SignaturePad
-                label="Draw Signature"
-                value={formData.acknowledged_by_signature}
-                onChange={(signature: string) => handleSignatureChange('acknowledged_by_signature', signature)}
+                signatureValue={formData.acknowledged_by_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+                users={users}
                 subtitle="Customer Signature"
               />
             </div>
@@ -873,115 +866,6 @@ const TextArea = ({ label, name, value, onChange }: TextAreaProps) => (
     />
   </div>
 );
-
-interface SelectProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => void;
-  options: string[];
-}
-
-const Select = ({ label, name, value, onChange, options }: SelectProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    const syntheticEvent = {
-      target: { name, value: option }
-    } as React.ChangeEvent<HTMLInputElement>;
-    onChange(syntheticEvent);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          readOnly
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer"
-          placeholder="Select a name"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => {
-              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
-              onChange(syntheticEvent);
-            }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600"
-        >
-          <ChevronDownIcon
-            className={`h-5 w-5 transition-transform ${
-              showDropdown ? "rotate-180" : ""
-            }`}
-          />
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors ${
-                  opt === value
-                    ? "text-white font-medium"
-                    : "text-gray-900 hover:text-white"
-                }`}
-                style={{
-                  backgroundColor: opt === value ? "#2B4C7E" : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (opt !== value) {
-                    e.currentTarget.style.backgroundColor = "#2B4C7E";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (opt !== value) {
-                    e.currentTarget.style.backgroundColor = "transparent";
-                  }
-                }}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
 
 interface RadioGroupProps {
   label: string;

@@ -5,10 +5,9 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
-import SignaturePad from "./SignaturePad";
+import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -83,94 +82,6 @@ const TextArea = ({
   </div>
 );
 
-const Select = ({
-  label,
-  name,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  name: string;
-  value: any;
-  onChange: (name: string, value: any) => void;
-  options: string[];
-}) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    onChange(name, option);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value || ""}
-          onChange={(e) => onChange(name, e.target.value)}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-14 shadow-sm"
-          placeholder="Select or type a name"
-          autoComplete="off"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => { onChange(name, ""); setShowDropdown(false); }}
-            className="absolute inset-y-0 right-7 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 focus:outline-none"
-        >
-          <svg
-            className="fill-current h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-          >
-            <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-          </svg>
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <div
-                key={opt}
-                onClick={() => handleSelectOption(opt)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900"
-              >
-                {opt}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export default function EditDeutzCommissioning({
   data,
   recordId,
@@ -179,8 +90,6 @@ export default function EditDeutzCommissioning({
   onSignatoryChange,
 }: EditDeutzCommissioningProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -1104,70 +1013,34 @@ export default function EditDeutzCommissioning({
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <div className="flex flex-col space-y-4">
-                  <Select
+                  <SignatorySelect
                     label="Attending Technician"
                     name="attending_technician"
                     value={formData.attending_technician}
+                    signatureValue={formData.attending_technician_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
+                    onSignatureChange={(sig) => handleChange("attending_technician_signature", sig)}
+                    users={users}
+                    subtitle="Sign above"
                   />
-                  {formData.attending_technician_signature && formData.attending_technician_signature.startsWith('http') ? (
-                    <div className="flex flex-col items-center">
-                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
-                        <img src={formData.attending_technician_signature} alt="Signature" className="max-h-24 object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("attending_technician_signature", "")}
-                        className="text-xs text-red-600 hover:text-red-800 underline"
-                      >
-                        Remove Signature
-                      </button>
-                    </div>
-                  ) : (
-                    <SignaturePad
-                      label="Technician Signature"
-                      value={formData.attending_technician_signature}
-                      onChange={(val) => handleChange("attending_technician_signature", val)}
-                      subtitle="Sign above"
-                    />
-                  )}
                 </div>
 
                 <div className="flex flex-col space-y-4">
-                  <Select
+                  <SignatorySelect
                     label="Approved By"
                     name="approved_by"
                     value={formData.approved_by}
+                    signatureValue={formData.approved_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
+                    onSignatureChange={(sig) => handleChange("approved_by_signature", sig)}
+                    users={users}
+                    subtitle="Sign above"
                   />
-                  {formData.approved_by_signature && formData.approved_by_signature.startsWith('http') ? (
-                    <div className="flex flex-col items-center">
-                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
-                        <img src={formData.approved_by_signature} alt="Signature" className="max-h-24 object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("approved_by_signature", "")}
-                        className="text-xs text-red-600 hover:text-red-800 underline"
-                      >
-                        Remove Signature
-                      </button>
-                    </div>
-                  ) : (
-                    <SignaturePad
-                      label="Authorized Signature"
-                      value={formData.approved_by_signature}
-                      onChange={(val) => handleChange("approved_by_signature", val)}
-                      subtitle="Sign above"
-                    />
-                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={approvedByChecked}
-                      disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)}
+                      disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)}
                       onChange={(e) => requestToggle('approved_by', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -1176,39 +1049,21 @@ export default function EditDeutzCommissioning({
                 </div>
 
                 <div className="flex flex-col space-y-4">
-                  <Select
+                  <SignatorySelect
                     label="Noted By"
                     name="noted_by"
                     value={formData.noted_by}
+                    signatureValue={formData.noted_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
+                    onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
+                    users={users}
+                    subtitle="Sign above"
                   />
-                  {formData.noted_by_signature && formData.noted_by_signature.startsWith('http') ? (
-                    <div className="flex flex-col items-center">
-                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
-                        <img src={formData.noted_by_signature} alt="Signature" className="max-h-24 object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("noted_by_signature", "")}
-                        className="text-xs text-red-600 hover:text-red-800 underline"
-                      >
-                        Remove Signature
-                      </button>
-                    </div>
-                  ) : (
-                    <SignaturePad
-                      label="Service Manager"
-                      value={formData.noted_by_signature}
-                      onChange={(val) => handleChange("noted_by_signature", val)}
-                      subtitle="Sign above"
-                    />
-                  )}
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={notedByChecked}
-                      disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)}
+                      disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)}
                       onChange={(e) => requestToggle('noted_by', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -1217,34 +1072,16 @@ export default function EditDeutzCommissioning({
                 </div>
 
                 <div className="flex flex-col space-y-4">
-                  <Select
+                  <SignatorySelect
                     label="Acknowledged By"
                     name="acknowledged_by"
                     value={formData.acknowledged_by}
+                    signatureValue={formData.acknowledged_by_signature}
                     onChange={handleChange}
-                    options={users.map(user => user.fullName)}
+                    onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    users={users}
+                    subtitle="Sign above"
                   />
-                  {formData.acknowledged_by_signature && formData.acknowledged_by_signature.startsWith('http') ? (
-                    <div className="flex flex-col items-center">
-                      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 mb-2 w-full flex justify-center">
-                        <img src={formData.acknowledged_by_signature} alt="Signature" className="max-h-24 object-contain" />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleChange("acknowledged_by_signature", "")}
-                        className="text-xs text-red-600 hover:text-red-800 underline"
-                      >
-                        Remove Signature
-                      </button>
-                    </div>
-                  ) : (
-                    <SignaturePad
-                      label="Customer Signature"
-                      value={formData.acknowledged_by_signature}
-                      onChange={(val) => handleChange("acknowledged_by_signature", val)}
-                      subtitle="Sign above"
-                    />
-                  )}
                 </div>
               </div>
             </div>

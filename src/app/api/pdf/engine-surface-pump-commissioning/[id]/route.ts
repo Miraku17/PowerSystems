@@ -14,6 +14,28 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     if (error || !record) return NextResponse.json({ error: "Record not found" }, { status: 404 });
 
+    // Helper: resolve signature — fall back to user's saved signature if DB record has none
+    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null) => {
+      if (dbSignature) return dbSignature;
+      if (!signatoryName) return null;
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, firstname, lastname, user_signatures(signature_url)")
+        .ilike("firstname", `%${signatoryName.split(" ")[0] || ""}%`)
+        .limit(10);
+      if (userData) {
+        const match = userData.find((u: any) => {
+          const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim();
+          return fullName === signatoryName;
+        });
+        if (match) {
+          const sigs = match.user_signatures as any;
+          const url = Array.isArray(sigs) ? sigs[0]?.signature_url : sigs?.signature_url;
+          if (url) return url;
+        }
+      }
+      return null;
+    };
     const getValue = (value: any) => value || "-";
     const formatDate = (dateString: any) => { if (!dateString) return "-"; try { return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }); } catch { return "-"; } };
 
@@ -194,7 +216,12 @@ export const GET = withAuth(async (request, { user, params }) => {
     // Signatures
     addSection("Signatures");
     const addSignatures = async () => {
-      const signatures = [{ label: "Svc Engineer/Technician", title: "Service Technician", name: record.commissioned_by_name, imageUrl: record.commissioned_by_signature }, { label: "Svc. Supvr. / Supt.", title: "Checked & Approved By", name: record.checked_approved_by_name, imageUrl: record.checked_approved_by_signature }, { label: "Svc. Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature }, { label: "Customer Representative", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature }];
+      const signatures = [
+        { label: "Svc Engineer/Technician", title: "Service Technician", name: record.commissioned_by_name, imageUrl: await resolveSignature(record.commissioned_by_signature, record.commissioned_by_name) },
+        { label: "Svc. Supvr. / Supt.", title: "Checked & Approved By", name: record.checked_approved_by_name, imageUrl: await resolveSignature(record.checked_approved_by_signature, record.checked_approved_by_name) },
+        { label: "Svc. Manager", title: "Noted By", name: record.noted_by_name, imageUrl: await resolveSignature(record.noted_by_signature, record.noted_by_name) },
+        { label: "Customer Representative", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: await resolveSignature(record.acknowledged_by_signature, record.acknowledged_by_name) },
+      ];
       const sigBoxHeight = 48, sigBoxWidth = (contentWidth - 6) / 4;
       if (yPos + sigBoxHeight > pageHeight - 15) { doc.addPage(); yPos = 15; }
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
@@ -210,10 +237,40 @@ export const GET = withAuth(async (request, { user, params }) => {
         if (sig.imageUrl) {
           try {
             const imgResponse = await fetch(sig.imageUrl);
+            if (!imgResponse.ok) throw new Error(`Failed to fetch: ${imgResponse.status}`);
+            let contentType = imgResponse.headers.get('content-type') || '';
             const arrayBuffer = await imgResponse.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             const imgBase64 = buffer.toString("base64");
-            doc.addImage(imgBase64, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 20, undefined, "FAST");
+
+            // Detect image format from URL extension (ignore query params)
+            const urlPath = sig.imageUrl.split('?')[0].toLowerCase();
+            let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+            if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+              imageFormat = 'JPEG';
+              contentType = 'image/jpeg';
+            } else if (urlPath.endsWith('.png')) {
+              imageFormat = 'PNG';
+              contentType = 'image/png';
+            } else if (urlPath.endsWith('.gif')) {
+              imageFormat = 'GIF';
+              contentType = 'image/gif';
+            } else if (urlPath.endsWith('.webp')) {
+              imageFormat = 'WEBP';
+              contentType = 'image/webp';
+            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+              imageFormat = 'JPEG';
+            } else if (contentType.includes('png')) {
+              imageFormat = 'PNG';
+            } else if (contentType.includes('gif')) {
+              imageFormat = 'GIF';
+            } else {
+              // Default to PNG for signatures
+              contentType = 'image/png';
+              imageFormat = 'PNG';
+            }
+
+            doc.addImage(`data:${contentType};base64,${imgBase64}`, imageFormat, xOffset + 2, yPos + 4, sigBoxWidth - 7, 20, undefined, "FAST");
           } catch (error) { console.error("Error loading signature image:", error); }
         }
         doc.setFontSize(7);

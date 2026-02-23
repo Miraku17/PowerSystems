@@ -23,6 +23,29 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     if (error || !record) return NextResponse.json({ error: "Record not found" }, { status: 404 });
 
+    // Helper: resolve signature — fall back to user's saved signature if DB record has none
+    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null) => {
+      if (dbSignature) return dbSignature;
+      if (!signatoryName) return null;
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, firstname, lastname, user_signatures(signature_url)")
+        .ilike("firstname", `%${signatoryName.split(" ")[0] || ""}%`)
+        .limit(10);
+      if (userData) {
+        const match = userData.find((u: any) => {
+          const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim();
+          return fullName === signatoryName;
+        });
+        if (match) {
+          const sigs = match.user_signatures as any;
+          const url = Array.isArray(sigs) ? sigs[0]?.signature_url : sigs?.signature_url;
+          if (url) return url;
+        }
+      }
+      return null;
+    };
+
     // Build inspectionItems map from the joined engine_inspection_items array
     const inspectionItemsMap: Record<string, { field_status: string; field_remarks: string; shop_status: string; shop_remarks: string }> = {};
     if (record.engine_inspection_items && Array.isArray(record.engine_inspection_items)) {
@@ -411,14 +434,47 @@ export const GET = withAuth(async (request, { user, params }) => {
     yPos += missingHeight + 3;
 
     // Helper function to fetch signature and convert to base64
-    const fetchSignatureBase64 = async (url: string): Promise<string | null> => {
+    const fetchSignatureBase64 = async (url: string): Promise<{ dataUri: string; format: 'PNG' | 'JPEG' | 'GIF' | 'WEBP' } | null> => {
       if (!url) return null;
       try {
         const response = await fetch(url);
         if (!response.ok) return null;
+        let contentType = response.headers.get('content-type') || '';
         const arrayBuffer = await response.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
-        return buffer.toString("base64");
+        const base64 = buffer.toString("base64");
+
+        // Detect image format from URL extension (ignore query params)
+        const urlPath = url.split('?')[0].toLowerCase();
+        let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+        if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+          imageFormat = 'JPEG';
+          contentType = 'image/jpeg';
+        } else if (urlPath.endsWith('.png')) {
+          imageFormat = 'PNG';
+          contentType = 'image/png';
+        } else if (urlPath.endsWith('.gif')) {
+          imageFormat = 'GIF';
+          contentType = 'image/gif';
+        } else if (urlPath.endsWith('.webp')) {
+          imageFormat = 'WEBP';
+          contentType = 'image/webp';
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          imageFormat = 'JPEG';
+        } else if (contentType.includes('png')) {
+          imageFormat = 'PNG';
+        } else if (contentType.includes('gif')) {
+          imageFormat = 'GIF';
+        } else {
+          // Default to PNG for signatures
+          contentType = 'image/png';
+          imageFormat = 'PNG';
+        }
+
+        return {
+          dataUri: `data:${contentType};base64,${base64}`,
+          format: imageFormat,
+        };
       } catch (error) {
         console.error("Error fetching signature:", error);
         return null;
@@ -430,10 +486,10 @@ export const GET = withAuth(async (request, { user, params }) => {
     checkPageBreak(60);
 
     const signatures = [
-      { label: "Signed by Technician", title: "Service Technician", name: record.service_technician_name, imageUrl: record.service_technician_signature },
-      { label: "Authorized Signature", title: "Approved By", name: record.approved_by_name, imageUrl: record.approved_by_signature },
-      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: record.noted_by_signature },
-      { label: "Customer Signature", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: record.acknowledged_by_signature },
+      { label: "Signed by Technician", title: "Service Technician", name: record.service_technician_name, imageUrl: await resolveSignature(record.service_technician_signature, record.service_technician_name) },
+      { label: "Authorized Signature", title: "Approved By", name: record.approved_by_name, imageUrl: await resolveSignature(record.approved_by_signature, record.approved_by_name) },
+      { label: "Service Manager", title: "Noted By", name: record.noted_by_name, imageUrl: await resolveSignature(record.noted_by_signature, record.noted_by_name) },
+      { label: "Customer Signature", title: "Acknowledged By", name: record.acknowledged_by_name, imageUrl: await resolveSignature(record.acknowledged_by_signature, record.acknowledged_by_name) },
     ];
 
     const sigBoxWidth = (contentWidth - 15) / 4;
@@ -454,9 +510,9 @@ export const GET = withAuth(async (request, { user, params }) => {
 
       if (sig.imageUrl) {
         try {
-          const sigBase64 = await fetchSignatureBase64(sig.imageUrl);
-          if (sigBase64) {
-            doc.addImage(sigBase64, "PNG", xOffset + 2, yPos + 4, sigBoxWidth - 7, 28, undefined, 'FAST');
+          const sigResult = await fetchSignatureBase64(sig.imageUrl);
+          if (sigResult) {
+            doc.addImage(sigResult.dataUri, sigResult.format, xOffset + 2, yPos + 4, sigBoxWidth - 7, 28, undefined, 'FAST');
           }
         } catch (e) {
           console.error(`Error adding ${sig.title} signature:`, e);

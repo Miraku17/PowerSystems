@@ -27,6 +27,30 @@ export const GET = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ error: "Record not found" }, { status: 404 });
     }
 
+    // Helper: resolve signature — fall back to user's saved signature if DB record has none
+    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null) => {
+      if (dbSignature) return dbSignature;
+      if (!signatoryName) return null;
+      const { data: userData } = await supabase
+        .from("users")
+        .select("id, firstname, lastname, user_signatures(signature_url)")
+        .ilike("firstname", `%${signatoryName.split(" ")[0] || ""}%`)
+        .limit(10);
+      if (userData) {
+        const match = userData.find((u: any) => {
+          const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim();
+          return fullName === signatoryName;
+        });
+        if (match) {
+          const sigs = match.user_signatures as any;
+          const url = Array.isArray(sigs) ? sigs[0]?.signature_url : sigs?.signature_url;
+          if (url) return url;
+        }
+      }
+      return null;
+    };
+
+
     // Helper function to get value or dash
     const getValue = (value: any) => value || "-";
 
@@ -377,22 +401,22 @@ export const GET = withAuth(async (request, { user, params }) => {
         {
           label: "Requested By\n(Sales/Service Engineer)",
           name: record.requested_by_name,
-          imageUrl: record.requested_by_signature,
+          imageUrl: await resolveSignature(record.requested_by_signature, record.requested_by_name),
         },
         {
           label: "Approved By\n(Department Head)",
           name: record.approved_by_name,
-          imageUrl: record.approved_by_signature,
+          imageUrl: await resolveSignature(record.approved_by_signature, record.approved_by_name),
         },
         {
           label: "Received By\n(Service Dept.)",
           name: record.received_by_service_dept_name,
-          imageUrl: record.received_by_service_dept_signature,
+          imageUrl: await resolveSignature(record.received_by_service_dept_signature, record.received_by_service_dept_name),
         },
         {
           label: "Received By\n(Credit & Collection)",
           name: record.received_by_credit_collection_name,
-          imageUrl: record.received_by_credit_collection_signature,
+          imageUrl: await resolveSignature(record.received_by_credit_collection_signature, record.received_by_credit_collection_name),
         },
       ];
 
@@ -423,14 +447,43 @@ export const GET = withAuth(async (request, { user, params }) => {
           try {
             // Fetch the image
             const imgResponse = await fetch(sig.imageUrl);
+            if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
+            let contentType = imgResponse.headers.get('content-type') || '';
             const arrayBuffer = await imgResponse.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             const imgBase64 = buffer.toString('base64');
 
+            // Detect image format from URL extension (ignore query params)
+            const urlPath = sig.imageUrl.split('?')[0].toLowerCase();
+            let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+            if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+              imageFormat = 'JPEG';
+              contentType = 'image/jpeg';
+            } else if (urlPath.endsWith('.png')) {
+              imageFormat = 'PNG';
+              contentType = 'image/png';
+            } else if (urlPath.endsWith('.gif')) {
+              imageFormat = 'GIF';
+              contentType = 'image/gif';
+            } else if (urlPath.endsWith('.webp')) {
+              imageFormat = 'WEBP';
+              contentType = 'image/webp';
+            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+              imageFormat = 'JPEG';
+            } else if (contentType.includes('png')) {
+              imageFormat = 'PNG';
+            } else if (contentType.includes('gif')) {
+              imageFormat = 'GIF';
+            } else {
+              // Default to PNG for signatures
+              contentType = 'image/png';
+              imageFormat = 'PNG';
+            }
+
             // Add image to PDF
             doc.addImage(
-              imgBase64,
-              "PNG",
+              `data:${contentType};base64,${imgBase64}`,
+              imageFormat,
               xOffset + 2,
               yPos + 4,
               sigBoxWidth - 7,
@@ -517,18 +570,48 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.rect(xOffset, yPos + 2, sigBoxWidth, 25);
 
       // Add signature image if available
-      if (record.verified_by_signature) {
+      const verifiedSigUrl = await resolveSignature(record.verified_by_signature, record.verified_by_name);
+      if (verifiedSigUrl) {
         try {
           // Fetch the image
-          const imgResponse = await fetch(record.verified_by_signature);
+          const imgResponse = await fetch(verifiedSigUrl);
+          if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
+          let contentType = imgResponse.headers.get('content-type') || '';
           const arrayBuffer = await imgResponse.arrayBuffer();
           const buffer = Buffer.from(arrayBuffer);
           const imgBase64 = buffer.toString('base64');
 
+          // Detect image format from URL extension (ignore query params)
+          const urlPath = verifiedSigUrl.split('?')[0].toLowerCase();
+          let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+          if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+            imageFormat = 'JPEG';
+            contentType = 'image/jpeg';
+          } else if (urlPath.endsWith('.png')) {
+            imageFormat = 'PNG';
+            contentType = 'image/png';
+          } else if (urlPath.endsWith('.gif')) {
+            imageFormat = 'GIF';
+            contentType = 'image/gif';
+          } else if (urlPath.endsWith('.webp')) {
+            imageFormat = 'WEBP';
+            contentType = 'image/webp';
+          } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+            imageFormat = 'JPEG';
+          } else if (contentType.includes('png')) {
+            imageFormat = 'PNG';
+          } else if (contentType.includes('gif')) {
+            imageFormat = 'GIF';
+          } else {
+            // Default to PNG for signatures
+            contentType = 'image/png';
+            imageFormat = 'PNG';
+          }
+
           // Add image to PDF
           doc.addImage(
-            imgBase64,
-            "PNG",
+            `data:${contentType};base64,${imgBase64}`,
+            imageFormat,
             xOffset + 5,
             yPos + 4,
             sigBoxWidth - 10,

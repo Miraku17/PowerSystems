@@ -8,6 +8,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
@@ -581,7 +582,7 @@ export default function DeutzCommissioningReport() {
                             type="file"
                             accept="image/*"
                             className="sr-only"
-                            onChange={(e) => {
+                            onChange={async (e) => {
                               if (e.target.files && e.target.files[0]) {
                                 const file = e.target.files[0];
                                 // Validate that it's an image
@@ -589,7 +590,8 @@ export default function DeutzCommissioningReport() {
                                   toast.error('Please select only image files (PNG, JPG, etc.)');
                                   return;
                                 }
-                                setAttachments([...attachments, { file, title: '' }]);
+                                const compressed = await compressImageIfNeeded(file);
+                                setAttachments([...attachments, { file: compressed, title: '' }]);
                                 e.target.value = '';
                               }
                             }}

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
@@ -397,7 +398,8 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       onClose();
     } catch (error: any) {
       console.error("Error updating Daily Time Sheet:", error);
-      const errorMessage = error.response?.data?.error || "Failed to update Daily Time Sheet";
+      const errMsg = error.response?.data?.error;
+      const errorMessage = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Failed to update Daily Time Sheet");
       toast.error(errorMessage);
     } finally {
       setIsSaving(false);
@@ -852,10 +854,11 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                           type="file"
                           accept="*/*"
                           className="sr-only"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             if (e.target.files && e.target.files[0]) {
                               const file = e.target.files[0];
-                              setNewAttachments([...newAttachments, { file, description: '' }]);
+                              const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
+                              setNewAttachments([...newAttachments, { file: compressed, description: '' }]);
                               e.target.value = '';
                             }
                           }}

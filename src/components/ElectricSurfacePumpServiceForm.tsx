@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useElectricSurfacePumpServiceFormStore } from "@/stores/electricSurfacePumpServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -386,14 +387,15 @@ export default function ElectricSurfacePumpServiceForm() {
                       type="file"
                       accept="image/*"
                       className="sr-only"
-                      onChange={(e) => {
+                      onChange={async (e) => {
                         if (e.target.files && e.target.files[0]) {
                           const file = e.target.files[0];
                           if (!file.type.startsWith('image/')) {
                             toast.error('Please select only image files');
                             return;
                           }
-                          setAttachments([...attachments, { file, title: '' }]);
+                          const compressed = await compressImageIfNeeded(file);
+                          setAttachments([...attachments, { file: compressed, title: '' }]);
                           e.target.value = '';
                         }
                       }}

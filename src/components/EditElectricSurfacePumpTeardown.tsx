@@ -268,7 +268,9 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
       }
     } catch (error: any) {
       console.error("Error updating report:", error);
-      toast.error(`Failed to update report: ${error.response?.data?.error || "Unknown error"}`, { id: loadingToast });
+      const errMsg = error.response?.data?.error;
+      const displayError = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Unknown error");
+      toast.error(`Failed to update report: ${displayError}`, { id: loadingToast });
     } finally {
       setIsSaving(false);
     }

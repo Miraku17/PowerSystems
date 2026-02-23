@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/permissions";
 export const PUT = withAuth(async (request, { user, params }) => {
   try {
     const { id } = await params;
-    const { firstname, lastname, username, address, phone, position_id } =
+    const { firstname, lastname, username, address, phone, position_id, role } =
       await request.json();
 
     if (!id) {
@@ -32,7 +32,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
     const { data, error } = await supabase
       .from("users")
-      .update({ firstname, lastname, username, address, phone, position_id })
+      .update({ firstname, lastname, username, address, phone, position_id, role })
       .eq("id", id)
       .select();
 

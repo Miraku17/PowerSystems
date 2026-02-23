@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useCallback } from "react";
 import apiClient from "@/lib/axios";
 
 export interface FormUser {
@@ -26,6 +27,23 @@ export function useUsers() {
     },
     staleTime: 5 * 60 * 1000,
   });
+}
+
+/**
+ * Returns a function that resolves a signature for display.
+ * Falls back to the user's saved signature_url if the DB record has none.
+ */
+export function useResolveSignature() {
+  const { data: users = [] } = useUsers();
+  return useCallback(
+    (dbSignature: string | null | undefined, signatoryName: string | null | undefined) => {
+      if (dbSignature) return dbSignature;
+      if (!signatoryName) return "";
+      const user = users.find((u) => u.fullName === signatoryName);
+      return user?.signature_url || "";
+    },
+    [users]
+  );
 }
 
 export function useCustomers() {

@@ -40,7 +40,7 @@ export interface User {
   phone: string;
   position_id: string | null;
   position?: Position;
-  // role: "user" | "admin"; // commented out - now using position_id
+  role?: "user" | "admin";
 }
 
 /**

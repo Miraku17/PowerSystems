@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { FormUser } from "@/hooks/useSharedQueries";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface SignatorySelectProps {
   label: string;
@@ -27,6 +28,7 @@ export default function SignatorySelect({
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const currentUser = useCurrentUser();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -37,6 +39,14 @@ export default function SignatorySelect({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const selectedUser = value ? users.find((u) => u.fullName === value) : null;
+  const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
+
+  // Dropdown only shows the current user's name
+  const dropdownUsers = currentUser
+    ? users.filter((u) => u.id === currentUser.id)
+    : [];
 
   const handleSelectOption = (user: FormUser) => {
     onChange(name, user.fullName);
@@ -49,14 +59,10 @@ export default function SignatorySelect({
     onSignatureChange("");
   };
 
-  const options = users.map((u) => u.fullName);
-
-  // Find the selected user's signature for display
-  const selectedUser = value ? users.find((u) => u.fullName === value) : null;
+  // Show signature for any selected user (everyone can see it)
   const displaySignature = signatureValue || selectedUser?.signature_url || "";
-  // Only show warning if we found the user in the list but they have no signature
-  // Don't show warning if users haven't loaded yet (selectedUser is null)
-  const hasNoSignature = !!value && !!selectedUser && !displaySignature;
+  // Only warn about missing signature if the current user selected themselves
+  const hasNoSignature = isCurrentUserSelected && !displaySignature;
 
   return (
     <div className="flex flex-col space-y-3">
@@ -93,9 +99,9 @@ export default function SignatorySelect({
               className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`}
             />
           </button>
-          {showDropdown && options.length > 0 && (
+          {showDropdown && dropdownUsers.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-              {users.map((user) => (
+              {dropdownUsers.map((user) => (
                 <button
                   key={user.id}
                   type="button"
@@ -127,7 +133,7 @@ export default function SignatorySelect({
         </div>
       </div>
 
-      {/* Signature preview or warning */}
+      {/* Signature preview — visible to everyone */}
       {value && displaySignature && (
         <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 flex justify-center">
           <img
@@ -139,7 +145,7 @@ export default function SignatorySelect({
       )}
       {hasNoSignature && (
         <div className="border border-yellow-300 rounded-lg p-2 bg-yellow-50 text-yellow-700 text-xs text-center">
-          This user has no saved signature
+          You have no saved signature
         </div>
       )}
       {subtitle && value && displaySignature && (

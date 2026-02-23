@@ -74,9 +74,9 @@ const SelectDropdown = ({ label, name, value, options, onChange }: { label: stri
 
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
   const { data: users = [] } = useUsers();
+  const { hasPermission } = usePermissions();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
-  const { hasPermission } = usePermissions();
   const canEditJoNumber = hasPermission("job_order_number", "edit");
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);

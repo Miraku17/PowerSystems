@@ -60,6 +60,7 @@ export default function MySignatures() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["signature"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Signature saved successfully");
       resetDrawForm();
     },
@@ -76,6 +77,7 @@ export default function MySignatures() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["signature"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Signature deleted successfully");
       setShowDeleteConfirm(false);
     },

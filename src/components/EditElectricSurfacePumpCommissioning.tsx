@@ -8,7 +8,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -67,8 +66,6 @@ export default function EditElectricSurfacePumpCommissioning({
   onSignatoryChange,
 }: EditElectricSurfacePumpCommissioningProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -513,7 +510,7 @@ export default function EditElectricSurfacePumpCommissioning({
                     subtitle="Svc. Supvr. / Supt."
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Approved"}</span>
                   </label>
                 </div>
@@ -531,7 +528,7 @@ export default function EditElectricSurfacePumpCommissioning({
                     subtitle="Svc. Manager"
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
-                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                    <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                     <span className="text-xs font-medium text-gray-600">{approvalLoading ? "Updating..." : "Noted"}</span>
                   </label>
                 </div>

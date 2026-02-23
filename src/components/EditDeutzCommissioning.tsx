@@ -8,7 +8,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
-import { usePermissions } from "@/hooks/usePermissions";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -91,8 +90,6 @@ export default function EditDeutzCommissioning({
   onSignatoryChange,
 }: EditDeutzCommissioningProps) {
   const currentUser = useCurrentUser();
-  const { hasPermission } = usePermissions();
-  const canApproveSignatory = hasPermission("signatory_approval", "approve");
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const {
@@ -1043,7 +1040,7 @@ export default function EditDeutzCommissioning({
                     <input
                       type="checkbox"
                       checked={approvedByChecked}
-                      disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.approved_by_user_id)}
+                      disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)}
                       onChange={(e) => requestToggle('approved_by', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -1066,7 +1063,7 @@ export default function EditDeutzCommissioning({
                     <input
                       type="checkbox"
                       checked={notedByChecked}
-                      disabled={approvalLoading || !currentUser || (!canApproveSignatory && currentUser.id !== data.noted_by_user_id)}
+                      disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)}
                       onChange={(e) => requestToggle('noted_by', e.target.checked)}
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     />

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 import apiClient from "@/lib/axios";
+import { useResolveSignature } from "@/hooks/useSharedQueries";
 
 interface ViewJobOrderRequestProps {
   data: Record<string, any>;
@@ -22,6 +23,7 @@ interface Attachment {
 }
 
 export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: ViewJobOrderRequestProps) {
+  const resolveSignature = useResolveSignature();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [auditInfo, setAuditInfo] = useState<{
     createdBy?: string;
@@ -129,6 +131,12 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
     if (isNaN(num)) return '-';
     return `₱${num.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,')}`;
   };
+
+  const resolvedRequestedBySig = resolveSignature(data.requested_by_signature, data.requested_by_name);
+  const resolvedApprovedBySig = resolveSignature(data.approved_by_signature, data.approved_by_name);
+  const resolvedReceivedByServiceDeptSig = resolveSignature(data.received_by_service_dept_signature, data.received_by_service_dept_name);
+  const resolvedReceivedByCreditCollectionSig = resolveSignature(data.received_by_credit_collection_signature, data.received_by_credit_collection_name);
+  const resolvedVerifiedBySig = resolveSignature(data.verified_by_signature, data.verified_by_name);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
@@ -259,17 +267,17 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Field label="Requested By (Sales/Service Engineer)" value={data.requested_by_name} />
-                  {data.requested_by_signature && (
+                  {resolvedRequestedBySig && (
                     <div className="mt-2">
-                      <img src={data.requested_by_signature} alt="Requested By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedRequestedBySig} alt="Requested By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
                 <div>
                   <Field label="Approved By (Department Head)" value={data.approved_by_name} />
-                  {data.approved_by_signature && (
+                  {resolvedApprovedBySig && (
                     <div className="mt-2">
-                      <img src={data.approved_by_signature} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedApprovedBySig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
@@ -282,17 +290,17 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Field label="Service Dept." value={data.received_by_service_dept_name} />
-                  {data.received_by_service_dept_signature && (
+                  {resolvedReceivedByServiceDeptSig && (
                     <div className="mt-2">
-                      <img src={data.received_by_service_dept_signature} alt="Service Dept. Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedReceivedByServiceDeptSig} alt="Service Dept. Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
                 <div>
                   <Field label="Credit & Collection" value={data.received_by_credit_collection_name} />
-                  {data.received_by_credit_collection_signature && (
+                  {resolvedReceivedByCreditCollectionSig && (
                     <div className="mt-2">
-                      <img src={data.received_by_credit_collection_signature} alt="Credit & Collection Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedReceivedByCreditCollectionSig} alt="Credit & Collection Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>
@@ -321,9 +329,9 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
                 </div>
                 <div className="md:col-span-3">
                   <Field label="Verified By" value={data.verified_by_name} />
-                  {data.verified_by_signature && (
+                  {resolvedVerifiedBySig && (
                     <div className="mt-2">
-                      <img src={data.verified_by_signature} alt="Verified By Signature" className="h-16 border border-gray-300 rounded" />
+                      <img src={resolvedVerifiedBySig} alt="Verified By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
                 </div>

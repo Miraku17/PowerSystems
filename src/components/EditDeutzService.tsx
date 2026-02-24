@@ -511,6 +511,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
                     onSignatureChange={(sig) => handleChange("attending_technician_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    showAllUsers
                   />
                 </div>
 
@@ -558,6 +559,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
                     onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    showAllUsers
                   />
                 </div>
               </div>

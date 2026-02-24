@@ -14,6 +14,7 @@ interface SignatorySelectProps {
   onSignatureChange: (signature: string) => void;
   users: FormUser[];
   subtitle?: string;
+  showAllUsers?: boolean;
 }
 
 export default function SignatorySelect({
@@ -25,6 +26,7 @@ export default function SignatorySelect({
   onSignatureChange,
   users,
   subtitle,
+  showAllUsers = false,
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -43,8 +45,9 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  // Dropdown only shows the current user's name
-  const dropdownUsers = currentUser
+  const dropdownUsers = showAllUsers
+    ? users
+    : currentUser
     ? users.filter((u) => u.id === currentUser.id)
     : [];
 
@@ -59,10 +62,10 @@ export default function SignatorySelect({
     onSignatureChange("");
   };
 
-  // Show signature for any selected user (everyone can see it)
   const displaySignature = signatureValue || selectedUser?.signature_url || "";
-  // Only warn about missing signature if the current user selected themselves
-  const hasNoSignature = isCurrentUserSelected && !displaySignature;
+  const hasNoSignature = showAllUsers
+    ? !!selectedUser && !displaySignature
+    : isCurrentUserSelected && !displaySignature;
 
   return (
     <div className="flex flex-col space-y-3">

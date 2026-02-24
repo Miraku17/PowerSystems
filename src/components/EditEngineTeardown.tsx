@@ -851,6 +851,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     onSignatureChange={(sig) => handleChange("service_technician_signature", sig)}
                     users={users}
                     subtitle="Signed by Technician"
+                    showAllUsers
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -895,6 +896,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Customer Signature"
+                    showAllUsers
                   />
                 </div>
               </div>

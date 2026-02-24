@@ -707,6 +707,7 @@ export default function DeutzServiceForm() {
                 onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
                 users={users}
                 subtitle="Signed by Technician"
+                showAllUsers
               />
             </div>
             <div className="flex flex-col space-y-4">
@@ -743,6 +744,7 @@ export default function DeutzServiceForm() {
                 onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
                 users={users}
                 subtitle="Customer Signature"
+                showAllUsers
               />
             </div>
           </div>

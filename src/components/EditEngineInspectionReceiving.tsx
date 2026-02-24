@@ -390,6 +390,7 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
                     onSignatureChange={(sig) => handleFieldChange("service_technician_signature", sig)}
                     users={users}
                     subtitle="Signed by Technician"
+                    showAllUsers
                   />
                 </div>
 
@@ -437,6 +438,7 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
                     onSignatureChange={(sig) => handleFieldChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Customer Signature"
+                    showAllUsers
                   />
                 </div>
               </div>

@@ -828,6 +828,7 @@ export default function EngineTeardownForm() {
               onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
               users={users}
               subtitle="Signed by Technician"
+              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -858,6 +859,7 @@ export default function EngineTeardownForm() {
               onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
               users={users}
               subtitle="Customer Signature"
+              showAllUsers
             />
           </div>
         </div>

@@ -269,6 +269,7 @@ export default function JobOrderRequestForm() {
               onSignatureChange={(sig) => setFormData({ requested_by_signature: sig })}
               users={users}
               subtitle="Sales/Service Engineer"
+              showAllUsers
             />
             <SignatorySelect
               label="Approved By (Department Head)"
@@ -279,6 +280,7 @@ export default function JobOrderRequestForm() {
               onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
               users={users}
               subtitle="Department Head"
+              showAllUsers
             />
           </div>
         </div>
@@ -299,6 +301,7 @@ export default function JobOrderRequestForm() {
               onSignatureChange={(sig) => setFormData({ received_by_service_dept_signature: sig })}
               users={users}
               subtitle="Service Department"
+              showAllUsers
             />
             <SignatorySelect
               label="Credit & Collection"
@@ -309,6 +312,7 @@ export default function JobOrderRequestForm() {
               onSignatureChange={(sig) => setFormData({ received_by_credit_collection_signature: sig })}
               users={users}
               subtitle="Credit & Collection"
+              showAllUsers
             />
           </div>
         </div>
@@ -352,6 +356,7 @@ export default function JobOrderRequestForm() {
                 onSignatureChange={(sig) => setFormData({ verified_by_signature: sig })}
                 users={verifiedByUsers}
                 subtitle="Verified By"
+                showAllUsers
               />
             </div>
           </div>

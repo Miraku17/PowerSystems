@@ -1081,6 +1081,7 @@ export default function EditDeutzCommissioning({
                     onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    showAllUsers
                   />
                 </div>
               </div>

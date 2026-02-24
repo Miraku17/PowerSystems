@@ -659,6 +659,7 @@ export default function DeutzCommissioningReport() {
                     onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
                     users={users}
                     subtitle="Customer Signature"
+                    showAllUsers
                 />
             </div>
         </div>

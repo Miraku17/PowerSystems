@@ -26,7 +26,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -68,7 +68,7 @@ function DashboardLayoutInner({
   const queryClient = useQueryClient();
 
   // Permissions
-  const { canAccess, canRead, isLoading: permissionsLoading } = usePermissions();
+  const { canAccess, canRead, hasPermission, isLoading: permissionsLoading } = usePermissions();
 
   // Load user data on mount
   useEffect(() => {
@@ -227,6 +227,12 @@ function DashboardLayoutInner({
       section: "System",
     },
     {
+      name: "Deleted Records",
+      icon: TrashIcon,
+      href: "/dashboard/trash",
+      permission: { module: "form_records", action: "restore" },
+    },
+    {
       name: "Reports",
       icon: DocumentChartBarIcon,
       href: "/dashboard/reports",
@@ -237,6 +243,9 @@ function DashboardLayoutInner({
   const navigation = allNavigation.filter((item: any) => {
     // Permission-gated items: only show if user has the required permission
     if (item.permission) {
+      if (item.permission.action) {
+        return hasPermission(item.permission.module, item.permission.action);
+      }
       return canAccess(item.permission.module);
     }
     // Permission-module gated items: only show if user has read access
@@ -275,7 +284,8 @@ function DashboardLayoutInner({
         (pathname.startsWith("/dashboard/products") && canRead("products")) ||
         (pathname.startsWith("/dashboard/reports") && canAccess("reports")) ||
         (pathname.startsWith("/dashboard/leave") && canAccess("leave")) ||
-        (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval"));
+        (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval")) ||
+        (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

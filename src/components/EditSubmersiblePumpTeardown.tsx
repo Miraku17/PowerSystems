@@ -868,6 +868,7 @@ export default function EditSubmersiblePumpTeardown({
                     onSignatureChange={(sig) => handleChange("teardowned_by_signature", sig)}
                     users={users}
                     subtitle="Svc Engineer/Technician"
+                    showAllUsers
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -912,6 +913,7 @@ export default function EditSubmersiblePumpTeardown({
                     onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Customer Representative"
+                    showAllUsers
                   />
                 </div>
               </div>

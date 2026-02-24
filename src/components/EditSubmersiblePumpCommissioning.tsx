@@ -788,6 +788,7 @@ export default function EditSubmersiblePumpCommissioning({
                     onSignatureChange={(sig) => handleChange("commissioned_by_signature", sig)}
                     users={users}
                     subtitle="Svc Engineer/Technician"
+                    showAllUsers
                   />
                 </div>
 
@@ -838,6 +839,7 @@ export default function EditSubmersiblePumpCommissioning({
                     onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
                     users={users}
                     subtitle="Customer Representative"
+                    showAllUsers
                   />
                 </div>
               </div>

@@ -408,6 +408,7 @@ export default function SubmersiblePumpServiceForm() {
               onSignatureChange={(sig) => setFormData({ performed_by_signature: sig })}
               users={users}
               subtitle="Svc Engineer/Technician"
+              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -438,6 +439,7 @@ export default function SubmersiblePumpServiceForm() {
               onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
               users={users}
               subtitle="Customer Representative"
+              showAllUsers
             />
           </div>
         </div>

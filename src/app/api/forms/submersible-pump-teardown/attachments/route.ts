@@ -95,18 +95,6 @@ export const POST = withAuth(async (request, { user }) => {
           .single();
 
         if (attachment) {
-          // Delete file from storage
-          const filePath = getFilePathFromUrl(attachment.file_url);
-          if (filePath) {
-            try {
-              await serviceSupabase.storage
-                .from('service-reports')
-                .remove([filePath]);
-              console.log(`Deleted file from storage: ${filePath}`);
-            } catch (error) {
-              console.error(`Error deleting file ${filePath}:`, error);
-            }
-          }
 
           // Delete record from database
           await supabase

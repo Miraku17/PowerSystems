@@ -295,7 +295,7 @@ export default function TrashPage() {
                             {record.formName}
                           </span>
                           <span className="text-[10px] text-slate-400 font-mono truncate max-w-[150px]">
-                            ID: {record.id.split("-")[0]}...
+                            ID: {String(record.id).split("-")[0]}...
                           </span>
                         </div>
                       </td>

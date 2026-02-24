@@ -21,23 +21,8 @@ const getFilePathFromUrl = (url: string | null): string | null => {
 
 // Helper to delete signature from storage
 const deleteSignature = async (serviceSupabase: any, url: string | null) => {
-  if (!url) return;
-  const filePath = getFilePathFromUrl(url);
-  if (!filePath) return;
+  return;
 
-  try {
-    const { error } = await serviceSupabase.storage
-      .from('signatures')
-      .remove([filePath]);
-
-    if (error) {
-      console.error(`Error deleting signature ${filePath}:`, error);
-    } else {
-      console.log(`Successfully deleted signature: ${filePath}`);
-    }
-  } catch (e) {
-    console.error(`Exception deleting signature ${filePath}:`, e);
-  }
 };
 
 // GET: Fetch a single engine inspection receiving report by ID
@@ -114,13 +99,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       return NextResponse.json({ success: false, message: error.message }, { status: 500 });
     }
 
-    // Delete signatures from storage
-    await Promise.all([
-      deleteSignature(supabase, existingRecord?.service_technician_signature),
-      deleteSignature(supabase, existingRecord?.noted_by_signature),
-      deleteSignature(supabase, existingRecord?.approved_by_signature),
-      deleteSignature(supabase, existingRecord?.acknowledged_by_signature),
-    ]);
+    // Signatures are preserved for potential restore
 
     // Log the deletion in audit logs
     await supabase.from('audit_logs').insert({

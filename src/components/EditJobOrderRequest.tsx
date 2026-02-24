@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import SignatorySelect from "./SignatorySelect";
+import SignaturePad from "./SignaturePad";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -245,12 +246,22 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input
-                  label="Requested By (Sales/Service Engineer)"
-                  name="requested_by_name"
-                  value={formData.requested_by_name}
-                  onChange={handleFieldChange}
-                />
+                <div>
+                  <Input
+                    label="Requested By (Sales/Service Engineer)"
+                    name="requested_by_name"
+                    value={formData.requested_by_name}
+                    onChange={handleFieldChange}
+                  />
+                  <div className="mt-3">
+                    <SignaturePad
+                      label="Signature"
+                      value={formData.requested_by_signature}
+                      onChange={(sig) => handleFieldChange("requested_by_signature", sig)}
+                      subtitle="Sales/Service Engineer"
+                    />
+                  </div>
+                </div>
                 <SignatorySelect
                   label="Approved By (Department Head)"
                   name="approved_by_name"

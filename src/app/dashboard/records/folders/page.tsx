@@ -130,99 +130,129 @@ export default function RecordsFoldersPage() {
   });
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto animate-fadeIn p-6">
+    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-6 space-y-8 animate-fadeIn">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-[#2B4C7E] tracking-tight">Form Records</h1>
-          <p className="text-gray-500 mt-2 text-sm max-w-2xl">
-            Access and manage digital records for various equipment and service types. Select a category below to view detailed logs.
-          </p>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-        </div>
-        <input
-          type="text"
-          placeholder="Search folders..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="block w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white shadow-sm"
-        />
-        {searchTerm && (
-          <button
-            onClick={() => setSearchTerm("")}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-          >
-            <XMarkIcon className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      {/* Folders View */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredTemplates.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <FolderIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No folders found matching "{searchTerm}"</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100 shadow-sm">
+            <FolderIcon className="h-7 w-7 text-[#2B4C7E]" />
           </div>
-        ) : (
-          filteredTemplates.map((template, index) => (
-          <div
-            key={template.id}
-            onClick={() => handleFolderClick(template)}
-            className="group relative bg-white rounded-2xl p-6 border border-gray-100 hover:border-[#4A6FA5]/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(43,76,126,0.12)] transition-all duration-300 cursor-pointer overflow-hidden"
-            style={{ animationDelay: `${index * 100}ms` }}
-          >
-            {/* Background Decoration */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#2B4C7E]/5 to-[#4A6FA5]/10 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110 duration-500" />
+          <div>
+            <h1 className="text-2xl font-bold text-[#1A2F4F] tracking-tight">
+              Form Records
+            </h1>
+            <p className="text-sm text-[#607D8B] mt-0.5">
+              Access and manage digital records for all equipment categories
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden animate-slideUp">
+        <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="relative w-full md:w-[400px] group">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <MagnifyingGlassIcon className="h-5 w-5 text-slate-400 group-focus-within:text-[#2B4C7E] transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search by category name or description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-11 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm placeholder:text-slate-400 focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-500 transition-colors"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
             
-            <div className="relative flex flex-col h-full">
-              <div className="flex items-start justify-between mb-6">
-                <div className="relative p-3.5 bg-[#F5F5F0] text-[#2B4C7E] rounded-xl group-hover:bg-[#2B4C7E] group-hover:text-white transition-colors duration-300 shadow-sm ring-1 ring-[#2B4C7E]/5 overflow-hidden">
-                   {/* Icon Container with Stacked Icons */}
-                   <div className="relative w-7 h-7">
-                      <FolderIcon className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out group-hover:opacity-0 group-hover:scale-75" />
-                      <FolderOpenIcon className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100" />
-                   </div>
-                </div>
-                {/* Record Count Badge */}
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2B4C7E]/5 text-[#2B4C7E] rounded-lg text-sm font-semibold group-hover:bg-[#2B4C7E]/10 transition-colors">
-                  <span className="text-xs text-gray-500 font-normal">Records:</span>
-                  {isLoadingCounts ? (
-                    <div className="flex items-center">
-                      <svg className="animate-spin h-4 w-4 text-[#2B4C7E]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                    </div>
-                  ) : (
-                    <span>{recordCounts[template.formType] ?? 0}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#2B4C7E] transition-colors">
-                  {template.name}
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed mb-6 line-clamp-2">
-                  {template.description}
-                </p>
-              </div>
-
-              <div className="flex items-center text-sm font-semibold text-[#4A6FA5] group-hover:text-[#2B4C7E] transition-colors mt-auto pt-4 border-t border-gray-50">
-                <span>Access Records</span>
-                <ChevronRightIcon className="h-4 w-4 ml-1 transform group-hover:translate-x-1 transition-transform" />
-              </div>
+            <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-slate-200 text-xs font-bold text-[#607D8B]">
+              <span className="uppercase tracking-wider">Total Categories:</span>
+              <span className="text-[#2B4C7E] bg-blue-50 px-2 py-0.5 rounded-md">{filteredTemplates.length}</span>
             </div>
           </div>
-        ))
-        )}
+        </div>
+
+        {/* Folders View */}
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredTemplates.length === 0 ? (
+              <div className="col-span-full py-16 text-center">
+                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
+                  <FolderIcon className="h-10 w-10 text-slate-300" />
+                </div>
+                <h3 className="text-xl font-semibold text-[#1A2F4F]">No categories found</h3>
+                <p className="text-[#607D8B] mt-2 max-w-sm mx-auto">
+                  We couldn't find any form categories matching "{searchTerm}".
+                </p>
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="mt-6 px-6 py-2.5 bg-[#2B4C7E] text-white rounded-xl text-sm font-medium hover:bg-[#1A2F4F] shadow-sm transition-all"
+                >
+                  Clear search
+                </button>
+              </div>
+            ) : (
+              filteredTemplates.map((template, index) => (
+                <div
+                  key={template.id}
+                  onClick={() => handleFolderClick(template)}
+                  className="group relative bg-white rounded-2xl p-6 border border-slate-100 hover:border-[#2B4C7E] shadow-sm hover:shadow-xl hover:shadow-[#2B4C7E]/5 transition-all duration-300 cursor-pointer overflow-hidden animate-slideUp"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Hover Accent */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#2B4C7E]/5 to-transparent rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-125 duration-500" />
+                  
+                  <div className="relative flex flex-col h-full">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="p-3.5 bg-slate-50 text-[#2B4C7E] rounded-2xl group-hover:bg-[#2B4C7E] group-hover:text-white transition-all duration-300 shadow-sm border border-slate-100">
+                        <div className="relative w-6 h-6">
+                          <FolderIcon className="absolute inset-0 w-full h-full transition-all duration-300 group-hover:opacity-0 group-hover:scale-75" />
+                          <FolderOpenIcon className="absolute inset-0 w-full h-full transition-all duration-300 opacity-0 scale-75 group-hover:opacity-100 group-hover:scale-100" />
+                        </div>
+                      </div>
+                      
+                      {/* Record Count Badge */}
+                      <div className="flex flex-col items-end">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter mb-1">Records</span>
+                        <div className="px-3 py-1 bg-blue-50 text-[#2B4C7E] rounded-lg text-sm font-bold group-hover:bg-[#2B4C7E] group-hover:text-white transition-colors border border-blue-100/50">
+                          {isLoadingCounts ? (
+                            <div className="w-4 h-4 border-2 border-[#2B4C7E]/30 border-t-[#2B4C7E] rounded-full animate-spin" />
+                          ) : (
+                            <span>{recordCounts[template.formType] ?? 0}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-[#1A2F4F] mb-2 group-hover:text-[#2B4C7E] transition-colors leading-tight">
+                        {template.name}
+                      </h3>
+                      <p className="text-xs text-[#607D8B] leading-relaxed mb-6 line-clamp-2 font-medium">
+                        {template.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs font-bold text-[#2B4C7E] group-hover:text-[#1A2F4F] transition-colors pt-4 border-t border-slate-50">
+                      <span className="uppercase tracking-wider">Explore Records</span>
+                      <div className="w-6 h-6 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-[#2B4C7E] group-hover:text-white transition-all transform group-hover:translate-x-1">
+                        <ChevronRightIcon className="h-4 w-4" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -596,6 +596,7 @@ export default function EditSubmersiblePumpCommissioning({
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">
                   Image Attachments
                 </h4>
+                <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
               </div>
               <div className="space-y-4">
                 {/* Existing Attachments */}
@@ -748,6 +749,7 @@ export default function EditSubmersiblePumpCommissioning({
                           className="sr-only"
                           onChange={async (e) => {
                             if (e.target.files && e.target.files[0]) {
+                              if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
                               const file = e.target.files[0];
                               if (!file.type.startsWith('image/')) {
                                 toast.error('Please select only image files (PNG, JPG, etc.)');
@@ -762,7 +764,7 @@ export default function EditSubmersiblePumpCommissioning({
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
                   </div>
                 </div>
               </div>

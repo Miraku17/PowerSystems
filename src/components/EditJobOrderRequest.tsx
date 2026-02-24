@@ -343,7 +343,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
             {/* Attachments */}
             <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments</h3>
+              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span></h3>
               <div className="space-y-4">
                 {/* Existing Attachments */}
                 {existingAttachments.map((attachment) => {
@@ -521,6 +521,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                           className="sr-only"
                           onChange={async (e) => {
                             if (e.target.files && e.target.files[0]) {
+                              if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
                               const file = e.target.files[0];
                               const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
                               setNewAttachments([...newAttachments, { file: compressed, description: '' }]);
@@ -531,7 +532,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className="text-xs text-gray-500">Any file type up to 10MB</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
                   </div>
                 </div>
               </div>

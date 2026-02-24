@@ -21,21 +21,8 @@ const getFilePathFromUrl = (url: string | null): string | null => {
 
 // Helper to delete signature from storage
 const deleteSignature = async (serviceSupabase: any, url: string | null) => {
-  if (!url) return;
-  const filePath = getFilePathFromUrl(url);
-  if (!filePath) return;
+  return;
 
-  try {
-    const { error } = await serviceSupabase.storage
-      .from('signatures')
-      .remove([filePath]);
-
-    if (error) {
-      console.error(`Error deleting signature ${filePath}:`, error);
-    }
-  } catch (e) {
-    console.error(`Exception deleting signature ${filePath}:`, e);
-  }
 };
 
 export const DELETE = withAuth(async (request, { user, params }) => {
@@ -91,39 +78,9 @@ export const DELETE = withAuth(async (request, { user, params }) => {
       console.error("Error fetching attachments:", attachmentsError);
     }
 
-    // Delete attachment images from storage
-    if (attachments && attachments.length > 0) {
-      await Promise.all(attachments.map(async (attachment) => {
-        const filePath = getFilePathFromUrl(attachment.file_url);
-        if (!filePath) return;
-        try {
-          const { error } = await serviceSupabase.storage.from('service-reports').remove([filePath]);
-          if (error) console.error(`Error deleting attachment ${filePath}:`, error);
-        } catch (e) {
-          console.error(`Exception deleting attachment ${filePath}:`, e);
-        }
-      }));
-    }
-
-    // Delete attachment records from database
-    const { error: deleteAttachmentsError } = await supabase
-      .from("submersible_pump_service_attachments")
-      .delete()
-      .eq("report_id", id);
-
-    if (deleteAttachmentsError) {
-      console.error("Error deleting attachment records:", deleteAttachmentsError);
-    }
-
-    // Delete signatures from storage
-    await Promise.all([
-      deleteSignature(serviceSupabase, record.performed_by_signature),
-      deleteSignature(serviceSupabase, record.checked_approved_by_signature),
-      deleteSignature(serviceSupabase, record.noted_by_signature),
-      deleteSignature(serviceSupabase, record.acknowledged_by_signature),
-    ]);
 
     // Soft delete: Update the record with deleted_at (using serviceSupabase to bypass RLS)
+    // Attachment records and signatures are preserved for potential restore
     const { data, error } = await serviceSupabase
       .from("submersible_pump_service_report")
       .update({

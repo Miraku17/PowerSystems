@@ -48,6 +48,7 @@ export function usePermissions() {
   const canEdit = (module: string) => hasPermission(module, "edit");
   const canDelete = (module: string) => hasPermission(module, "delete");
   const canAccess = (module: string) => hasPermission(module, "access");
+  const canRestore = (module: string) => hasPermission(module, "restore");
 
   return {
     permissions,
@@ -60,5 +61,6 @@ export function usePermissions() {
     canEdit,
     canDelete,
     canAccess,
+    canRestore,
   };
 }

@@ -67,14 +67,6 @@ export const POST = withAuth(async (request, { user }) => {
           .single();
 
         if (attachment) {
-          const filePath = getFilePathFromUrl(attachment.file_url);
-          if (filePath) {
-            try {
-              await serviceSupabase.storage.from('service-reports').remove([filePath]);
-            } catch (error) {
-              console.error(`Error deleting file ${filePath}:`, error);
-            }
-          }
           await supabase.from('engine_surface_pump_commissioning_attachments').delete().eq('id', attachmentId);
         }
       }

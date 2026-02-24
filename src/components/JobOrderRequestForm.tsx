@@ -260,16 +260,12 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Request & Approval</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <SignatorySelect
+            <Input
               label="Requested By (Sales/Service Engineer)"
               name="requested_by_name"
               value={formData.requested_by_name}
-              signatureValue={formData.requested_by_signature}
-              onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ requested_by_signature: sig })}
-              users={users}
-              subtitle="Sales/Service Engineer"
-              showAllUsers
+              onChange={handleChange}
+              placeholder="Enter name"
             />
             <SignatorySelect
               label="Approved By (Department Head)"

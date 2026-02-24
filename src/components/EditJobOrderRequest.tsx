@@ -245,16 +245,11 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SignatorySelect
+                <Input
                   label="Requested By (Sales/Service Engineer)"
                   name="requested_by_name"
                   value={formData.requested_by_name}
-                  signatureValue={formData.requested_by_signature}
                   onChange={handleFieldChange}
-                  onSignatureChange={(sig) => handleFieldChange("requested_by_signature", sig)}
-                  users={users}
-                  subtitle="Sales/Service Engineer"
-                  showAllUsers
                 />
                 <SignatorySelect
                   label="Approved By (Department Head)"

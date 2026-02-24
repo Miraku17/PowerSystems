@@ -405,10 +405,10 @@ export const GET = withAuth(async (request, { user }) => {
 
       const businessDays = countBusinessDays(startDate, endDate);
 
-      // Fetch DTS entries in date range (total_hours = work manhours, travel_hours = travel)
+      // Fetch DTS entries in date range
       const { data: dtsEntries, error: dtsError } = await supabase
         .from("daily_time_sheet_entries")
-        .select("entry_date, total_hours, travel_hours, daily_time_sheet!inner(created_by, deleted_at)")
+        .select("entry_date, total_hours, travel_time_hours, travel_distance_km, travel_time_from, travel_time_to, travel_time_depart, travel_time_arrived, travel_distance_from, travel_distance_to, travel_departure_odo, travel_arrival_odo, daily_time_sheet!inner(created_by, deleted_at)")
         .gte("entry_date", startDate)
         .lte("entry_date", endDate)
         .is("daily_time_sheet.deleted_at", null);
@@ -420,18 +420,21 @@ export const GET = withAuth(async (request, { user }) => {
       // Group work manhours and travel hours by user
       const userWorkHours = new Map<string, number>();
       const userTravelHours = new Map<string, number>();
+      const userTravelDistanceKm = new Map<string, number>();
       for (const entry of dtsEntries || []) {
         const dts = entry.daily_time_sheet as any;
         const userId = dts?.created_by;
         if (!userId) continue;
         const workHrs = typeof entry.total_hours === "string" ? parseFloat(entry.total_hours) : (entry.total_hours || 0);
-        const travelHrs = typeof entry.travel_hours === "string" ? parseFloat(entry.travel_hours as string) : ((entry.travel_hours as number) || 0);
+        const travelHrs = typeof entry.travel_time_hours === "string" ? parseFloat(entry.travel_time_hours as string) : ((entry.travel_time_hours as number) || 0);
+        const distKm = typeof entry.travel_distance_km === "string" ? parseFloat(entry.travel_distance_km as string) : ((entry.travel_distance_km as number) || 0);
         userWorkHours.set(userId, (userWorkHours.get(userId) || 0) + workHrs);
         userTravelHours.set(userId, (userTravelHours.get(userId) || 0) + travelHrs);
+        userTravelDistanceKm.set(userId, (userTravelDistanceKm.get(userId) || 0) + distKm);
       }
 
       // Collect all user IDs that have any DTS data
-      const allUserIds = new Set([...userWorkHours.keys(), ...userTravelHours.keys()]);
+      const allUserIds = new Set([...userWorkHours.keys(), ...userTravelHours.keys(), ...userTravelDistanceKm.keys()]);
       if (allUserIds.size === 0) {
         return NextResponse.json(
           { success: false, message: "No DTS entries found for the selected date range" },
@@ -478,7 +481,7 @@ export const GET = withAuth(async (request, { user }) => {
       // Build CSV rows matching the Monthly Utilization format
       // Utilization % = (Travel Hours + Work Manhours) / Available Manhours × 100
       // Unaccounted = Available Manhours - (Travel + Work Manhours + Leave)
-      const headers = ["Technician", "Available Manhours", "Travel Hours", "Work Manhour (Reg + OT)", "Utilization %", "Leave", "Unaccounted"];
+      const headers = ["Technician", "Available Manhours", "Travel Hours", "Travel Distance (KM)", "Work Manhour (Reg + OT)", "Utilization %", "Leave", "Unaccounted"];
       const rows: string[][] = [];
       for (const userId of userIds) {
         const name = userNameMap.get(userId) || "Unknown";
@@ -487,6 +490,7 @@ export const GET = withAuth(async (request, { user }) => {
         const availableManhours = (businessDays * 8) - leaveHours;
         const workManhours = userWorkHours.get(userId) || 0;
         const travelHours = userTravelHours.get(userId) || 0;
+        const travelDistanceKm = userTravelDistanceKm.get(userId) || 0;
         const utilization = availableManhours > 0 ? ((travelHours + workManhours) / availableManhours) * 100 : 0;
         const unaccounted = availableManhours - (travelHours + workManhours + leaveHours);
 
@@ -494,6 +498,7 @@ export const GET = withAuth(async (request, { user }) => {
           name,
           String(availableManhours),
           travelHours.toFixed(2),
+          travelDistanceKm.toFixed(2),
           workManhours.toFixed(2),
           Math.round(utilization) + "%",
           String(leaveHours),

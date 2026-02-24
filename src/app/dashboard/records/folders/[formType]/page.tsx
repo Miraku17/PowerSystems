@@ -267,6 +267,17 @@ export default function FormRecordsPage() {
 
   const STATUS_OPTIONS = ["In-Progress", "Pending", "Close", "Cancelled"];
 
+  // Normalize status from DB (handles PENDING, pending, In_Progress, etc.)
+  const normalizeStatus = (status: string | undefined | null): string => {
+    if (!status) return "Pending";
+    const s = status.toLowerCase().replace(/[_\s]/g, '-');
+    if (s === 'pending') return 'Pending';
+    if (s === 'in-progress') return 'In-Progress';
+    if (s === 'close' || s === 'closed' || s === 'completed') return 'Close';
+    if (s === 'cancelled' || s === 'canceled') return 'Cancelled';
+    return 'Pending';
+  };
+
   const getStatusSelectClass = (status: string) => {
     switch (status) {
       case "In-Progress":
@@ -675,10 +686,10 @@ export default function FormRecordsPage() {
                         {canChangeJOStatus ? (
                           <div className="relative inline-flex items-center">
                             <select
-                              value={record.data?.status || "Pending"}
+                              value={normalizeStatus(record.data?.status)}
                               onChange={(e) => handleJOStatusChangeRequest(record, e.target.value)}
                               disabled={updatingStatus === record.id}
-                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(normalizeStatus(record.data?.status))}`}
                             >
                               {STATUS_OPTIONS.map((opt) => (
                                 <option key={opt} value={opt}>{opt}</option>
@@ -689,10 +700,10 @@ export default function FormRecordsPage() {
                         ) : canChangeDTSStatus ? (
                           <div className="relative inline-flex items-center">
                             <select
-                              value={record.data?.status || "Pending"}
+                              value={normalizeStatus(record.data?.status)}
                               onChange={(e) => handleDTSStatusChangeRequest(record, e.target.value)}
                               disabled={updatingStatus === record.id}
-                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                              className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(normalizeStatus(record.data?.status))}`}
                             >
                               {STATUS_OPTIONS.map((opt) => (
                                 <option key={opt} value={opt}>{opt}</option>
@@ -715,7 +726,7 @@ export default function FormRecordsPage() {
                             <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                           </div>
                         ) : (
-                          <ApprovalStatusBadge status={(isJORequest || isDTS) ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
+                          <ApprovalStatusBadge status={(isJORequest || isDTS) ? normalizeStatus(record.data?.status) : (record.approval?.approval_status ?? record.data?.approval_status)} />
                         )}
                       </td>
                       <td className="px-6 py-4 text-right text-sm font-medium">
@@ -794,10 +805,10 @@ export default function FormRecordsPage() {
                     {canChangeJOStatus ? (
                       <div className="relative inline-flex items-center">
                         <select
-                          value={record.data?.status || "Pending"}
+                          value={normalizeStatus(record.data?.status)}
                           onChange={(e) => handleJOStatusChangeRequest(record, e.target.value)}
                           disabled={updatingStatus === record.id}
-                          className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                          className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(normalizeStatus(record.data?.status))}`}
                         >
                           {STATUS_OPTIONS.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -808,10 +819,10 @@ export default function FormRecordsPage() {
                     ) : canChangeDTSStatus ? (
                       <div className="relative inline-flex items-center">
                         <select
-                          value={record.data?.status || "Pending"}
+                          value={normalizeStatus(record.data?.status)}
                           onChange={(e) => handleDTSStatusChangeRequest(record, e.target.value)}
                           disabled={updatingStatus === record.id}
-                          className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(record.data?.status || "Pending")}`}
+                          className={`appearance-none text-xs font-semibold rounded-full border pl-3 pr-7 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer ${getStatusSelectClass(normalizeStatus(record.data?.status))}`}
                         >
                           {STATUS_OPTIONS.map((opt) => (
                             <option key={opt} value={opt}>{opt}</option>
@@ -834,7 +845,7 @@ export default function FormRecordsPage() {
                         <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                       </div>
                     ) : (
-                      <ApprovalStatusBadge status={(isJORequest || isDTS) ? record.data?.status : (record.approval?.approval_status ?? record.data?.approval_status)} />
+                      <ApprovalStatusBadge status={(isJORequest || isDTS) ? normalizeStatus(record.data?.status) : (record.approval?.approval_status ?? record.data?.approval_status)} />
                     )}
                   </div>
 

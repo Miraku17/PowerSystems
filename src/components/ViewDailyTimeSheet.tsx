@@ -39,6 +39,16 @@ interface TimeSheetEntry {
   expense_total: number;
   expense_remarks: string;
   travel_hours: number;
+  travel_time_from: string;
+  travel_time_to: string;
+  travel_time_depart: string;
+  travel_time_arrived: string;
+  travel_time_hours: number;
+  travel_distance_from: string;
+  travel_distance_to: string;
+  travel_departure_odo: number;
+  travel_arrival_odo: number;
+  travel_distance_km: number;
 }
 
 export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
@@ -273,7 +283,6 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Start</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Stop</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Total</th>
-                      <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Travel Hrs</th>
                       <th className="border border-gray-300 px-3 py-2 text-left text-xs font-bold text-gray-600 uppercase">Job Descriptions</th>
                     </tr>
                   </thead>
@@ -286,11 +295,10 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.start_time)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatTime(entry.stop_time)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm font-medium">{formatNumber(entry.total_hours)}</td>
-                            <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{formatNumber(entry.travel_hours)}</td>
                             <td className="border-l border-r border-t border-gray-300 px-3 py-2 text-sm">{entry.job_description || '-'}</td>
                           </tr>
                           <tr className="bg-gray-50/50">
-                            <td colSpan={6} className="border border-gray-300 px-3 py-2">
+                            <td colSpan={5} className="border-l border-r border-gray-300 px-3 py-2">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
                                 <div className="flex-1 border-t border-gray-200"></div>
@@ -331,11 +339,73 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                               </div>
                             </td>
                           </tr>
+                          {/* Travel Time */}
+                          <tr className="bg-gray-50/50">
+                            <td colSpan={5} className="border-l border-r border-gray-300 px-3 py-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Time</span>
+                                <div className="flex-1 border-t border-gray-200"></div>
+                              </div>
+                              <div className="grid grid-cols-5 gap-3 text-sm">
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">From</span>
+                                  <span className="text-gray-900">{entry.travel_time_from || '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">To Destination</span>
+                                  <span className="text-gray-900">{entry.travel_time_to || '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Time Depart</span>
+                                  <span className="text-gray-900">{entry.travel_time_depart ? formatTime(entry.travel_time_depart) : '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Time Arrived</span>
+                                  <span className="text-gray-900">{entry.travel_time_arrived ? formatTime(entry.travel_time_arrived) : '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Travel Hours</span>
+                                  <span className="text-gray-900 font-bold">{formatNumber(entry.travel_time_hours)}</span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                          {/* Travel Distance */}
+                          <tr className="bg-gray-50/50">
+                            <td colSpan={5} className="border border-gray-300 px-3 py-2">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Distance</span>
+                                <div className="flex-1 border-t border-gray-200"></div>
+                              </div>
+                              <div className="grid grid-cols-5 gap-3 text-sm">
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">From</span>
+                                  <span className="text-gray-900">{entry.travel_distance_from || '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">To Destination</span>
+                                  <span className="text-gray-900">{entry.travel_distance_to || '-'}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Departure ODO</span>
+                                  <span className="text-gray-900">{formatNumber(entry.travel_departure_odo)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Arrival ODO</span>
+                                  <span className="text-gray-900">{formatNumber(entry.travel_arrival_odo)}</span>
+                                </div>
+                                <div>
+                                  <span className="block text-[10px] font-semibold text-gray-500 uppercase">Distance Travel</span>
+                                  <span className="text-gray-900 font-bold">{entry.travel_distance_km != null && entry.travel_distance_km !== 0 ? `${formatNumber(entry.travel_distance_km)} KM` : '-'}</span>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
                         </React.Fragment>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={6} className="border border-gray-300 px-3 py-4 text-sm text-center text-gray-500">
+                        <td colSpan={5} className="border border-gray-300 px-3 py-4 text-sm text-center text-gray-500">
                           No time entries recorded
                         </td>
                       </tr>
@@ -345,7 +415,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                     <tr className="bg-blue-50 font-bold">
                       <td colSpan={3} className="border border-gray-300 px-3 py-2 text-right text-sm uppercase">Total Manhours</td>
                       <td className="border border-gray-300 px-3 py-2 text-sm">{formatNumber(data.total_manhours)}</td>
-                      <td className="border border-gray-300 px-3 py-2" colSpan={2}></td>
+                      <td className="border border-gray-300 px-3 py-2" colSpan={1}></td>
                     </tr>
                   </tfoot>
                 </table>

@@ -186,6 +186,16 @@ export const POST = withAuth(async (request, { user }) => {
             expense_total: entry.expense_total ? parseFloat(entry.expense_total) : 0,
             expense_remarks: entry.expense_remarks || '',
             travel_hours: entry.travel_hours ? parseFloat(entry.travel_hours) : 0,
+            travel_time_from: entry.travel_time_from || '',
+            travel_time_to: entry.travel_time_to || '',
+            travel_time_depart: entry.travel_time_depart || null,
+            travel_time_arrived: entry.travel_time_arrived || null,
+            travel_time_hours: entry.travel_time_hours ? parseFloat(entry.travel_time_hours) : 0,
+            travel_distance_from: entry.travel_distance_from || '',
+            travel_distance_to: entry.travel_distance_to || '',
+            travel_departure_odo: entry.travel_departure_odo ? parseFloat(entry.travel_departure_odo) : 0,
+            travel_arrival_odo: entry.travel_arrival_odo ? parseFloat(entry.travel_arrival_odo) : 0,
+            travel_distance_km: entry.travel_distance_km ? parseFloat(entry.travel_distance_km) : 0,
           }));
 
           const { error: entriesError } = await supabase

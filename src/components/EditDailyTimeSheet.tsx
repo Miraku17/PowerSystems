@@ -43,6 +43,16 @@ interface TimeSheetEntry {
   expense_total: string;
   expense_remarks: string;
   travel_hours: string;
+  travel_time_from: string;
+  travel_time_to: string;
+  travel_time_depart: string;
+  travel_time_arrived: string;
+  travel_time_hours: string;
+  travel_distance_from: string;
+  travel_distance_to: string;
+  travel_departure_odo: string;
+  travel_arrival_odo: string;
+  travel_distance_km: string;
 }
 
 // Helper Components
@@ -146,6 +156,17 @@ const Select = ({ label, name, value, options, onChange }: { label: string; name
 
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+const createEmptyEntry = (hasDate: boolean): TimeSheetEntry => ({
+  id: generateEntryId(),
+  entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '',
+  has_date: hasDate,
+  expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '',
+  expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '',
+  travel_hours: '',
+  travel_time_from: '', travel_time_to: '', travel_time_depart: '', travel_time_arrived: '', travel_time_hours: '',
+  travel_distance_from: '', travel_distance_to: '', travel_departure_odo: '', travel_arrival_odo: '', travel_distance_km: '',
+});
+
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState<Record<string, any>>(data);
@@ -194,8 +215,18 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             expense_total: entry.expense_total?.toString() || '',
             expense_remarks: entry.expense_remarks || '',
             travel_hours: entry.travel_hours?.toString() || '',
+            travel_time_from: entry.travel_time_from || '',
+            travel_time_to: entry.travel_time_to || '',
+            travel_time_depart: entry.travel_time_depart || '',
+            travel_time_arrived: entry.travel_time_arrived || '',
+            travel_time_hours: entry.travel_time_hours?.toString() || '',
+            travel_distance_from: entry.travel_distance_from || '',
+            travel_distance_to: entry.travel_distance_to || '',
+            travel_departure_odo: entry.travel_departure_odo?.toString() || '',
+            travel_arrival_odo: entry.travel_arrival_odo?.toString() || '',
+            travel_distance_km: entry.travel_distance_km?.toString() || '',
           }));
-          setEntries(mappedEntries.length > 0 ? mappedEntries : [{ id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+          setEntries(mappedEntries.length > 0 ? mappedEntries : [createEmptyEntry(true)]);
         }
       } catch (error) {
         console.error('Error fetching entries:', error);
@@ -236,6 +267,16 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         expense_total: entry.expense_total?.toString() || '',
         expense_remarks: entry.expense_remarks || '',
         travel_hours: entry.travel_hours?.toString() || '',
+        travel_time_from: entry.travel_time_from || '',
+        travel_time_to: entry.travel_time_to || '',
+        travel_time_depart: entry.travel_time_depart || '',
+        travel_time_arrived: entry.travel_time_arrived || '',
+        travel_time_hours: entry.travel_time_hours?.toString() || '',
+        travel_distance_from: entry.travel_distance_from || '',
+        travel_distance_to: entry.travel_distance_to || '',
+        travel_departure_odo: entry.travel_departure_odo?.toString() || '',
+        travel_arrival_odo: entry.travel_arrival_odo?.toString() || '',
+        travel_distance_km: entry.travel_distance_km?.toString() || '',
       }));
       if (mappedEntries.length > 0) {
         setEntries(mappedEntries);
@@ -314,11 +355,11 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   };
 
   const addEntry = () => {
-    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: false, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+    setEntries(prev => [...prev, createEmptyEntry(false)]);
   };
 
   const addDateEntry = () => {
-    setEntries(prev => [...prev, { id: generateEntryId(), entry_date: '', start_time: '', stop_time: '', total_hours: '', job_description: '', has_date: true, expense_breakfast: '', expense_lunch: '', expense_dinner: '', expense_transport: '', expense_lodging: '', expense_others: '', expense_total: '', expense_remarks: '', travel_hours: '' }]);
+    setEntries(prev => [...prev, createEmptyEntry(true)]);
   };
 
   const updateEntry = (id: string, field: keyof TimeSheetEntry, value: string) => {
@@ -338,6 +379,24 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         if (expenseFields.includes(field as any)) {
           const total = expenseFields.reduce((sum, f) => sum + (parseFloat(updated[f]) || 0), 0);
           updated.expense_total = total.toFixed(2);
+        }
+        // Auto-calculate travel time hours
+        if (field === 'travel_time_depart' || field === 'travel_time_arrived') {
+          if (updated.travel_time_depart && updated.travel_time_arrived) {
+            const [dH, dM] = updated.travel_time_depart.split(':').map(Number);
+            const [aH, aM] = updated.travel_time_arrived.split(':').map(Number);
+            let diffMin = (aH * 60 + aM) - (dH * 60 + dM);
+            if (diffMin < 0) diffMin += 24 * 60;
+            updated.travel_time_hours = (diffMin / 60).toFixed(2);
+          }
+        }
+        // Auto-calculate travel distance
+        if (field === 'travel_departure_odo' || field === 'travel_arrival_odo') {
+          const dep = parseFloat(updated.travel_departure_odo);
+          const arr = parseFloat(updated.travel_arrival_odo);
+          if (!isNaN(dep) && !isNaN(arr) && arr >= dep) {
+            updated.travel_distance_km = (arr - dep).toFixed(0);
+          }
         }
         return updated;
       }
@@ -462,7 +521,6 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Start</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[90px]">Stop</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[70px]">Total</th>
-                      <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2 w-[85px]">Travel Hrs</th>
                       <th className="text-left text-xs font-bold text-gray-600 uppercase py-2 px-2">Job Description</th>
                       <th className="w-[40px]"></th>
                     </tr>
@@ -509,16 +567,6 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                           </td>
                           <td className="pt-2 pb-1 px-2">
                             <input
-                              type="number"
-                              step="0.01"
-                              value={entry.travel_hours}
-                              onChange={(e) => updateEntry(entry.id, 'travel_hours', e.target.value)}
-                              placeholder="0.00"
-                              className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
-                            />
-                          </td>
-                          <td className="pt-2 pb-1 px-2">
-                            <input
                               type="text"
                               value={entry.job_description}
                               onChange={(e) => updateEntry(entry.id, 'job_description', e.target.value)}
@@ -526,7 +574,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                               className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5"
                             />
                           </td>
-                          <td className="pt-2 pb-1 px-2" rowSpan={2}>
+                          <td className="pt-2 pb-1 px-2" rowSpan={4}>
                             {entries.length > 1 && (
                               <button
                                 type="button"
@@ -538,8 +586,8 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                             )}
                           </td>
                         </tr>
-                        <tr className="border-b border-gray-300 bg-gray-50/50">
-                          <td colSpan={6} className="pt-1 pb-2 px-2">
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={5} className="pt-1 pb-2 px-2">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
                               <div className="flex-1 border-t border-gray-200"></div>
@@ -583,6 +631,71 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                             </div>
                           </td>
                         </tr>
+                        {/* Travel Time */}
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={5} className="pt-1 pb-2 px-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Time</span>
+                              <div className="flex-1 border-t border-gray-200"></div>
+                            </div>
+                            <div className="grid grid-cols-5 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">From</label>
+                                <input type="text" value={entry.travel_time_from} onChange={(e) => updateEntry(entry.id, 'travel_time_from', e.target.value)} placeholder="e.g. Office" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">To Destination</label>
+                                <input type="text" value={entry.travel_time_to} onChange={(e) => updateEntry(entry.id, 'travel_time_to', e.target.value)} placeholder="e.g. Job Site" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Time Depart</label>
+                                <input type="time" value={entry.travel_time_depart} onChange={(e) => updateEntry(entry.id, 'travel_time_depart', e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Time Arrived</label>
+                                <input type="time" value={entry.travel_time_arrived} onChange={(e) => updateEntry(entry.id, 'travel_time_arrived', e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Travel Hours</label>
+                                <input type="text" value={entry.travel_time_hours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 font-bold" />
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                        {/* Travel Distance */}
+                        <tr className="border-b border-gray-300 bg-gray-50/50">
+                          <td colSpan={5} className="pt-1 pb-2 px-2">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Distance</span>
+                              <div className="flex-1 border-t border-gray-200"></div>
+                            </div>
+                            <div className="grid grid-cols-5 gap-2">
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">From</label>
+                                <input type="text" value={entry.travel_distance_from} onChange={(e) => updateEntry(entry.id, 'travel_distance_from', e.target.value)} placeholder="e.g. Office" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">To Destination</label>
+                                <input type="text" value={entry.travel_distance_to} onChange={(e) => updateEntry(entry.id, 'travel_distance_to', e.target.value)} placeholder="e.g. Job Site" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Departure ODO</label>
+                                <input type="number" value={entry.travel_departure_odo} onChange={(e) => updateEntry(entry.id, 'travel_departure_odo', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Arrival ODO</label>
+                                <input type="number" value={entry.travel_arrival_odo} onChange={(e) => updateEntry(entry.id, 'travel_arrival_odo', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5" />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Distance Travel</label>
+                                <div className="relative">
+                                  <input type="number" value={entry.travel_distance_km} onChange={(e) => updateEntry(entry.id, 'travel_distance_km', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 pr-8" />
+                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">KM</span>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
                       </React.Fragment>
                     ))}
                   </tbody>
@@ -597,7 +710,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                           className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 font-bold"
                         />
                       </td>
-                      <td colSpan={3}></td>
+                      <td colSpan={2}></td>
                     </tr>
                   </tfoot>
                 </table>

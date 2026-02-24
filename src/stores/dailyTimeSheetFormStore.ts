@@ -18,6 +18,18 @@ export interface TimeSheetEntry {
   expense_total: string;
   expense_remarks: string;
   travel_hours: string;
+  // Travel Time fields
+  travel_time_from: string;
+  travel_time_to: string;
+  travel_time_depart: string;
+  travel_time_arrived: string;
+  travel_time_hours: string;
+  // Travel Distance fields
+  travel_distance_from: string;
+  travel_distance_to: string;
+  travel_departure_odo: string;
+  travel_arrival_odo: string;
+  travel_distance_km: string;
 }
 
 interface DailyTimeSheetFormData {
@@ -88,6 +100,16 @@ const createEntry = (hasDate: boolean): TimeSheetEntry => ({
   expense_total: '',
   expense_remarks: '',
   travel_hours: '',
+  travel_time_from: '',
+  travel_time_to: '',
+  travel_time_depart: '',
+  travel_time_arrived: '',
+  travel_time_hours: '',
+  travel_distance_from: '',
+  travel_distance_to: '',
+  travel_departure_odo: '',
+  travel_arrival_odo: '',
+  travel_distance_km: '',
 });
 
 const initialFormData: DailyTimeSheetFormData = {
@@ -156,7 +178,7 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
     }),
     {
       name: 'psi-daily-time-sheet-form-draft',
-      version: 3,
+      version: 4,
       migrate: (persistedState: any, version: number) => {
         const state = persistedState as any;
         if (state.formData) {
@@ -178,6 +200,16 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
             expense_total: entry.expense_total || '',
             expense_remarks: entry.expense_remarks || '',
             travel_hours: entry.travel_hours || '',
+            travel_time_from: entry.travel_time_from || '',
+            travel_time_to: entry.travel_time_to || '',
+            travel_time_depart: entry.travel_time_depart || '',
+            travel_time_arrived: entry.travel_time_arrived || '',
+            travel_time_hours: entry.travel_time_hours || '',
+            travel_distance_from: entry.travel_distance_from || '',
+            travel_distance_to: entry.travel_distance_to || '',
+            travel_departure_odo: entry.travel_departure_odo || '',
+            travel_arrival_odo: entry.travel_arrival_odo || '',
+            travel_distance_km: entry.travel_distance_km || '',
           }));
 
           // Remove dateSections if it exists

@@ -552,7 +552,7 @@ export default function DeutzServiceForm() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                Image Attachments
+                Image Attachments <span className="font-normal text-gray-400 normal-case">(max 10 photos only)</span>
               </label>
 
               {/* Display existing attachments with preview */}
@@ -664,6 +664,7 @@ export default function DeutzServiceForm() {
                         className="sr-only"
                         onChange={async (e) => {
                           if (e.target.files && e.target.files[0]) {
+                            if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
                             const file = e.target.files[0];
                             // Validate that it's an image
                             if (!file.type.startsWith('image/')) {
@@ -679,8 +680,8 @@ export default function DeutzServiceForm() {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG, GIF up to 10MB
+                  <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                    PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)
                   </p>
                 </div>
               </div>

@@ -251,7 +251,7 @@ export default function ElectricSurfacePumpTeardownForm() {
   ) => (
     <div className="mb-6">
       <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-        {label}
+        {label} <span className="font-normal text-gray-400 normal-case">(max 10 photos only)</span>
       </label>
 
       {attachments.length > 0 && (
@@ -321,6 +321,7 @@ export default function ElectricSurfacePumpTeardownForm() {
                 className="sr-only"
                 onChange={async (e) => {
                   if (e.target.files && e.target.files[0]) {
+                    if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed per section'); e.target.value = ''; return; }
                     const file = e.target.files[0];
                     if (!file.type.startsWith('image/')) {
                       toast.error('Please select only image files');
@@ -368,7 +369,7 @@ export default function ElectricSurfacePumpTeardownForm() {
             </label>
             <p className="pl-1">or drag and drop</p>
           </div>
-          <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+          <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)</p>
         </div>
       </div>
     </div>

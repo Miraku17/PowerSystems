@@ -634,6 +634,7 @@ export default function DeutzCommissioningReport() {
                     onSignatureChange={(sig) => setFormData({ attending_technician_signature: sig })}
                     users={users}
                     subtitle="Technician"
+                    showAllUsers
                 />
                 <SignatorySelect
                     label="Approved By"

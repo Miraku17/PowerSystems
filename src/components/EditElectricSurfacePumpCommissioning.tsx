@@ -353,7 +353,7 @@ export default function EditElectricSurfacePumpCommissioning({
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">
                   Image Attachments
                 </h4>
-                <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+                <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
               </div>
               <div className="space-y-4">
                 {/* Existing Attachments */}
@@ -469,17 +469,22 @@ export default function EditElectricSurfacePumpCommissioning({
                           name="file-upload-edit-electric-surface"
                           type="file"
                           accept="image/*"
+                          multiple
                           className="sr-only"
                           onChange={async (e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                              const file = e.target.files[0];
-                              if (!file.type.startsWith('image/')) {
-                                toast.error('Please select only image files (PNG, JPG, etc.)');
-                                return;
+                            if (e.target.files && e.target.files.length > 0) {
+                              const files = Array.from(e.target.files);
+                              if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                              const processed = [];
+                              for (const file of files) {
+                                if (!file.type.startsWith('image/')) {
+                                  toast.error('Please select only image files (PNG, JPG, etc.)');
+                                  continue;
+                                }
+                                const compressed = await compressImageIfNeeded(file);
+                                processed.push({ file: compressed, title: '' });
                               }
-                              const compressed = await compressImageIfNeeded(file);
-                              setNewAttachments([...newAttachments, { file: compressed, title: '' }]);
+                              if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
                               e.target.value = '';
                             }
                           }}
@@ -487,7 +492,7 @@ export default function EditElectricSurfacePumpCommissioning({
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
                   </div>
                 </div>
               </div>

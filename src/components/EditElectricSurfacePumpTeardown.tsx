@@ -349,39 +349,41 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                 id={inputId}
                 type="file"
                 accept="image/*"
+                multiple
                 className="sr-only"
                 onChange={async (e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                    const file = e.target.files[0];
-                    if (!file.type.startsWith('image/')) {
-                      toast.error('Please select only image files');
-                      return;
-                    }
+                  if (e.target.files && e.target.files.length > 0) {
+                    const files = Array.from(e.target.files);
+                    if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
 
+                    const compressionThreshold = 2 * 1024 * 1024; // 2MB
                     const maxSize = 10 * 1024 * 1024; // 10MB
-                    if (file.size > maxSize) {
-                      toast.error('File size exceeds 10MB limit');
-                      return;
-                    }
+                    const processed: { file: File; title: string }[] = [];
 
-                    // Automatically compress if file is larger than 2MB
-                    const compressionThreshold = 2 * 1024 * 1024;
-                    if (file.size > compressionThreshold) {
-                      const loadingToast = toast.loading('Compressing large image...');
-                      try {
-                        const compressedFile = await compressImage(file);
-                        setNewAttachments([...newAttachments, { file: compressedFile, title: '' }]);
-                        toast.success('Image compressed and added', { id: loadingToast });
-                      } catch (error) {
-                        toast.error('Failed to compress image, using original', { id: loadingToast });
-                        setNewAttachments([...newAttachments, { file, title: '' }]);
+                    for (const file of files) {
+                      if (!file.type.startsWith('image/')) {
+                        toast.error(`${file.name} is not an image file`);
+                        continue;
                       }
-                    } else {
-                      setNewAttachments([...newAttachments, { file, title: '' }]);
-                      toast.success('Image added');
+                      if (file.size > maxSize) {
+                        toast.error(`${file.name} exceeds 10MB limit`);
+                        continue;
+                      }
+
+                      if (file.size > compressionThreshold) {
+                        try {
+                          const compressedFile = await compressImage(file);
+                          processed.push({ file: compressedFile, title: '' });
+                          toast.success(`Compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`, { duration: 2000 });
+                        } catch {
+                          processed.push({ file, title: '' });
+                        }
+                      } else {
+                        processed.push({ file, title: '' });
+                      }
                     }
 
+                    if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
                     e.target.value = '';
                   }
                 }}
@@ -389,7 +391,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
             </label>
             <p className="pl-1">or drag and drop</p>
           </div>
-          <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
+          <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
         </div>
       </div>
     </div>
@@ -407,7 +409,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
         <div className="flex items-center mb-4">
           <div className="w-1 h-6 bg-blue-600 mr-2"></div>
           <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4>
-          <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+          <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
         </div>
 
         {/* Existing Attachments */}

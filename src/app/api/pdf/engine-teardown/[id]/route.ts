@@ -45,7 +45,7 @@ export const GET = withAuth(async (request, { user, params }) => {
         .from("users")
         .select("id, firstname, lastname, user_signatures(signature_url)")
         .ilike("firstname", `%${signatoryName.split(" ")[0] || ""}%`)
-        .limit(10);
+        .limit(20);
       if (userData) {
         const match = userData.find((u: any) => {
           const fullName = `${u.firstname || ""} ${u.lastname || ""}`.trim();

@@ -402,7 +402,7 @@ export default function JobOrderRequestForm() {
                 signatureValue={formData.verified_by_signature}
                 onChange={handleSignatoryChange}
                 onSignatureChange={(sig) => setFormData({ verified_by_signature: sig })}
-                users={verifiedByUsers}
+                users={users}
                 subtitle="Verified By"
                 showAllUsers
               />
@@ -415,7 +415,7 @@ export default function JobOrderRequestForm() {
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -486,17 +486,22 @@ export default function JobOrderRequestForm() {
                       id="file-upload-job-order"
                       type="file"
                       accept="image/*"
+                      multiple
                       className="sr-only"
                       onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                          const file = e.target.files[0];
-                          if (!file.type.startsWith('image/')) {
-                            toast.error('Please select only image files');
-                            return;
+                        if (e.target.files && e.target.files.length > 0) {
+                          const files = Array.from(e.target.files);
+                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                          const newFiles = [];
+                          for (const file of files) {
+                            if (!file.type.startsWith('image/')) {
+                              toast.error('Please select only image files');
+                              continue;
+                            }
+                            const compressed = await compressImageIfNeeded(file);
+                            newFiles.push({ file: compressed, title: '' });
                           }
-                          const compressed = await compressImageIfNeeded(file);
-                          setAttachments([...attachments, { file: compressed, title: '' }]);
+                          if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                           e.target.value = '';
                         }
                       }}
@@ -504,7 +509,7 @@ export default function JobOrderRequestForm() {
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)</p>
+                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
               </div>
             </div>
           </div>
@@ -730,8 +735,8 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
                 onClick={() => handleSelectCustomer(customer)}
                 className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
               >
-                <div className="font-medium">{customer.name}</div>
-                <div className="text-xs text-gray-500">{customer.customer}</div>
+                <div className="font-medium">{customer.customer}</div>
+                <div className="text-xs text-gray-500">{customer.name}</div>
               </div>
             ))}
           </div>

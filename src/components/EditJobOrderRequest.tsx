@@ -8,7 +8,7 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import SignaturePad from "./SignaturePad";
-import { useUsers } from "@/hooks/useSharedQueries";
+import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditJobOrderRequestProps {
@@ -77,6 +77,7 @@ const SelectDropdown = ({ label, name, value, options, onChange }: { label: stri
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
   const { uploadFiles } = useSupabaseUpload();
   const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
@@ -111,6 +112,16 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
   const handleFieldChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCustomerSelect = (customer: any) => {
+    setFormData((prev) => ({
+      ...prev,
+      full_customer_name: customer.customer || "",
+      contact_person: customer.contactPerson || "",
+      address: customer.address || "",
+      telephone_numbers: customer.phone || "",
+    }));
   };
 
   const handleSave = async () => {
@@ -200,7 +211,15 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Customer Information</h3>
               <div className="grid grid-cols-1 gap-4">
-                <Input label="Full Customer's Name" name="full_customer_name" value={formData.full_customer_name} onChange={handleFieldChange} />
+                <CustomerAutocomplete
+                  label="Full Customer's Name"
+                  name="full_customer_name"
+                  value={formData.full_customer_name}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFieldChange(e.target.name, e.target.value)}
+                  onSelect={handleCustomerSelect}
+                  customers={customers}
+                  searchKey="customer"
+                />
                 <TextArea label="Address" name="address" value={formData.address} onChange={handleFieldChange} />
                 <Input label="Location of Unit" name="location_of_unit" value={formData.location_of_unit} onChange={handleFieldChange} />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -369,7 +388,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
             {/* Attachments */}
             <div>
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span></h3>
+              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span></h3>
               <div className="space-y-4">
                 {/* Existing Attachments */}
                 {existingAttachments.map((attachment) => {
@@ -544,13 +563,18 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                           name="attachment-upload"
                           type="file"
                           accept="*/*"
+                          multiple
                           className="sr-only"
                           onChange={async (e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                              const file = e.target.files[0];
-                              const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
-                              setNewAttachments([...newAttachments, { file: compressed, description: '' }]);
+                            if (e.target.files && e.target.files.length > 0) {
+                              const files = Array.from(e.target.files);
+                              if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                              const processed = [];
+                              for (const file of files) {
+                                const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
+                                processed.push({ file: compressed, description: '' });
+                              }
+                              if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
                               e.target.value = '';
                             }
                           }}
@@ -558,7 +582,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
                   </div>
                 </div>
               </div>
@@ -597,3 +621,69 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
     </div>
   );
 }
+
+interface CustomerAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSelect: (customer: any) => void;
+  customers: any[];
+  searchKey?: string;
+}
+
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (customer: any) => {
+    onSelect(customer);
+    setShowDropdown(false);
+  };
+
+  const filteredCustomers = customers.filter((c) =>
+    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value}
+          onChange={(e) => { onChange(e); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredCustomers.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleSelectCustomer(customer)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{customer.customer}</div>
+                <div className="text-xs text-gray-500">{customer.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

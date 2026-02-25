@@ -311,7 +311,7 @@ export default function SubmersiblePumpTeardownForm() {
   ) => (
     <div className="mb-6">
       <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-        {label} <span className="font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+        {label} <span className="font-normal text-gray-400 normal-case">(max 20 photos only)</span>
       </label>
 
       {attachments.length > 0 && (
@@ -378,50 +378,42 @@ export default function SubmersiblePumpTeardownForm() {
                 id={inputId}
                 type="file"
                 accept="image/*"
+                multiple
                 className="sr-only"
                 onChange={async (e) => {
-                  if (e.target.files && e.target.files[0]) {
-                    if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed per section'); e.target.value = ''; return; }
-                    const file = e.target.files[0];
-                    if (!file.type.startsWith('image/')) {
-                      toast.error('Please select only image files');
-                      return;
-                    }
+                  if (e.target.files && e.target.files.length > 0) {
+                    const files = Array.from(e.target.files);
+                    if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed per section'); e.target.value = ''; return; }
 
-                    // Check file size
-                    const maxSize = 10 * 1024 * 1024; // 10MB
-                    if (file.size > maxSize) {
-                      toast.error('File size exceeds 10MB limit');
-                      return;
-                    }
-
-                    // Automatically compress if file is larger than 2MB
                     const compressionThreshold = 2 * 1024 * 1024; // 2MB
-                    if (file.size > compressionThreshold) {
-                      const loadingToast = toast.loading('Compressing large image...');
+                    const maxSize = 10 * 1024 * 1024; // 10MB
+                    const newFiles: { file: File; title: string }[] = [];
 
-                      try {
-                        const compressedFile = await compressImage(file);
-                        const originalSize = (file.size / 1024 / 1024).toFixed(2);
-                        const compressedSize = (compressedFile.size / 1024 / 1024).toFixed(2);
-
-                        setAttachments([...attachments, { file: compressedFile, title: '' }]);
-
-                        toast.success(
-                          `Image compressed: ${originalSize}MB → ${compressedSize}MB`,
-                          { id: loadingToast, duration: 2000 }
-                        );
-                      } catch (error) {
-                        console.error('Error compressing image:', error);
-                        toast.error('Failed to compress image, using original', { id: loadingToast });
-                        setAttachments([...attachments, { file, title: '' }]);
+                    for (const file of files) {
+                      if (!file.type.startsWith('image/')) {
+                        toast.error(`${file.name} is not an image file`);
+                        continue;
                       }
-                    } else {
-                      // Use original file (already under 2MB)
-                      setAttachments([...attachments, { file, title: '' }]);
-                      toast.success('Image added');
+                      if (file.size > maxSize) {
+                        toast.error(`${file.name} exceeds 10MB limit`);
+                        continue;
+                      }
+
+                      if (file.size > compressionThreshold) {
+                        try {
+                          const compressedFile = await compressImage(file);
+                          newFiles.push({ file: compressedFile, title: '' });
+                          toast.success(`Compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressedFile.size / 1024 / 1024).toFixed(1)}MB`, { duration: 2000 });
+                        } catch (error) {
+                          console.error('Error compressing image:', error);
+                          newFiles.push({ file, title: '' });
+                        }
+                      } else {
+                        newFiles.push({ file, title: '' });
+                      }
                     }
 
+                    if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                     e.target.value = '';
                   }
                 }}
@@ -429,7 +421,7 @@ export default function SubmersiblePumpTeardownForm() {
             </label>
             <p className="pl-1">or drag and drop</p>
           </div>
-          <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)</p>
+          <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
         </div>
       </div>
     </div>

@@ -5,6 +5,7 @@ import { XMarkIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/rea
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
@@ -168,6 +169,7 @@ const createEmptyEntry = (hasDate: boolean): TimeSheetEntry => ({
 });
 
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
@@ -424,20 +426,38 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         entries: entriesData,
       });
 
-      // Handle attachments updates separately
-      const formDataObj = new FormData();
-      formDataObj.append('daily_time_sheet_id', recordId);
-      formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-      formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
+      // Upload new attachments to Supabase storage first
+      const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
-      // Append new attachments
-      newAttachments.forEach((attachment) => {
-        formDataObj.append('attachment_files', attachment.file);
-        formDataObj.append('attachment_descriptions', attachment.description);
+      if (newAttachments.length > 0) {
+        const loadingToast = toast.loading('Uploading images...');
+        const results = await uploadFiles(
+          newAttachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'daily-time-sheet' }
+        );
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedNewAttachments.push({
+              url: r.url,
+              title: newAttachments[i].description,
+              fileName: newAttachments[i].file.name,
+              fileType: newAttachments[i].file.type,
+              fileSize: newAttachments[i].file.size,
+            });
+          } else {
+            console.error(`Failed to upload file: ${r.error}`);
+          }
+        });
+        toast.dismiss(loadingToast);
+      }
+
+      // Send attachment metadata as JSON
+      await apiClient.post('/forms/daily-time-sheet/attachments', {
+        daily_time_sheet_id: recordId,
+        attachments_to_delete: attachmentsToDelete,
+        existing_attachments: existingAttachments,
+        uploaded_new_attachments: uploadedNewAttachments,
       });
-
-      // Update attachments
-      await apiClient.post('/forms/daily-time-sheet/attachments', formDataObj);
 
       toast.success("Daily Time Sheet updated successfully!");
       onSaved();
@@ -780,7 +800,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
 
             {/* Attachments */}
             <div className="bg-white p-6 rounded-xl border border-gray-200">
-              <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Attachments <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span></h4>
+              <h4 className="text-base font-bold text-gray-800 mb-4 pb-2 border-b border-gray-200 uppercase">Attachments <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span></h4>
               <div className="space-y-4">
                 {/* Existing Attachments */}
                 {existingAttachments.map((attachment) => {
@@ -955,13 +975,18 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                           name="attachment-upload"
                           type="file"
                           accept="*/*"
+                          multiple
                           className="sr-only"
                           onChange={async (e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              if (existingAttachments.length + newAttachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                              const file = e.target.files[0];
-                              const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
-                              setNewAttachments([...newAttachments, { file: compressed, description: '' }]);
+                            if (e.target.files && e.target.files.length > 0) {
+                              const files = Array.from(e.target.files);
+                              if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                              const processed = [];
+                              for (const file of files) {
+                                const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
+                                processed.push({ file: compressed, description: '' });
+                              }
+                              if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
                               e.target.value = '';
                             }
                           }}
@@ -969,7 +994,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
                   </div>
                 </div>
               </div>

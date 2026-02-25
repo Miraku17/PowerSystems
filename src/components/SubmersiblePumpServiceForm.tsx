@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { useSubmersiblePumpServiceFormStore } from "@/stores/submersiblePumpServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -17,6 +18,7 @@ export default function SubmersiblePumpServiceForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { uploadFiles } = useSupabaseUpload();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
@@ -80,15 +82,54 @@ export default function SubmersiblePumpServiceForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    await submit({
-      formType: 'submersible-pump-service',
-      formData: formData as unknown as Record<string, unknown>,
-      attachments,
-      onSuccess: () => {
-        setAttachments([]);
-        resetFormData();
-      },
-    });
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+      if (attachments.length > 0) {
+        const loadingToastId = toast.loading('Uploading images to storage...');
+        const results = await uploadFiles(
+          attachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'submersible/service' }
+        );
+
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+          console.error('Some files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
+        }
+
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedData.push({
+              url: r.url,
+              title: attachments[i].title,
+              fileName: attachments[i].file.name,
+              fileType: attachments[i].file.type,
+              fileSize: attachments[i].file.size,
+            });
+          }
+        });
+
+        toast.success('Images uploaded successfully', { id: loadingToastId });
+      }
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'submersible-pump-service',
+        formData: {
+          ...formData,
+          uploaded_attachments: JSON.stringify(uploadedData),
+        } as unknown as Record<string, unknown>,
+        onSuccess: () => {
+          setAttachments([]);
+          resetFormData();
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -299,7 +340,7 @@ export default function SubmersiblePumpServiceForm() {
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -370,17 +411,22 @@ export default function SubmersiblePumpServiceForm() {
                       id="file-upload-submersible-service"
                       type="file"
                       accept="image/*"
+                      multiple
                       className="sr-only"
                       onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                          const file = e.target.files[0];
-                          if (!file.type.startsWith('image/')) {
-                            toast.error('Please select only image files');
-                            return;
+                        if (e.target.files && e.target.files.length > 0) {
+                          const files = Array.from(e.target.files);
+                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                          const newFiles = [];
+                          for (const file of files) {
+                            if (!file.type.startsWith('image/')) {
+                              toast.error('Please select only image files');
+                              continue;
+                            }
+                            const compressed = await compressImageIfNeeded(file);
+                            newFiles.push({ file: compressed, title: '' });
                           }
-                          const compressed = await compressImageIfNeeded(file);
-                          setAttachments([...attachments, { file: compressed, title: '' }]);
+                          if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                           e.target.value = '';
                         }
                       }}
@@ -388,7 +434,7 @@ export default function SubmersiblePumpServiceForm() {
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)</p>
+                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
               </div>
             </div>
           </div>

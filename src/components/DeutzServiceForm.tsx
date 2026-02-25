@@ -8,6 +8,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
@@ -20,6 +21,7 @@ export default function DeutzServiceForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { uploadFiles } = useSupabaseUpload();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
@@ -108,15 +110,54 @@ export default function DeutzServiceForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    await submit({
-      formType: 'deutz-service',
-      formData: formData as unknown as Record<string, unknown>,
-      attachments,
-      onSuccess: () => {
-        resetFormData();
-        setAttachments([]);
-      },
-    });
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+      if (attachments.length > 0) {
+        const loadingToastId = toast.loading('Uploading images to storage...');
+        const results = await uploadFiles(
+          attachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'deutz/service' }
+        );
+
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+          console.error('Some files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
+        }
+
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedData.push({
+              url: r.url,
+              title: attachments[i].title,
+              fileName: attachments[i].file.name,
+              fileType: attachments[i].file.type,
+              fileSize: attachments[i].file.size,
+            });
+          }
+        });
+
+        toast.success('Images uploaded successfully', { id: loadingToastId });
+      }
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'deutz-service',
+        formData: {
+          ...formData,
+          uploaded_attachments: JSON.stringify(uploadedData),
+        } as unknown as Record<string, unknown>,
+        onSuccess: () => {
+          setAttachments([]);
+          resetFormData();
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -552,7 +593,7 @@ export default function DeutzServiceForm() {
 
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
-                Image Attachments <span className="font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+                Image Attachments <span className="font-normal text-gray-400 normal-case">(max 20 photos only)</span>
               </label>
 
               {/* Display existing attachments with preview */}
@@ -661,18 +702,22 @@ export default function DeutzServiceForm() {
                         name="file-upload"
                         type="file"
                         accept="image/*"
+                        multiple
                         className="sr-only"
                         onChange={async (e) => {
-                          if (e.target.files && e.target.files[0]) {
-                            if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                            const file = e.target.files[0];
-                            // Validate that it's an image
-                            if (!file.type.startsWith('image/')) {
-                              toast.error('Please select only image files (PNG, JPG, etc.)');
-                              return;
+                          if (e.target.files && e.target.files.length > 0) {
+                            const files = Array.from(e.target.files);
+                            if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                            const newFiles = [];
+                            for (const file of files) {
+                              if (!file.type.startsWith('image/')) {
+                                toast.error('Please select only image files (PNG, JPG, etc.)');
+                                continue;
+                              }
+                              const compressed = await compressImageIfNeeded(file);
+                              newFiles.push({ file: compressed, title: '' });
                             }
-                            const compressed = await compressImageIfNeeded(file);
-                            setAttachments([...attachments, { file: compressed, title: '' }]);
+                            if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                             e.target.value = '';
                           }
                         }}
@@ -680,8 +725,8 @@ export default function DeutzServiceForm() {
                     </label>
                     <p className="pl-1">or drag and drop</p>
                   </div>
-                  <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
-                    PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)
+                  <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
+                    PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)
                   </p>
                 </div>
               </div>

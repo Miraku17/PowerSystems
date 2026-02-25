@@ -51,13 +51,36 @@ export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
     const serviceSupabase = supabase;
-    const formData = await request.formData();
 
-    const dailyTimeSheetId = formData.get('daily_time_sheet_id') as string;
-    const attachmentsToDelete = JSON.parse(formData.get('attachments_to_delete') as string || '[]');
-    const existingAttachments = JSON.parse(formData.get('existing_attachments') as string || '[]');
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentDescriptions = formData.getAll('attachment_descriptions') as string[];
+    // Detect content type to handle both JSON and FormData formats
+    const contentType = request.headers.get('content-type') || '';
+    const isJsonFormat = contentType.includes('application/json');
+
+    let dailyTimeSheetId: string;
+    let attachmentsToDelete: string[];
+    let existingAttachments: any[];
+    let uploadedNewAttachments: any[] = [];
+
+    // Legacy FormData fields
+    let attachmentFiles: File[] = [];
+    let attachmentDescriptions: string[] = [];
+
+    if (isJsonFormat) {
+      // New format: JSON with pre-uploaded URLs
+      const body = await request.json();
+      dailyTimeSheetId = body.daily_time_sheet_id || body.report_id;
+      attachmentsToDelete = body.attachments_to_delete || [];
+      existingAttachments = body.existing_attachments || [];
+      uploadedNewAttachments = body.uploaded_new_attachments || [];
+    } else {
+      // Legacy format: FormData with files
+      const formData = await request.formData();
+      dailyTimeSheetId = formData.get('daily_time_sheet_id') as string;
+      attachmentsToDelete = JSON.parse(formData.get('attachments_to_delete') as string || '[]');
+      existingAttachments = JSON.parse(formData.get('existing_attachments') as string || '[]');
+      attachmentFiles = formData.getAll('attachment_files') as File[];
+      attachmentDescriptions = formData.getAll('attachment_descriptions') as string[];
+    }
 
     // 1. Delete attachments marked for deletion
     if (attachmentsToDelete.length > 0) {
@@ -88,7 +111,29 @@ export const POST = withAuth(async (request, { user }) => {
         .eq('id', attachment.id);
     }
 
-    // 3. Upload and save new attachments
+    // 3. Save new attachments from pre-uploaded URLs (JSON format)
+    if (uploadedNewAttachments.length > 0) {
+      for (const attachment of uploadedNewAttachments) {
+        const { error: attachmentError } = await supabase
+          .from('daily_time_sheet_attachments')
+          .insert([
+            {
+              daily_time_sheet_id: dailyTimeSheetId,
+              file_url: attachment.url,
+              file_name: attachment.title || attachment.fileName,
+              file_type: attachment.fileType,
+              file_size: attachment.fileSize,
+              description: attachment.description,
+            },
+          ]);
+
+        if (attachmentError) {
+          console.error(`Error inserting attachment record:`, attachmentError);
+        }
+      }
+    }
+
+    // 4. Legacy: Upload and save new attachments from FormData
     if (attachmentFiles.length > 0) {
       for (let i = 0; i < attachmentFiles.length; i++) {
         const file = attachmentFiles[i];

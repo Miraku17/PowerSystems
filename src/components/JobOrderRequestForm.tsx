@@ -10,6 +10,7 @@ import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
 
 export default function JobOrderRequestForm() {
@@ -18,6 +19,7 @@ export default function JobOrderRequestForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { uploadFiles } = useSupabaseUpload();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
@@ -78,24 +80,63 @@ export default function JobOrderRequestForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    await submit({
-      formType: 'job-order-request',
-      formData: formData as unknown as Record<string, unknown>,
-      attachments,
-      onSuccess: async () => {
-        setAttachments([]);
-        resetFormData();
-        // Refresh next JO number for the next submission
-        try {
-          const response = await apiClient.get('/forms/job-order-request/next-number');
-          if (response.data.success) {
-            setNextJoNumber(response.data.data);
-          }
-        } catch (error) {
-          console.error("Failed to refresh next JO number", error);
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+      if (attachments.length > 0) {
+        const loadingToastId = toast.loading('Uploading images to storage...');
+        const results = await uploadFiles(
+          attachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'job-order' }
+        );
+
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+          console.error('Some files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
         }
-      },
-    });
+
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedData.push({
+              url: r.url,
+              title: attachments[i].title,
+              fileName: attachments[i].file.name,
+              fileType: attachments[i].file.type,
+              fileSize: attachments[i].file.size,
+            });
+          }
+        });
+
+        toast.success('Images uploaded successfully', { id: loadingToastId });
+      }
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'job-order-request',
+        formData: {
+          ...formData,
+          uploaded_attachments: JSON.stringify(uploadedData),
+        } as unknown as Record<string, unknown>,
+        onSuccess: async () => {
+          setAttachments([]);
+          resetFormData();
+          // Refresh next JO number for the next submission
+          try {
+            const response = await apiClient.get('/forms/job-order-request/next-number');
+            if (response.data.success) {
+              setNextJoNumber(response.data.data);
+            }
+          } catch (error) {
+            console.error("Failed to refresh next JO number", error);
+          }
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -361,7 +402,7 @@ export default function JobOrderRequestForm() {
                 signatureValue={formData.verified_by_signature}
                 onChange={handleSignatoryChange}
                 onSignatureChange={(sig) => setFormData({ verified_by_signature: sig })}
-                users={verifiedByUsers}
+                users={users}
                 subtitle="Verified By"
                 showAllUsers
               />
@@ -374,7 +415,7 @@ export default function JobOrderRequestForm() {
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -445,17 +486,22 @@ export default function JobOrderRequestForm() {
                       id="file-upload-job-order"
                       type="file"
                       accept="image/*"
+                      multiple
                       className="sr-only"
                       onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          if (attachments.length >= 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
-                          const file = e.target.files[0];
-                          if (!file.type.startsWith('image/')) {
-                            toast.error('Please select only image files');
-                            return;
+                        if (e.target.files && e.target.files.length > 0) {
+                          const files = Array.from(e.target.files);
+                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                          const newFiles = [];
+                          for (const file of files) {
+                            if (!file.type.startsWith('image/')) {
+                              toast.error('Please select only image files');
+                              continue;
+                            }
+                            const compressed = await compressImageIfNeeded(file);
+                            newFiles.push({ file: compressed, title: '' });
                           }
-                          const compressed = await compressImageIfNeeded(file);
-                          setAttachments([...attachments, { file: compressed, title: '' }]);
+                          if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                           e.target.value = '';
                         }
                       }}
@@ -463,7 +509,7 @@ export default function JobOrderRequestForm() {
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className={`text-xs ${attachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/10 photos)</p>
+                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
               </div>
             </div>
           </div>
@@ -689,8 +735,8 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
                 onClick={() => handleSelectCustomer(customer)}
                 className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
               >
-                <div className="font-medium">{customer.name}</div>
-                <div className="text-xs text-gray-500">{customer.customer}</div>
+                <div className="font-medium">{customer.customer}</div>
+                <div className="text-xs text-gray-500">{customer.name}</div>
               </div>
             ))}
           </div>

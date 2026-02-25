@@ -45,11 +45,11 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  const dropdownUsers = showAllUsers
+  const dropdownUsers = (showAllUsers
     ? users
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
-    : [];
+    : []).sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const handleSelectOption = (user: FormUser) => {
     onChange(name, user.fullName);

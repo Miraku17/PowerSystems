@@ -466,7 +466,7 @@ export default function EditSubmersiblePumpTeardown({
                 className="sr-only"
                 onChange={async (e) => {
                   if (e.target.files) {
-                    if (existingAttachments.length + newAttachments.length + e.target.files.length > 10) { toast.error('Maximum 10 photos allowed'); e.target.value = ''; return; }
+                    if (existingAttachments.length + newAttachments.length + e.target.files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
                     const files = Array.from(e.target.files);
                     const validFiles = files.filter(file => {
                       if (!file.type.startsWith('image/')) {
@@ -506,7 +506,7 @@ export default function EditSubmersiblePumpTeardown({
             </label>
             <p className="pl-1">or drag and drop</p>
           </div>
-          <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 10 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/10 photos)</p>
+          <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
         </div>
       </div>
     </div>
@@ -524,7 +524,7 @@ export default function EditSubmersiblePumpTeardown({
         <div className="flex items-center mb-4">
           <div className="w-1 h-6 bg-blue-600 mr-2"></div>
           <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4>
-          <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 10 photos only)</span>
+          <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
         </div>
 
         {/* Existing Attachments */}

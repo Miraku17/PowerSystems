@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import SignaturePad from "./SignaturePad";
 import { useUsers } from "@/hooks/useSharedQueries";
@@ -74,6 +75,7 @@ const SelectDropdown = ({ label, name, value, options, onChange }: { label: stri
 );
 
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const { data: users = [] } = useUsers();
   const { hasPermission } = usePermissions();
   const [formData, setFormData] = useState<Record<string, any>>(data);
@@ -118,20 +120,38 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       // First, update the main form data
       await apiClient.patch(`/forms/job-order-request/${recordId}`, formData);
 
-      // Handle attachments updates
-      const formDataObj = new FormData();
-      formDataObj.append('job_order_id', recordId);
-      formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-      formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
+      // Upload new attachments to Supabase storage first
+      const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
-      // Append new attachments
-      newAttachments.forEach((attachment) => {
-        formDataObj.append('attachment_files', attachment.file);
-        formDataObj.append('attachment_descriptions', attachment.description);
+      if (newAttachments.length > 0) {
+        const uploadToast = toast.loading('Uploading files...');
+        const results = await uploadFiles(
+          newAttachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'job-order' }
+        );
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedNewAttachments.push({
+              url: r.url,
+              title: newAttachments[i].description,
+              fileName: newAttachments[i].file.name,
+              fileType: newAttachments[i].file.type,
+              fileSize: newAttachments[i].file.size,
+            });
+          } else {
+            console.error(`Failed to upload file: ${r.error}`);
+          }
+        });
+        toast.dismiss(uploadToast);
+      }
+
+      // Send attachment metadata as JSON
+      await apiClient.post('/forms/job-order-request/attachments', {
+        job_order_id: recordId,
+        attachments_to_delete: attachmentsToDelete,
+        existing_attachments: existingAttachments,
+        uploaded_new_attachments: uploadedNewAttachments,
       });
-
-      // Update attachments
-      await apiClient.post('/forms/job-order-request/attachments', formDataObj);
 
       toast.success("Job Order Request updated successfully!");
       onSaved();

@@ -9,6 +9,7 @@ import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } fro
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, FormUser } from "@/hooks/useSharedQueries";
 
@@ -18,6 +19,7 @@ export default function DailyTimeSheetForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { uploadFiles } = useSupabaseUpload();
 
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
@@ -190,18 +192,55 @@ export default function DailyTimeSheetForm() {
     // Prepare entries data for submission (strip client-only fields)
     const entriesData = formData.entries.map(({ id, has_date, ...rest }) => rest);
 
-    await submit({
-      formType: 'daily-time-sheet' as any,
-      formData: {
-        ...formData,
-        entries: JSON.stringify(entriesData),
-      } as unknown as Record<string, unknown>,
-      attachments,
-      onSuccess: () => {
-        setAttachments([]);
-        resetFormData();
-      },
-    });
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+      if (attachments.length > 0) {
+        const loadingToastId = toast.loading('Uploading images to storage...');
+        const results = await uploadFiles(
+          attachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'daily-time-sheet' }
+        );
+
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+          console.error('Some files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
+        }
+
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedData.push({
+              url: r.url,
+              title: attachments[i].title,
+              fileName: attachments[i].file.name,
+              fileType: attachments[i].file.type,
+              fileSize: attachments[i].file.size,
+            });
+          }
+        });
+
+        toast.success('Images uploaded successfully', { id: loadingToastId });
+      }
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'daily-time-sheet' as any,
+        formData: {
+          ...formData,
+          entries: JSON.stringify(entriesData),
+          uploaded_attachments: JSON.stringify(uploadedData),
+        } as unknown as Record<string, unknown>,
+        onSuccess: () => {
+          setAttachments([]);
+          resetFormData();
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
@@ -89,6 +90,7 @@ export default function EditDeutzCommissioning({
   onSaved,
   onSignatoryChange,
 }: EditDeutzCommissioningProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const currentUser = useCurrentUser();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
@@ -153,20 +155,38 @@ export default function EditDeutzCommissioning({
       );
 
       if (response.status === 200) {
-        // Handle attachments updates
-        const formDataObj = new FormData();
-        formDataObj.append('form_id', recordId);
-        formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-        formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
+        // Upload new attachments to Supabase storage first
+        const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
-        // Append new attachments
-        newAttachments.forEach((attachment) => {
-          formDataObj.append('attachment_files', attachment.file);
-          formDataObj.append('attachment_titles', attachment.title);
+        if (newAttachments.length > 0) {
+          toast.loading('Uploading images...', { id: loadingToast });
+          const results = await uploadFiles(
+            newAttachments.map(a => a.file),
+            { bucket: 'service-reports', pathPrefix: 'deutz/commission' }
+          );
+          results.forEach((r, i) => {
+            if (r.success && r.url) {
+              uploadedNewAttachments.push({
+                url: r.url,
+                title: newAttachments[i].title,
+                fileName: newAttachments[i].file.name,
+                fileType: newAttachments[i].file.type,
+                fileSize: newAttachments[i].file.size,
+              });
+            } else {
+              console.error(`Failed to upload file: ${r.error}`);
+            }
+          });
+        }
+
+        // Send attachment metadata as JSON
+        toast.loading('Updating attachments...', { id: loadingToast });
+        await apiClient.post('/forms/deutz-commissioning/attachments', {
+          form_id: recordId,
+          attachments_to_delete: attachmentsToDelete,
+          existing_attachments: existingAttachments,
+          uploaded_new_attachments: uploadedNewAttachments,
         });
-
-        // Update attachments
-        await apiClient.post('/forms/deutz-commissioning/attachments', formDataObj);
 
         toast.success("Commissioning Report updated successfully!", { id: loadingToast });
         onSaved();

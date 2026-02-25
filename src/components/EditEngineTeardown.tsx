@@ -424,16 +424,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
     const loadingToast = toast.loading('Saving changes...');
 
     try {
-      const formDataToSubmit = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          formDataToSubmit.append(key, value.toString());
-        }
-      });
-
-      await apiClient.patch(`/forms/engine-teardown/${recordId}`, formDataToSubmit, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      await apiClient.patch(`/forms/engine-teardown/${recordId}`, formData);
 
       toast.success('Engine Teardown Report updated successfully!', { id: loadingToast });
       onSaved();

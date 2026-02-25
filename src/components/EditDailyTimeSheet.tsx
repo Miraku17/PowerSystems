@@ -5,6 +5,7 @@ import { XMarkIcon, PlusIcon, TrashIcon, CalendarDaysIcon } from "@heroicons/rea
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
@@ -168,6 +169,7 @@ const createEmptyEntry = (hasDate: boolean): TimeSheetEntry => ({
 });
 
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
@@ -424,20 +426,38 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
         entries: entriesData,
       });
 
-      // Handle attachments updates separately
-      const formDataObj = new FormData();
-      formDataObj.append('daily_time_sheet_id', recordId);
-      formDataObj.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-      formDataObj.append('existing_attachments', JSON.stringify(existingAttachments));
+      // Upload new attachments to Supabase storage first
+      const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
-      // Append new attachments
-      newAttachments.forEach((attachment) => {
-        formDataObj.append('attachment_files', attachment.file);
-        formDataObj.append('attachment_descriptions', attachment.description);
+      if (newAttachments.length > 0) {
+        const loadingToast = toast.loading('Uploading images...');
+        const results = await uploadFiles(
+          newAttachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'daily-time-sheet' }
+        );
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedNewAttachments.push({
+              url: r.url,
+              title: newAttachments[i].description,
+              fileName: newAttachments[i].file.name,
+              fileType: newAttachments[i].file.type,
+              fileSize: newAttachments[i].file.size,
+            });
+          } else {
+            console.error(`Failed to upload file: ${r.error}`);
+          }
+        });
+        toast.dismiss(loadingToast);
+      }
+
+      // Send attachment metadata as JSON
+      await apiClient.post('/forms/daily-time-sheet/attachments', {
+        daily_time_sheet_id: recordId,
+        attachments_to_delete: attachmentsToDelete,
+        existing_attachments: existingAttachments,
+        uploaded_new_attachments: uploadedNewAttachments,
       });
-
-      // Update attachments
-      await apiClient.post('/forms/daily-time-sheet/attachments', formDataObj);
 
       toast.success("Daily Time Sheet updated successfully!");
       onSaved();

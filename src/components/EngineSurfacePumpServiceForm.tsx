@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { useEngineSurfacePumpServiceFormStore } from "@/stores/engineSurfacePumpServiceFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -17,6 +18,7 @@ export default function EngineSurfacePumpServiceForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { uploadFiles } = useSupabaseUpload();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
@@ -80,15 +82,54 @@ export default function EngineSurfacePumpServiceForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    await submit({
-      formType: 'engine-surface-pump-service',
-      formData: formData as unknown as Record<string, unknown>,
-      attachments,
-      onSuccess: () => {
-        setAttachments([]);
-        resetFormData();
-      },
-    });
+    try {
+      // Step 1: Upload all images to Supabase Storage
+      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+      if (attachments.length > 0) {
+        const loadingToastId = toast.loading('Uploading images to storage...');
+        const results = await uploadFiles(
+          attachments.map(a => a.file),
+          { bucket: 'service-reports', pathPrefix: 'engine-surface/service' }
+        );
+
+        const failedUploads = results.filter(r => !r.success);
+        if (failedUploads.length > 0) {
+          console.error('Some files failed to upload:', failedUploads);
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
+        }
+
+        results.forEach((r, i) => {
+          if (r.success && r.url) {
+            uploadedData.push({
+              url: r.url,
+              title: attachments[i].title,
+              fileName: attachments[i].file.name,
+              fileType: attachments[i].file.type,
+              fileSize: attachments[i].file.size,
+            });
+          }
+        });
+
+        toast.success('Images uploaded successfully', { id: loadingToastId });
+      }
+
+      // Step 2: Submit form data with URLs to API
+      await submit({
+        formType: 'engine-surface-pump-service',
+        formData: {
+          ...formData,
+          uploaded_attachments: JSON.stringify(uploadedData),
+        } as unknown as Record<string, unknown>,
+        onSuccess: () => {
+          setAttachments([]);
+          resetFormData();
+        },
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload images. Please try again.');
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {

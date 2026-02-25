@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
@@ -131,6 +132,7 @@ export default function EditEngineSurfacePumpService({
   onSaved,
   onSignatoryChange,
 }: EditEngineSurfacePumpServiceProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const currentUser = useCurrentUser();
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState(data);
@@ -194,22 +196,37 @@ export default function EditEngineSurfacePumpService({
       );
 
       if (response.status === 200) {
-        // 2. Update attachments (deletions, title updates, new uploads)
-        const attachmentFormData = new FormData();
-        attachmentFormData.append('report_id', recordId);
-        attachmentFormData.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-        attachmentFormData.append('existing_attachments', JSON.stringify(existingAttachments));
+        // 2. Upload new attachments to Supabase storage first
+        const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
-        // Add new attachment files and titles
-        newAttachments.forEach((attachment) => {
-          attachmentFormData.append('attachment_files', attachment.file);
-          attachmentFormData.append('attachment_titles', attachment.title);
-        });
+        if (newAttachments.length > 0) {
+          toast.loading('Uploading images...', { id: loadingToast });
+          const results = await uploadFiles(
+            newAttachments.map(a => a.file),
+            { bucket: 'service-reports', pathPrefix: 'engine-surface/service' }
+          );
+          results.forEach((r, i) => {
+            if (r.success && r.url) {
+              uploadedNewAttachments.push({
+                url: r.url,
+                title: newAttachments[i].title,
+                fileName: newAttachments[i].file.name,
+                fileType: newAttachments[i].file.type,
+                fileSize: newAttachments[i].file.size,
+              });
+            } else {
+              console.error(`Failed to upload file: ${r.error}`);
+            }
+          });
+        }
 
-        await apiClient.post('/forms/engine-surface-pump-service/attachments', attachmentFormData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+        // Send attachment metadata as JSON
+        toast.loading('Updating attachments...', { id: loadingToast });
+        await apiClient.post('/forms/engine-surface-pump-service/attachments', {
+          report_id: recordId,
+          attachments_to_delete: attachmentsToDelete,
+          existing_attachments: existingAttachments,
+          uploaded_new_attachments: uploadedNewAttachments,
         });
 
         toast.success("Report updated successfully!", { id: loadingToast });

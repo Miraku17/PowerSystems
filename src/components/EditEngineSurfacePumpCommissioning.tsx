@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
+import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
@@ -30,6 +31,7 @@ const Input = ({ label, name, value, type = "text", disabled = false, onChange }
 
 
 export default function EditEngineSurfacePumpCommissioning({ data, recordId, onClose, onSaved, onSignatoryChange }: EditEngineSurfacePumpCommissioningProps) {
+  const { uploadFiles } = useSupabaseUpload();
   const currentUser = useCurrentUser();
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState(data);
@@ -79,12 +81,38 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
     try {
       const response = await apiClient.patch(`/forms/engine-surface-pump-commissioning?id=${recordId}`, formData);
       if (response.status === 200) {
-        const attachmentFormData = new FormData();
-        attachmentFormData.append('report_id', recordId);
-        attachmentFormData.append('attachments_to_delete', JSON.stringify(attachmentsToDelete));
-        attachmentFormData.append('existing_attachments', JSON.stringify(existingAttachments));
-        newAttachments.forEach((attachment) => { attachmentFormData.append('attachment_files', attachment.file); attachmentFormData.append('attachment_titles', attachment.title); });
-        await apiClient.post('/forms/engine-surface-pump-commissioning/attachments', attachmentFormData, { headers: { 'Content-Type': 'multipart/form-data' } });
+        // Upload new attachments to Supabase storage first
+        const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
+
+        if (newAttachments.length > 0) {
+          toast.loading('Uploading images...', { id: loadingToast });
+          const results = await uploadFiles(
+            newAttachments.map(a => a.file),
+            { bucket: 'service-reports', pathPrefix: 'engine-surface/commissioning' }
+          );
+          results.forEach((r, i) => {
+            if (r.success && r.url) {
+              uploadedNewAttachments.push({
+                url: r.url,
+                title: newAttachments[i].title,
+                fileName: newAttachments[i].file.name,
+                fileType: newAttachments[i].file.type,
+                fileSize: newAttachments[i].file.size,
+              });
+            } else {
+              console.error(`Failed to upload file: ${r.error}`);
+            }
+          });
+        }
+
+        // Send attachment metadata as JSON
+        toast.loading('Updating attachments...', { id: loadingToast });
+        await apiClient.post('/forms/engine-surface-pump-commissioning/attachments', {
+          report_id: recordId,
+          attachments_to_delete: attachmentsToDelete,
+          existing_attachments: existingAttachments,
+          uploaded_new_attachments: uploadedNewAttachments,
+        });
         toast.success("Report updated successfully!", { id: loadingToast });
         onSaved();
         onClose();

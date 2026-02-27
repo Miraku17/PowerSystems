@@ -75,12 +75,11 @@ function DashboardLayoutInner({
     loadUserData();
   }, []);
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     setUserLoading(true);
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      console.log("User from localStorage:", user);
 
       // Sync to auth store
       setAuthUser(user);
@@ -96,10 +95,22 @@ function DashboardLayoutInner({
       if (user && user.role) {
         setUserRole(user.role);
       }
+      // Fallback to cached position while fetching
       if (user && user.position) {
         setUserPosition(user.position);
       }
     }
+
+    // Fetch fresh position from server to reflect any changes
+    try {
+      const res = await apiClient.get("/auth/position");
+      if (res.data.success && res.data.positionName) {
+        setUserPosition(res.data.positionName);
+      }
+    } catch {
+      // Keep the cached value on error
+    }
+
     setUserLoading(false);
   };
 

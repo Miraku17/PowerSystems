@@ -1099,6 +1099,7 @@ export default function ComponentsTeardownMeasuringForm() {
                   onSelect={handleCustomerSelect}
                   customers={customers}
                   searchKey="name"
+                  disabled
                 />
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-1">Report Date</label>
@@ -1911,9 +1912,10 @@ interface CustomerAutocompleteProps {
   onSelect: (customer: any) => void;
   customers: any[];
   searchKey?: string;
+  disabled?: boolean;
 }
 
-const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "name" }: CustomerAutocompleteProps) => {
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "name", disabled = false }: CustomerAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -1940,6 +1942,7 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const scrollY = window.scrollY;
     onChange(e);
     setShowDropdown(true);
@@ -1972,21 +1975,24 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
           type="text"
           name={name}
           value={value}
+          disabled={disabled}
           onChange={handleInputChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2.5 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          onFocus={() => { if (!disabled) setShowDropdown(true); }}
+          className={`w-full px-4 py-2.5 pr-10 border rounded-lg transition ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"}`}
           placeholder={`Enter ${label.toLowerCase()}`}
           autoComplete="off"
         />
-        <button
-          type="button"
-          tabIndex={-1}
-          onMouseDown={handleToggleDropdown}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-        >
-          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-        </button>
-        {showDropdown && filteredCustomers.length > 0 && (
+        {!disabled && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onMouseDown={handleToggleDropdown}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+        {!disabled && showDropdown && filteredCustomers.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
             {filteredCustomers.map((customer) => (
               <div

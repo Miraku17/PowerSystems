@@ -10,6 +10,7 @@ export interface AuthUser {
   lastname: string;
   username: string;
   role: UserRole;
+  address?: string;
 }
 
 interface AuthStore {

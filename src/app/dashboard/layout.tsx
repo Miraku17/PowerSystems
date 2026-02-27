@@ -159,7 +159,7 @@ function DashboardLayoutInner({
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
     { name: "Knowledge Base", icon: BookOpenIcon, href: "/dashboard/knowledge-base", permissionModule: "knowledge_base" },
-    { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
+    { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation", permissionModule: "user_creation" },
     {
       name: "Products",
       icon: CogIcon,
@@ -285,7 +285,9 @@ function DashboardLayoutInner({
         (pathname.startsWith("/dashboard/reports") && canAccess("reports")) ||
         (pathname.startsWith("/dashboard/leave") && canAccess("leave")) ||
         (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval")) ||
-        (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore"));
+        (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore")) ||
+        (pathname.startsWith("/dashboard/user-creation") && canRead("user_creation")) ||
+        (pathname.startsWith("/dashboard/audit-logs") && canRead("audit_logs"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

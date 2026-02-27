@@ -7,6 +7,8 @@ import {
   ArrowDownTrayIcon,
 } from "@heroicons/react/24/outline";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { ShieldExclamationIcon } from "@heroicons/react/24/outline";
 
 interface AuditLog {
   id: string;
@@ -21,16 +23,23 @@ interface AuditLog {
 
 export default function AuditLogsPage() {
   useAuth(); // Protect the page
+  const { canRead, isLoading: permissionsLoading } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (permissionsLoading) return;
+    if (!canRead("audit_logs")) {
+      setLoading(false);
+      return;
+    }
+
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem("authToken");
         const headers: HeadersInit = {};
-        
+
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
@@ -38,10 +47,9 @@ export default function AuditLogsPage() {
         const response = await fetch('/api/audit-logs?limit=100', {
           headers: headers
         });
-        
+
         if (response.status === 401) {
              console.error("Unauthorized: Please login again.");
-             // Optional: Force redirect if 401, though useAuth should handle it eventually
              return;
         }
 
@@ -57,7 +65,7 @@ export default function AuditLogsPage() {
     };
 
     fetchLogs();
-  }, []);
+  }, [permissionsLoading, canRead]);
 
   // Filter logs based on search
   const filteredLogs = logs.filter(
@@ -88,6 +96,16 @@ export default function AuditLogsPage() {
     if (act === 'DELETE') return 'bg-red-100 text-red-800';
     return 'bg-gray-100 text-gray-800';
   };
+
+  if (!permissionsLoading && !canRead("audit_logs")) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <ShieldExclamationIcon className="h-16 w-16 text-gray-300 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-700">Access Denied</h2>
+        <p className="text-gray-500 mt-2">You do not have permission to view audit logs.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

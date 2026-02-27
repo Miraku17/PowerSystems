@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { withAuth } from "@/lib/auth-middleware";
+import { hasPermission } from '@/lib/permissions';
 
-export const GET = withAuth(async (request) => {
+export const GET = withAuth(async (request, { user }) => {
   try {
     const supabaseAdmin = getServiceSupabase();
+
+    const canRead = await hasPermission(supabaseAdmin, user.id, 'audit_logs', 'read');
+    if (!canRead) {
+      return NextResponse.json(
+        { error: 'You do not have permission to view audit logs' },
+        { status: 403 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const table_name_param = searchParams.get('table_name');
     const record_id_param = searchParams.get('record_id');

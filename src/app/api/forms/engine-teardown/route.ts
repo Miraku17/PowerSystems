@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
+import { getUserAddresses } from "@/lib/users";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -112,6 +113,9 @@ export const GET = withAuth(async (request, { user }) => {
 
     const approvalMap = await getApprovalsByTable(supabase, "engine_teardown_reports");
 
+    const creatorIds = [...new Set(reports.map((r: any) => r.created_by).filter(Boolean))];
+    const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
+
     const formRecords = reports.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       return {
@@ -122,6 +126,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
+        created_by_address: addressMap[record.created_by] || null,
         updated_by: record.updated_by,
         approval,
         companyForm: {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
+import { getUserAddresses } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -30,6 +31,9 @@ export const GET = withAuth(async (request, { user }) => {
       "cancelled": "Cancelled",
     };
 
+    const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
+    const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
+
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       const rawStatus = (record.status || "").trim();
@@ -42,6 +46,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
+        created_by_address: addressMap[record.created_by] || null,
         approval,
         companyForm: {
           id: "job-order-request",

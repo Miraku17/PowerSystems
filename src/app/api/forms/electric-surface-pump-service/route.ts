@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
+import { getUserAddresses } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -24,6 +25,9 @@ export const GET = withAuth(async (request, { user }) => {
 
     const approvalMap = await getApprovalsByTable(supabase, "electric_surface_pump_service_report");
 
+    const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
+    const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
+
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       return {
@@ -34,6 +38,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
+        created_by_address: addressMap[record.created_by] || null,
         approval,
         companyForm: {
           id: "electric-surface-pump-service",

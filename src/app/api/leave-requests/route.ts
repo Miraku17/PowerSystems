@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, getPermissionScope } from "@/lib/permissions";
 
 // GET: List leave requests
 // - Users with leave.access see their own requests
-// - Users with leave_approval.access see all requests
+// - Users with leave_approval.access (scope=all) see all requests
+// - Users with leave_approval.access (scope=branch) see only their branch's requests
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -25,7 +26,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     let query = supabase
       .from("leave_requests")
-      .select("*, user:users!leave_requests_user_id_fkey(id, firstname, lastname, email), approver:users!leave_requests_approved_by_fkey(id, firstname, lastname)")
+      .select("*, user:users!leave_requests_user_id_fkey(id, firstname, lastname, email, address), approver:users!leave_requests_approved_by_fkey(id, firstname, lastname)")
       .order("created_at", { ascending: false });
 
     // If user doesn't have approval access, only show their own
@@ -47,7 +48,26 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    // Apply branch filter if approval access is branch-scoped
+    let result = data || [];
+    if (canAccessApproval) {
+      const approvalScope = await getPermissionScope(supabase, user.id, "leave_approval", "access");
+      if (approvalScope === "branch") {
+        const { data: currentUserData } = await supabase
+          .from("users")
+          .select("address")
+          .eq("id", user.id)
+          .single();
+
+        if (currentUserData?.address) {
+          result = result.filter(
+            (req: any) => req.user?.address === currentUserData.address
+          );
+        }
+      }
+    }
+
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("API error fetching leave requests:", error);
     return NextResponse.json(

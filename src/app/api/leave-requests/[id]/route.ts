@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, getPermissionScope } from "@/lib/permissions";
 
 // PATCH: Approve or reject a leave request
 export const PATCH = withAuth(async (request, { user, params }) => {
@@ -27,10 +27,10 @@ export const PATCH = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Get the leave request
+    // Get the leave request (include requester address for branch check)
     const { data: leaveRequest, error: fetchError } = await supabase
       .from("leave_requests")
-      .select("*")
+      .select("*, user:users!leave_requests_user_id_fkey(id, address)")
       .eq("id", id)
       .single();
 
@@ -39,6 +39,24 @@ export const PATCH = withAuth(async (request, { user, params }) => {
         { success: false, message: "Leave request not found" },
         { status: 404 }
       );
+    }
+
+    // Branch scope check: only allow approving/rejecting requests from same branch
+    const editScope = await getPermissionScope(supabase, user.id, "leave_approval", "edit");
+    if (editScope === "branch") {
+      const { data: currentUserData } = await supabase
+        .from("users")
+        .select("address")
+        .eq("id", user.id)
+        .single();
+
+      const requesterAddress = (leaveRequest.user as any)?.address;
+      if (!currentUserData?.address || requesterAddress !== currentUserData.address) {
+        return NextResponse.json(
+          { success: false, message: "You can only approve/reject leave requests from your branch" },
+          { status: 403 }
+        );
+      }
     }
 
     if (leaveRequest.status !== "pending") {

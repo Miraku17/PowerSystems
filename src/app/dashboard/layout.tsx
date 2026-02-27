@@ -283,7 +283,7 @@ function DashboardLayoutInner({
         (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
         (pathname.startsWith("/dashboard/products") && canRead("products")) ||
         (pathname.startsWith("/dashboard/reports") && canAccess("reports")) ||
-        (pathname.startsWith("/dashboard/leave") && canAccess("leave")) ||
+        ((pathname === "/dashboard/leave" || pathname.startsWith("/dashboard/leave/")) && canAccess("leave")) ||
         (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval")) ||
         (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore")) ||
         (pathname.startsWith("/dashboard/user-creation") && canRead("user_creation")) ||

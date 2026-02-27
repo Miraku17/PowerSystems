@@ -521,7 +521,7 @@ const CustomerAutocomplete = ({ label, value, onChange, onSelect, customers, sea
 
   const filteredCustomers = customers.filter((c) =>
     (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  );
+  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
 
   return (
     <div className="flex flex-col w-full" ref={dropdownRef}>

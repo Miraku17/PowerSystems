@@ -8,7 +8,7 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
-import { useUsers } from "@/hooks/useSharedQueries";
+import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -34,6 +34,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
   const { uploadFiles } = useSupabaseUpload();
   const currentUser = useCurrentUser();
   const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const [formData, setFormData] = useState(data);
   const [isSaving, setIsSaving] = useState(false);
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -60,6 +61,17 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
     const fetchAttachments = async () => { try { const response = await apiClient.get('/forms/engine-surface-pump-commissioning/attachments', { params: { report_id: recordId } }); setExistingAttachments(response.data.data || []); } catch (error) { console.error('Error fetching attachments:', error); } };
     fetchAttachments();
   }, [recordId]);
+
+  const handleCustomerSelect = (customer: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      reporting_person_name: customer.name || "",
+      customer: customer.customer || "",
+      contact_person: customer.contactPerson || "",
+      address: customer.address || "",
+      email_or_contact: customer.email || customer.phone || "",
+    }));
+  };
 
   const handleChange = (name: string, value: any) => {
     const updates: Record<string, any> = { [name]: value };
@@ -139,7 +151,7 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto space-y-8">
             <div className="bg-blue-50 border-l-4 border-blue-600 p-4 rounded-md"><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><Input label="Job Order" name="job_order" value={formData.job_order} onChange={handleChange} disabled /><Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date?.split("T")[0] || ""} onChange={handleChange} /></div></div>
 
-            <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Basic Information</h4></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} /><Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} /><Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} /><Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date?.split("T")[0] || ""} onChange={handleChange} /><div className="lg:col-span-2"><Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} /></div><Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} /><Input label="Email/Contact" name="email_or_contact" value={formData.email_or_contact} onChange={handleChange} /><div className="lg:col-span-4"><Input label="Address" name="address" value={formData.address} onChange={handleChange} /></div></div></div>
+            <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Basic Information</h4></div><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"><CustomerAutocomplete label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="name" /><Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} /><Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} /><Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date?.split("T")[0] || ""} onChange={handleChange} /><div className="lg:col-span-2"><Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} /></div><Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} /><Input label="Email/Contact" name="email_or_contact" value={formData.email_or_contact} onChange={handleChange} /><div className="lg:col-span-4"><Input label="Address" name="address" value={formData.address} onChange={handleChange} /></div></div></div>
 
             <div><div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Pump Details</h4></div><div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6"><Input label="Pump Maker" name="pump_maker" value={formData.pump_maker} onChange={handleChange} /><Input label="Pump Type" name="pump_type" value={formData.pump_type} onChange={handleChange} /><Input label="Impeller Material" name="impeller_material" value={formData.impeller_material} onChange={handleChange} /><Input label="Pump Model" name="pump_model" value={formData.pump_model} onChange={handleChange} /><Input label="Pump Serial Number" name="pump_serial_number" value={formData.pump_serial_number} onChange={handleChange} /><Input label="RPM" name="pump_rpm" value={formData.pump_rpm} onChange={handleChange} /><Input label="Product Number" name="product_number" value={formData.product_number} onChange={handleChange} /><Input label="HMAX (Head)" name="hmax_head" value={formData.hmax_head} onChange={handleChange} /><Input label="QMAX (Flow)" name="qmax_flow" value={formData.qmax_flow} onChange={handleChange} /><Input label="Suction Size" name="suction_size" value={formData.suction_size} onChange={handleChange} /><Input label="Suction Connection" name="suction_connection" value={formData.suction_connection} onChange={handleChange} /><Input label="Suction Strainer P.N" name="suction_strainer_pn" value={formData.suction_strainer_pn} onChange={handleChange} /><Input label="Discharge Size" name="discharge_size" value={formData.discharge_size} onChange={handleChange} /><Input label="Discharge Connection" name="discharge_connection" value={formData.discharge_connection} onChange={handleChange} /><Input label="Configuration" name="configuration" value={formData.configuration} onChange={handleChange} /></div></div>
 
@@ -173,3 +185,73 @@ export default function EditEngineSurfacePumpCommissioning({ data, recordId, onC
     </div>
   );
 }
+
+interface CustomerAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: any) => void;
+  onSelect: (customer: any) => void;
+  customers: any[];
+  searchKey?: string;
+}
+
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (customer: any) => {
+    onSelect(customer);
+    setShowDropdown(false);
+  };
+
+  const filteredCustomers = customers.filter((c) =>
+    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={(e) => { onChange(name, e.target.value); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredCustomers.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleSelectCustomer(customer)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{customer[searchKey]}</div>
+                {searchKey === "name" && customer.customer && (
+                  <div className="text-xs text-gray-500">{customer.customer}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

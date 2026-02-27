@@ -8,7 +8,7 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
-import { useUsers } from "@/hooks/useSharedQueries";
+import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 
@@ -107,6 +107,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
   }));
   const [isSaving, setIsSaving] = useState(false);
   const { data: users = [] } = useUsers();
+  const { data: customers = [] } = useCustomers();
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -123,6 +124,19 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
 
     fetchAttachments();
   }, [recordId]);
+
+  const handleCustomerSelect = (customer: any) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      reporting_person_name: customer.name || "",
+      customer_name: customer.customer || "",
+      contact_person: customer.contactPerson || "",
+      address: customer.address || "",
+      email_address: customer.email || "",
+      phone_number: customer.phone || "",
+      equipment_manufacturer: customer.equipment || "",
+    }));
+  };
 
   const handleChange = (name: string, value: any) => {
     const updates: Record<string, any> = { [name]: value };
@@ -236,7 +250,15 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
                 <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">General Information</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Input label="Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
+                <CustomerAutocomplete
+                  label="Reporting Person"
+                  name="reporting_person_name"
+                  value={formData.reporting_person_name}
+                  onChange={handleChange}
+                  onSelect={handleCustomerSelect}
+                  customers={customers}
+                  searchKey="name"
+                />
                 <Input label="Customer Name" name="customer_name" value={formData.customer_name} className="lg:col-span-2" onChange={handleChange} />
                 <Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
                 <Input label="Address" name="address" value={formData.address} className="lg:col-span-3" onChange={handleChange} />
@@ -625,3 +647,73 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
     </div>
   );
 }
+
+interface CustomerAutocompleteProps {
+  label: string;
+  name: string;
+  value: string;
+  onChange: (name: string, value: any) => void;
+  onSelect: (customer: any) => void;
+  customers: any[];
+  searchKey?: string;
+}
+
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (customer: any) => {
+    onSelect(customer);
+    setShowDropdown(false);
+  };
+
+  const filteredCustomers = customers.filter((c) =>
+    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
+  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={(e) => { onChange(name, e.target.value); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredCustomers.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleSelectCustomer(customer)}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="font-medium">{customer[searchKey]}</div>
+                {searchKey === "name" && customer.customer && (
+                  <div className="text-xs text-gray-500">{customer.customer}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

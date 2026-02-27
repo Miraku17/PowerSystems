@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 
 export const GET = withAuth(async (request, { user }) => {
@@ -99,10 +98,10 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
     const serviceSupabase = supabase;
 
-    const getString = (key: string) => formData.get(key) as string || '';
+    const body = await request.json();
+    const getString = (key: string) => (body[key] as string) || '';
 
     // Extract all fields (shop_field_jo_number is now auto-generated from jo_number)
     const date_prepared = getString('date_prepared');
@@ -149,9 +148,10 @@ export const POST = withAuth(async (request, { user }) => {
     const rawReceivedByCreditCollectionSignature = getString('received_by_credit_collection_signature');
     const rawVerifiedBySignature = getString('verified_by_signature');
 
-    // Handle Attachment Uploads
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    // Pre-uploaded attachments from client-side upload
+    const uploadedAttachmentsRaw = getString('uploaded_attachments');
+    const uploadedAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> =
+      uploadedAttachmentsRaw ? JSON.parse(uploadedAttachmentsRaw) : [];
 
     // Process Signatures
     const timestamp = Date.now();
@@ -246,52 +246,26 @@ export const POST = withAuth(async (request, { user }) => {
       data[0].shop_field_jo_number = joNumber;
     }
 
-    // Upload attachments
-    if (attachmentFiles.length > 0 && data && data[0]) {
+    // Insert pre-uploaded attachments
+    if (uploadedAttachments.length > 0 && data && data[0]) {
       const formId = data[0].id;
 
-      for (let i = 0; i < attachmentFiles.length; i++) {
-        const file = attachmentFiles[i];
-        const title = attachmentTitles[i] || '';
+      for (const att of uploadedAttachments) {
+        const { error: attachmentError } = await supabase
+          .from('job_order_attachments')
+          .insert([
+            {
+              job_order_id: formId,
+              file_url: att.url,
+              file_name: att.title || att.fileName,
+              file_type: att.fileType,
+              file_size: att.fileSize,
+              description: att.title,
+            },
+          ]);
 
-        if (file && file.size > 0) {
-          const filename = `job-order-request/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into attachments table
-          const { error: attachmentError } = await supabase
-            .from('job_order_attachments')
-            .insert([
-              {
-                job_order_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
-                description: title,
-              },
-            ]);
-
-          if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
-          }
+        if (attachmentError) {
+          console.error(`Error inserting attachment record for ${att.fileName}:`, attachmentError);
         }
       }
     }

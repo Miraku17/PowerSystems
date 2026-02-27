@@ -9,6 +9,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/stores/authStore";
 import { TableSkeleton } from "./Skeletons";
 import ViewJobOrderRequest from "./ViewJobOrderRequest";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -135,7 +137,15 @@ export default function PendingJORequests() {
     });
   };
 
-  const isAdmin = meta?.canEdit;
+  const { getScope } = usePermissions();
+  const currentUser = useAuthStore((state) => state.user);
+  const approvalScope = getScope("approvals", "edit");
+
+  const canChangeStatusForRecord = (record: PendingJO): boolean => {
+    if (!meta?.canEdit) return false;
+    if (approvalScope !== "branch") return true;
+    return !!currentUser?.address && record.requester_address === currentUser.address;
+  };
 
   const filteredRecords = records.filter(
     (r) =>
@@ -258,7 +268,7 @@ export default function PendingJORequests() {
                         {record.requester_address || "-"}
                       </TableCell>
                       <TableCell className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        {isAdmin ? (
+                        {canChangeStatusForRecord(record) ? (
                           <div className="relative inline-flex items-center">
                             <select
                               value={record.status || "Pending"}

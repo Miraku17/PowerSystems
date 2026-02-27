@@ -403,7 +403,7 @@ export default function ElectricSurfacePumpTeardownForm() {
             <JobOrderAutocomplete
               label="Job Order"
               value={formData.job_order}
-              onChange={(value) => setFormData({ job_order: value })}
+              onChange={(value) => setFormData({ job_order: value, customer: "", address: "" })}
               onSelect={(jo) => setFormData({
                 job_order: jo.shop_field_jo_number || "",
                 customer: jo.full_customer_name || "",
@@ -427,7 +427,7 @@ export default function ElectricSurfacePumpTeardownForm() {
             <Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} />
             <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
             <div></div>
-            <CustomerAutocomplete label="Customer" name="customer" value={formData.customer} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="customer" />
+            <CustomerAutocomplete label="Customer" name="customer" value={formData.customer} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="customer" disabled />
             <CustomerAutocomplete label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="contactPerson" />
             <div className="lg:col-span-2">
               <CustomerAutocomplete label="Address" name="address" value={formData.address} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="address" />
@@ -865,9 +865,10 @@ interface CustomerAutocompleteProps {
   onSelect: (customer: any) => void;
   customers: any[];
   searchKey?: string;
+  disabled?: boolean;
 }
 
-const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer", disabled = false }: CustomerAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -894,8 +895,8 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
     <div className="flex flex-col w-full" ref={dropdownRef}>
       <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
       <div className="relative">
-        <input type="text" name={name} value={value} onChange={(e) => { onChange(e); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm" placeholder={`Enter ${label.toLowerCase()}`} autoComplete="off" />
-        {showDropdown && filteredCustomers.length > 0 && (
+        <input type="text" name={name} value={value} disabled={disabled} onChange={(e) => { if (!disabled) { onChange(e); setShowDropdown(true); } }} onFocus={() => { if (!disabled) setShowDropdown(true); }} className={`w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"}`} placeholder={`Enter ${label.toLowerCase()}`} autoComplete="off" />
+        {!disabled && showDropdown && filteredCustomers.length > 0 && (
           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
             {filteredCustomers.map((customer) => (
               <div key={customer.id} onClick={() => handleSelectCustomer(customer)} className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100">

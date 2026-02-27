@@ -5,6 +5,7 @@ import { LeaveRequest, LEAVE_TYPE_LABELS, LeaveType } from "@/types";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuthStore } from "@/stores/authStore";
 import {
   CheckIcon,
   XMarkIcon,
@@ -30,8 +31,16 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
   const [rejectionModal, setRejectionModal] = useState<{ id: string; name: string; open: boolean }>({ id: "", name: "", open: false });
   const [rejectionReason, setRejectionReason] = useState("");
 
-  const { canEdit } = usePermissions();
+  const { canEdit, getScope } = usePermissions();
+  const currentUser = useAuthStore((state) => state.user);
   const canApprove = canEdit("leave_approval");
+  const approvalScope = getScope("leave_approval", "edit");
+
+  const canApproveRequest = (req: LeaveRequest): boolean => {
+    if (!canApprove) return false;
+    if (approvalScope !== "branch") return true;
+    return !!currentUser?.address && (req.user as any)?.address === currentUser.address;
+  };
 
   useEffect(() => {
     fetchRequests();
@@ -142,6 +151,7 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Filed</th>
                 {canApprove && <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>}
+
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -174,7 +184,7 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
                   <td className="px-4 py-3 text-gray-500 text-xs">{formatDate(req.created_at)}</td>
                   {canApprove && (
                     <td className="px-4 py-3">
-                      {req.status === "pending" && (
+                      {req.status === "pending" && canApproveRequest(req) && (
                         <div className="flex gap-1">
                           <button
                             onClick={() => setApproveModal({ id: req.id, name: getRequestName(req), open: true })}

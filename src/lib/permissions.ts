@@ -44,10 +44,40 @@ export async function hasPermission(
 }
 
 /**
+ * Get the scope of a specific permission for a user's position.
+ * Returns "all", "branch", "own", or null if the permission doesn't exist.
+ */
+export async function getPermissionScope(
+  supabase: SupabaseClient,
+  userId: string,
+  module: string,
+  action: string
+): Promise<string | null> {
+  const { data: userData } = await supabase
+    .from('users')
+    .select('position_id')
+    .eq('id', userId)
+    .single();
+
+  if (!userData?.position_id) return null;
+
+  const { data: perm } = await supabase
+    .from('position_permissions')
+    .select('scope, permissions!inner(module, action)')
+    .eq('position_id', userData.position_id)
+    .eq('permissions.module', module)
+    .eq('permissions.action', action)
+    .maybeSingle();
+
+  return perm?.scope ?? null;
+}
+
+/**
  * Check if a user has permission to edit/delete a record.
- * Uses the positions/permissions tables instead of hardcoded roles.
- * - Users with delete permission on the module can delete any record
- * - Users with write permission can edit their own records
+ * Supports "all", "branch", and "own" scopes for edit actions.
+ * - "all" scope: can edit any record
+ * - "branch" scope: can only edit records from users in the same branch (address match)
+ * - "own" scope: can only edit records they created
  */
 export async function checkRecordPermission(
   supabase: SupabaseClient,
@@ -78,6 +108,50 @@ export async function checkRecordPermission(
         { status: 403 }
       ),
     };
+  }
+
+  // For edit, check scope using the dedicated 'edit' permission (separate from 'write')
+  if (action === 'edit') {
+    const scope = await getPermissionScope(supabase, userId, module, 'edit');
+
+    if (scope === 'branch') {
+      // Fetch both the current user's address and the record creator's address
+      const [{ data: currentUserData }, { data: creatorData }] = await Promise.all([
+        supabase.from('users').select('address').eq('id', userId).single(),
+        recordCreatedBy
+          ? supabase.from('users').select('address').eq('id', recordCreatedBy).single()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      const sameAddress =
+        !!currentUserData?.address &&
+        !!creatorData?.address &&
+        currentUserData.address === creatorData.address;
+
+      if (!sameAddress) {
+        return {
+          allowed: false,
+          isAdmin: false,
+          isOwner: recordCreatedBy === userId,
+          error: NextResponse.json(
+            { error: 'You can only edit records from your branch' },
+            { status: 403 }
+          ),
+        };
+      }
+    } else if (scope === 'own') {
+      if (recordCreatedBy !== userId) {
+        return {
+          allowed: false,
+          isAdmin: false,
+          isOwner: false,
+          error: NextResponse.json(
+            { error: 'You can only edit your own records' },
+            { status: 403 }
+          ),
+        };
+      }
+    }
   }
 
   return {

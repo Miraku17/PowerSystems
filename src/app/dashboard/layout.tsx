@@ -75,12 +75,11 @@ function DashboardLayoutInner({
     loadUserData();
   }, []);
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     setUserLoading(true);
     const userStr = localStorage.getItem("user");
     if (userStr) {
       const user = JSON.parse(userStr);
-      console.log("User from localStorage:", user);
 
       // Sync to auth store
       setAuthUser(user);
@@ -96,10 +95,22 @@ function DashboardLayoutInner({
       if (user && user.role) {
         setUserRole(user.role);
       }
+      // Fallback to cached position while fetching
       if (user && user.position) {
         setUserPosition(user.position);
       }
     }
+
+    // Fetch fresh position from server to reflect any changes
+    try {
+      const res = await apiClient.get("/auth/position");
+      if (res.data.success && res.data.positionName) {
+        setUserPosition(res.data.positionName);
+      }
+    } catch {
+      // Keep the cached value on error
+    }
+
     setUserLoading(false);
   };
 
@@ -159,7 +170,7 @@ function DashboardLayoutInner({
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
     { name: "Knowledge Base", icon: BookOpenIcon, href: "/dashboard/knowledge-base", permissionModule: "knowledge_base" },
-    { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation" },
+    { name: "User Creation", icon: UserPlusIcon, href: "/dashboard/user-creation", permissionModule: "user_creation" },
     {
       name: "Products",
       icon: CogIcon,
@@ -283,9 +294,11 @@ function DashboardLayoutInner({
         (pathname.startsWith("/dashboard/customers") && canRead("customer_management")) ||
         (pathname.startsWith("/dashboard/products") && canRead("products")) ||
         (pathname.startsWith("/dashboard/reports") && canAccess("reports")) ||
-        (pathname.startsWith("/dashboard/leave") && canAccess("leave")) ||
+        ((pathname === "/dashboard/leave" || pathname.startsWith("/dashboard/leave/")) && canAccess("leave")) ||
         (pathname.startsWith("/dashboard/leave-management") && canAccess("leave_approval")) ||
-        (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore"));
+        (pathname.startsWith("/dashboard/trash") && hasPermission("form_records", "restore")) ||
+        (pathname.startsWith("/dashboard/user-creation") && canRead("user_creation")) ||
+        (pathname.startsWith("/dashboard/audit-logs") && canRead("audit_logs"));
       if (!isAllowed) {
         router.push("/dashboard/fill-up-form");
       }

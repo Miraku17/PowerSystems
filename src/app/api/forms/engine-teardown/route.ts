@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
+import { getUserAddresses } from "@/lib/users";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -112,6 +113,9 @@ export const GET = withAuth(async (request, { user }) => {
 
     const approvalMap = await getApprovalsByTable(supabase, "engine_teardown_reports");
 
+    const creatorIds = [...new Set(reports.map((r: any) => r.created_by).filter(Boolean))];
+    const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
+
     const formRecords = reports.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       return {
@@ -122,6 +126,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
+        created_by_address: addressMap[record.created_by] || null,
         updated_by: record.updated_by,
         approval,
         companyForm: {
@@ -142,10 +147,30 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
 
-    const getString = (key: string) => formData.get(key) as string || '';
-    const getBoolean = (key: string) => formData.get(key) === 'true';
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
+    const getBoolean = (key: string) => {
+      if (isNewFormat) {
+        const val = jsonBody[key];
+        return val === true || val === 'true';
+      }
+      return formData!.get(key) === 'true';
+    };
 
     // Header Information
     const customer = getString('customer');

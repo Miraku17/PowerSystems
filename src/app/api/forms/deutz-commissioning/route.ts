@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
+import { getUserAddresses } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -25,6 +26,9 @@ export const GET = withAuth(async (request, { user }) => {
     // Fetch approval statuses for all records
     const approvalMap = await getApprovalsByTable(supabase, "deutz_commissioning_report");
 
+    const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
+    const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
+
     // Map to consistent format for frontend
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
@@ -36,6 +40,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateCreated: record.created_at,
         dateUpdated: record.updated_at,
         created_by: record.created_by,
+        created_by_address: addressMap[record.created_by] || null,
         approval,
         companyForm: {
           id: "deutz-commissioning",
@@ -131,11 +136,26 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
+
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
     const serviceSupabase = supabase;
 
     // Helper to safely get string values
-    const getString = (key: string) => formData.get(key) as string || '';
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
 
     // Helper to convert empty strings to null for numeric fields
     const toNumeric = (value: any) => {
@@ -225,8 +245,8 @@ export const POST = withAuth(async (request, { user }) => {
     const approved_by_user_id = getString('approved_by_user_id') || null;
 
     // Handle Multiple Attachment Uploads
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    const attachmentFiles = !isNewFormat ? formData!.getAll('attachment_files') as File[] : [];
+    const attachmentTitles = !isNewFormat ? formData!.getAll('attachment_titles') as string[] : [];
 
     // Process Signatures
     const timestamp = Date.now();
@@ -364,56 +384,62 @@ export const POST = withAuth(async (request, { user }) => {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Upload attachments and save to deutz_commission_attachments table
-    if (attachmentFiles.length > 0 && data && data[0]) {
+    if (data && data[0]) {
       const formId = data[0].id;
 
-      for (let i = 0; i < attachmentFiles.length; i++) {
-        const file = attachmentFiles[i];
-        const title = attachmentTitles[i] || '';
-
-        if (file && file.size > 0) {
-          // Upload to service-reports/deutz/commission bucket
-          const filename = `deutz/commission/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue; // Skip this file and continue with others
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into deutz_commission_attachments table
-          const { error: attachmentError } = await supabase
+      if (isNewFormat && jsonBody.uploaded_attachments) {
+        const uploadedAttachments = JSON.parse(jsonBody.uploaded_attachments);
+        for (const attachment of uploadedAttachments) {
+          await supabase
             .from('deutz_commission_attachments')
-            .insert([
-              {
+            .insert([{
+              form_id: formId,
+              file_url: attachment.url,
+              file_title: attachment.title || attachment.fileName,
+            }]);
+        }
+      } else if (attachmentFiles.length > 0) {
+        for (let i = 0; i < attachmentFiles.length; i++) {
+          const file = attachmentFiles[i];
+          const title = attachmentTitles[i] || '';
+
+          if (file && file.size > 0) {
+            const filename = `deutz/commission/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            const { error: attachmentError } = await supabase
+              .from('deutz_commission_attachments')
+              .insert([{
                 form_id: formId,
                 file_url: fileUrl,
                 file_title: title,
-              },
-            ]);
+              }]);
 
-          if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
           }
         }
       }
-    }
 
-    // Log to audit_logs
-    if (data && data[0]) {
+      // Log to audit_logs
       await supabase.from('audit_logs').insert({
         table_name: 'deutz_commissioning_report',
         record_id: data[0].id,

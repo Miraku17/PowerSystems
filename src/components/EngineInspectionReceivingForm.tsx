@@ -258,7 +258,8 @@ export default function EngineInspectionReceivingForm() {
                 name="customer"
                 value={formData.customer}
                 onChange={handleChange}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                disabled
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed transition"
               />
             </div>
             <div>
@@ -275,7 +276,7 @@ export default function EngineInspectionReceivingForm() {
               <JobOrderAutocomplete
                 label="JO Number"
                 value={formData.jo_number}
-                onChange={(value) => setFormData({ jo_number: value })}
+                onChange={(value) => setFormData({ jo_number: value, customer: "", address: "" })}
                 onSelect={(jo) => setFormData({
                   jo_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",

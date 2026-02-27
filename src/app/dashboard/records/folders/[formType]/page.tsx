@@ -66,6 +66,7 @@ interface FormRecord {
   dateCreated: string;
   dateUpdated: string;
   created_by?: string;
+  created_by_address?: string | null;
   approval?: {
     approval_id: string | null;
     approval_status: string;
@@ -191,22 +192,33 @@ export default function FormRecordsPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [statusConfirmModal, setStatusConfirmModal] = useState<{ approvalId: string; newStatus: string; jobOrder: string; isJORequest?: boolean; isDTS?: boolean; recordId?: string } | null>(null);
 
-  const { canEdit: canEditPermission } = usePermissions();
-  const canChangeStatus = isServiceReport && canEditPermission("approvals");
-  const canChangeJOStatus = isJORequest && canEditPermission("approvals");
-  const canChangeDTSStatus = isDTS && canEditPermission("approvals");
+  const { canEdit: canEditPermission, canDelete: canDeletePermission, canWrite: canWritePermission, getScope } = usePermissions();
+  const currentUser = useAuthStore((state) => state.user);
+  const approvalScope = getScope("approvals", "edit");
+  const hasApprovalEdit = canEditPermission("approvals");
+  const editScope = getScope("form_records", "edit");
+
+  const canChangeStatusForRecord = (record: FormRecord): boolean => {
+    if (!hasApprovalEdit) return false;
+    if (approvalScope !== "branch") return true;
+    // branch scope: only show dropdown if creator is from the same branch
+    return !!currentUser?.address && record.created_by_address === currentUser.address;
+  };
+
+  const canChangeStatus = isServiceReport;
+  const canChangeJOStatus = isJORequest;
+  const canChangeDTSStatus = isDTS;
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
-  const { canDelete: canDeletePermission, canWrite: canWritePermission, getScope } = usePermissions();
-  const currentUser = useAuthStore((state) => state.user);
-  const writeScope = getScope("form_records", "write");
-
   const canEditRecord = (record: FormRecord): boolean => {
-    if (!canWritePermission("form_records")) return false;
-    if (writeScope === "all") return true;
+    if (!canEditPermission("form_records")) return false;
+    if (editScope === "all") return true;
+    if (editScope === "branch") {
+      return !!currentUser?.address && record.created_by_address === currentUser.address;
+    }
     // scope is "own" or unset — only allow editing own records
     return !!currentUser && record.created_by === currentUser.id;
   };
@@ -683,7 +695,7 @@ export default function FormRecordsPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {canChangeJOStatus ? (
+                        {canChangeJOStatus && canChangeStatusForRecord(record) ? (
                           <div className="relative inline-flex items-center">
                             <select
                               value={normalizeStatus(record.data?.status)}
@@ -697,7 +709,7 @@ export default function FormRecordsPage() {
                             </select>
                             <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                           </div>
-                        ) : canChangeDTSStatus ? (
+                        ) : canChangeDTSStatus && canChangeStatusForRecord(record) ? (
                           <div className="relative inline-flex items-center">
                             <select
                               value={normalizeStatus(record.data?.status)}
@@ -711,7 +723,7 @@ export default function FormRecordsPage() {
                             </select>
                             <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                           </div>
-                        ) : canChangeStatus && record.approval?.approval_id ? (
+                        ) : canChangeStatus && canChangeStatusForRecord(record) && record.approval?.approval_id ? (
                           <div className="relative inline-flex items-center">
                             <select
                               value={record.approval?.approval_status || "Pending"}
@@ -802,7 +814,7 @@ export default function FormRecordsPage() {
 
                   <div className="mb-4">
                     <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Status</p>
-                    {canChangeJOStatus ? (
+                    {canChangeJOStatus && canChangeStatusForRecord(record) ? (
                       <div className="relative inline-flex items-center">
                         <select
                           value={normalizeStatus(record.data?.status)}
@@ -816,7 +828,7 @@ export default function FormRecordsPage() {
                         </select>
                         <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                       </div>
-                    ) : canChangeDTSStatus ? (
+                    ) : canChangeDTSStatus && canChangeStatusForRecord(record) ? (
                       <div className="relative inline-flex items-center">
                         <select
                           value={normalizeStatus(record.data?.status)}
@@ -830,7 +842,7 @@ export default function FormRecordsPage() {
                         </select>
                         <ChevronDownIcon className="pointer-events-none absolute right-2 h-3 w-3 opacity-60" />
                       </div>
-                    ) : canChangeStatus && record.approval?.approval_id ? (
+                    ) : canChangeStatus && canChangeStatusForRecord(record) && record.approval?.approval_id ? (
                       <div className="relative inline-flex items-center">
                         <select
                           value={record.approval?.approval_status || "Pending"}

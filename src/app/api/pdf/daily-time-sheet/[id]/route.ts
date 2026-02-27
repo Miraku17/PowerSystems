@@ -118,39 +118,54 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Customer Info Section
     yPos += 12;
+    const labelValueStart = leftMargin + 32;
+    const rightColLabelX = pageWidth - rightMargin - 55;
+    const rightColValueX = rightColLabelX + 20;
+    const maxLeftValueWidth = rightColLabelX - labelValueStart - 3;
+    const maxRightValueWidth = pageWidth - rightMargin - rightColValueX;
+    const lineHeight = 4;
+
+    // CUSTOMER row
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
     doc.text("CUSTOMER", leftMargin, yPos);
     doc.text(":", leftMargin + 28, yPos);
     doc.setFont("helvetica", "normal");
 
-    // Truncate customer name if too long
     const customerText = getValue(record.customer);
-    const maxCustomerWidth = 70;
-    const truncatedCustomer = doc.splitTextToSize(customerText, maxCustomerWidth)[0] || "";
-    doc.text(truncatedCustomer, leftMargin + 32, yPos);
+    const customerLines = doc.splitTextToSize(customerText, maxLeftValueWidth);
+    doc.text(customerLines, labelValueStart, yPos);
 
-    // Job No on the right
+    // Job No on the right (same baseline)
     doc.setFont("helvetica", "bold");
-    doc.text("JOB NO.:", pageWidth - 75, yPos);
+    doc.text("JOB NO.:", rightColLabelX, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text(getValue(record.job_number), pageWidth - 55, yPos);
+    const jobNoText = getValue(record.job_number);
+    const jobNoLines = doc.splitTextToSize(jobNoText, maxRightValueWidth);
+    doc.text(jobNoLines, rightColValueX, yPos);
 
-    // Address
-    yPos += 6;
+    // Advance yPos by the tallest of the two columns
+    const customerRowHeight = Math.max(customerLines.length, jobNoLines.length) * lineHeight;
+    yPos += Math.max(customerRowHeight, 6);
+
+    // ADDRESS row
     doc.setFont("helvetica", "bold");
     doc.text("ADDRESS", leftMargin, yPos);
     doc.text(":", leftMargin + 28, yPos);
     doc.setFont("helvetica", "normal");
     const addressText = getValue(record.address);
-    const truncatedAddress = doc.splitTextToSize(addressText, contentWidth - 35)[0] || "";
-    doc.text(truncatedAddress, leftMargin + 32, yPos);
+    const addressLines = doc.splitTextToSize(addressText, maxLeftValueWidth);
+    doc.text(addressLines, labelValueStart, yPos);
 
-    // Date on the right
+    // Date on the right (same baseline)
     doc.setFont("helvetica", "bold");
-    doc.text("DATE:", pageWidth - 75, yPos);
+    doc.text("DATE:", rightColLabelX, yPos);
     doc.setFont("helvetica", "normal");
-    doc.text(formatDate(record.date), pageWidth - 62, yPos);
+    doc.text(formatDate(record.date), rightColValueX, yPos);
+
+    // Advance yPos by address height
+    const addressRowHeight = addressLines.length * lineHeight;
+    yPos += Math.max(addressRowHeight, 6) - 6;
 
     // Draw line under header info
     yPos += 5;

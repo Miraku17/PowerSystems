@@ -276,7 +276,7 @@ export default function EngineInspectionReceivingForm() {
               <JobOrderAutocomplete
                 label="JO Number"
                 value={formData.jo_number}
-                onChange={(value) => setFormData({ jo_number: value })}
+                onChange={(value) => setFormData({ jo_number: value, customer: "", address: "" })}
                 onSelect={(jo) => setFormData({
                   jo_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",

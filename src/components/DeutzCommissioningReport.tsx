@@ -164,7 +164,7 @@ export default function DeutzCommissioningReport() {
                 <JobOrderAutocomplete
                   label="Job Order No."
                   value={formData.job_order_no}
-                  onChange={(value) => setFormData({ job_order_no: value })}
+                  onChange={(value) => setFormData({ job_order_no: value, customer_name: "", address: "" })}
                   onSelect={(jo) => setFormData({
                     job_order_no: jo.shop_field_jo_number || "",
                     customer_name: jo.full_customer_name || "",

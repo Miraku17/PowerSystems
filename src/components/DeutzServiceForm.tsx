@@ -218,7 +218,7 @@ export default function DeutzServiceForm() {
             <JobOrderAutocomplete
               label="Job Order No."
               value={formData.job_order}
-              onChange={(value) => setFormData({ job_order: value })}
+              onChange={(value) => setFormData({ job_order: value, customer_name: "", address: "" })}
               onSelect={(jo) => setFormData({
                 job_order: jo.shop_field_jo_number || "",
                 customer_name: jo.full_customer_name || "",

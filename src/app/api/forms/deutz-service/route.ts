@@ -134,20 +134,40 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
+
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
 
     // Helper to safely get string values
-    const getString = (key: string) => formData.get(key) as string || '';
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
 
     // Helper to convert empty strings to null for numeric fields
     const getNumeric = (key: string) => {
-      const value = formData.get(key) as string || '';
+      const value = getString(key);
       return value.trim() === '' ? null : value;
     };
 
     // Helper to convert string values to boolean or null
     const getBoolean = (key: string): boolean | null => {
-      const value = (formData.get(key) as string || '').trim().toLowerCase();
+      if (isNewFormat) {
+        const val = jsonBody[key];
+        if (val === true || val === 'true') return true;
+        if (val === false || val === 'false') return false;
+        return null;
+      }
+      const value = (formData!.get(key) as string || '').trim().toLowerCase();
       if (value === '') return null;
       return value === 'true' || value === '1' || value === 'yes';
     };
@@ -226,8 +246,8 @@ export const POST = withAuth(async (request, { user }) => {
     );
 
     // Handle Multiple Attachment Uploads - Process later after report is created
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    const attachmentFiles = !isNewFormat ? formData!.getAll('attachment_files') as File[] : [];
+    const attachmentTitles = !isNewFormat ? formData!.getAll('attachment_titles') as string[] : [];
 
     // Insert into Database
     const { data, error } = await supabase
@@ -293,55 +313,64 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Upload attachments and save to deutz_service_attachments table
-    if (attachmentFiles.length > 0 && data && data[0]) {
+    if (data && data[0]) {
       const reportId = data[0].id;
 
-      for (let i = 0; i < attachmentFiles.length; i++) {
-        const file = attachmentFiles[i];
-        const title = attachmentTitles[i] || '';
-
-        if (file && file.size > 0) {
-          // Upload to service-reports/deutz bucket
-          const filename = `deutz/service/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue; // Skip this file and continue with others
-          }
-
-          const { data: publicUrlData } = supabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into deutz_service_attachments table
-          const { error: attachmentError } = await supabase
+      if (isNewFormat && jsonBody.uploaded_attachments) {
+        // New format: Insert URLs that were uploaded directly to storage
+        const uploadedAttachments = JSON.parse(jsonBody.uploaded_attachments);
+        for (const attachment of uploadedAttachments) {
+          await supabase
             .from('deutz_service_attachments')
-            .insert([
-              {
+            .insert([{
+              report_id: reportId,
+              file_url: attachment.url,
+              file_title: attachment.title || attachment.fileName,
+            }]);
+        }
+      } else if (attachmentFiles.length > 0) {
+        // Old format: Upload files to storage from FormData
+        for (let i = 0; i < attachmentFiles.length; i++) {
+          const file = attachmentFiles[i];
+          const title = attachmentTitles[i] || '';
+
+          if (file && file.size > 0) {
+            const filename = `deutz/service/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await supabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = supabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            const { error: attachmentError } = await supabase
+              .from('deutz_service_attachments')
+              .insert([{
                 report_id: reportId,
                 file_url: fileUrl,
                 file_title: title,
-              },
-            ]);
+              }]);
 
-          if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
           }
         }
       }
-    }
 
-    // Log to audit_logs
-    if (data && data[0]) {
+      // Log to audit_logs
       await supabase.from('audit_logs').insert({
         table_name: 'deutz_service_report',
         record_id: data[0].id,

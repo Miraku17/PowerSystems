@@ -193,7 +193,7 @@ export default function EngineTeardownForm() {
               <JobOrderAutocomplete
                 label="Job Number"
                 value={formData.job_number}
-                onChange={(value) => setFormData({ job_number: value })}
+                onChange={(value) => setFormData({ job_number: value, customer: "" })}
                 onSelect={(jo) => setFormData({
                   job_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",

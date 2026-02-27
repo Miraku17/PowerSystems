@@ -87,10 +87,25 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
+
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
     const serviceSupabase = supabase;
 
-    const getString = (key: string) => formData.get(key) as string || '';
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
 
     // Extract all fields
     const job_number = getString('job_number');
@@ -111,15 +126,15 @@ export const POST = withAuth(async (request, { user }) => {
     const service_manager = getString('service_manager');
     const job_order_request_id = getString('job_order_request_id');
     const status = getString('status') || 'Pending';
-    const entriesJson = getString('entries');
+    const entriesJson = isNewFormat ? (jsonBody.entries || '') : getString('entries');
 
     // Signatures
     const rawPerformedBySignature = getString('performed_by_signature');
     const rawApprovedBySignature = getString('approved_by_signature');
 
     // Handle Attachment Uploads
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    const attachmentFiles = !isNewFormat ? formData!.getAll('attachment_files') as File[] : [];
+    const attachmentTitles = !isNewFormat ? formData!.getAll('attachment_titles') as string[] : [];
 
     // Process Signatures
     const timestamp = Date.now();
@@ -172,7 +187,7 @@ export const POST = withAuth(async (request, { user }) => {
     // Insert time entries if any
     if (data && data[0] && entriesJson) {
       try {
-        const entries = JSON.parse(entriesJson);
+        const entries = Array.isArray(entriesJson) ? entriesJson : JSON.parse(entriesJson);
         if (Array.isArray(entries) && entries.length > 0) {
           const entryRecords = entries.map((entry: any, index: number) => ({
             daily_time_sheet_id: data[0].id,
@@ -217,50 +232,68 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Upload attachments
-    if (attachmentFiles.length > 0 && data && data[0]) {
+    if (data && data[0]) {
       const formId = data[0].id;
 
-      for (let i = 0; i < attachmentFiles.length; i++) {
-        const file = attachmentFiles[i];
-        const title = attachmentTitles[i] || '';
-
-        if (file && file.size > 0) {
-          const filename = `daily-time-sheet/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into attachments table
-          const { error: attachmentError } = await supabase
+      if (isNewFormat && jsonBody.uploaded_attachments) {
+        // New format: Insert URLs that were uploaded directly to storage
+        const uploadedAttachments = JSON.parse(jsonBody.uploaded_attachments);
+        for (const attachment of uploadedAttachments) {
+          await supabase
             .from('daily_time_sheet_attachments')
-            .insert([
-              {
-                daily_time_sheet_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
-                description: title,
-              },
-            ]);
+            .insert([{
+              daily_time_sheet_id: formId,
+              file_url: attachment.url,
+              file_name: attachment.title || attachment.fileName,
+              file_type: attachment.fileType || null,
+              file_size: attachment.fileSize || null,
+              description: attachment.title || '',
+            }]);
+        }
+      } else if (attachmentFiles.length > 0) {
+        // Old format: Upload files to storage from FormData
+        for (let i = 0; i < attachmentFiles.length; i++) {
+          const file = attachmentFiles[i];
+          const title = attachmentTitles[i] || '';
 
-          if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+          if (file && file.size > 0) {
+            const filename = `daily-time-sheet/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            // Insert into attachments table
+            const { error: attachmentError } = await supabase
+              .from('daily_time_sheet_attachments')
+              .insert([
+                {
+                  daily_time_sheet_id: formId,
+                  file_url: fileUrl,
+                  file_name: title || file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                  description: title,
+                },
+              ]);
+
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
           }
         }
       }

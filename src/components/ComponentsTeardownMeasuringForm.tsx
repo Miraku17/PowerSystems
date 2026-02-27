@@ -1135,7 +1135,7 @@ export default function ComponentsTeardownMeasuringForm() {
                   <JobOrderAutocomplete
                     label="Job Order No."
                     value={formData.job_order_no}
-                    onChange={(value) => setFormData({ job_order_no: value } as any)}
+                    onChange={(value) => setFormData({ job_order_no: value, customer: "" } as any)}
                     onSelect={(jo) => setFormData({
                       job_order_no: jo.shop_field_jo_number || "",
                       customer: jo.full_customer_name || "",

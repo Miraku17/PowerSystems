@@ -147,10 +147,30 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
 
-    const getString = (key: string) => formData.get(key) as string || '';
-    const getBoolean = (key: string) => formData.get(key) === 'true';
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
+    const getBoolean = (key: string) => {
+      if (isNewFormat) {
+        const val = jsonBody[key];
+        return val === true || val === 'true';
+      }
+      return formData!.get(key) === 'true';
+    };
 
     // Header Information
     const customer = getString('customer');

@@ -130,15 +130,35 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
+
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
     const serviceSupabase = supabase;
 
-    const getString = (key: string) => formData.get(key) as string || '';
-    const getBoolean = (key: string) => {
-      const value = formData.get(key) as string;
-      if (value === 'true') return true;
-      if (value === 'false') return false;
-      return null;
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
+    const getBoolean = (key: string): boolean | null => {
+      if (isNewFormat) {
+        const val = jsonBody[key];
+        if (val === true || val === 'true') return true;
+        if (val === false || val === 'false') return false;
+        return null;
+      }
+      const value = (formData!.get(key) as string || '').trim().toLowerCase();
+      if (value === '') return null;
+      return value === 'true' || value === '1' || value === 'yes';
     };
 
     // Extract all fields
@@ -203,8 +223,8 @@ export const POST = withAuth(async (request, { user }) => {
     const approved_by_user_id = getString('approved_by_user_id') || null;
 
     // Handle Attachment Uploads
-    const attachmentFiles = formData.getAll('attachment_files') as File[];
-    const attachmentTitles = formData.getAll('attachment_titles') as string[];
+    const attachmentFiles = !isNewFormat ? formData!.getAll('attachment_files') as File[] : [];
+    const attachmentTitles = !isNewFormat ? formData!.getAll('attachment_titles') as string[] : [];
 
     // Process Signatures
     const timestamp = Date.now();
@@ -291,49 +311,66 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Upload attachments
-    if (attachmentFiles.length > 0 && data && data[0]) {
+    if (data && data[0]) {
       const formId = data[0].id;
 
-      for (let i = 0; i < attachmentFiles.length; i++) {
-        const file = attachmentFiles[i];
-        const title = attachmentTitles[i] || '';
-
-        if (file && file.size > 0) {
-          const filename = `submersible/service/${Date.now()}-${sanitizeFilename(file.name)}`;
-
-          const { error: uploadError } = await serviceSupabase.storage
-            .from('service-reports')
-            .upload(filename, file, {
-              cacheControl: '3600',
-              upsert: false,
-            });
-
-          if (uploadError) {
-            console.error(`Error uploading file ${file.name}:`, uploadError);
-            continue;
-          }
-
-          const { data: publicUrlData } = serviceSupabase.storage
-            .from('service-reports')
-            .getPublicUrl(filename);
-
-          const fileUrl = publicUrlData.publicUrl;
-
-          // Insert into attachments table
-          const { error: attachmentError } = await supabase
+      if (isNewFormat && jsonBody.uploaded_attachments) {
+        // New format: Insert URLs that were uploaded directly to storage
+        const uploadedAttachments = JSON.parse(jsonBody.uploaded_attachments);
+        for (const attachment of uploadedAttachments) {
+          await supabase
             .from('submersible_pump_service_attachments')
-            .insert([
-              {
-                report_id: formId,
-                file_url: fileUrl,
-                file_name: title || file.name,
-                file_type: file.type,
-                file_size: file.size,
-              },
-            ]);
+            .insert([{
+              report_id: formId,
+              file_url: attachment.url,
+              file_name: attachment.title || attachment.fileName,
+              file_type: attachment.fileType || null,
+              file_size: attachment.fileSize || null,
+            }]);
+        }
+      } else if (attachmentFiles.length > 0) {
+        // Old format: Upload files to storage from FormData
+        for (let i = 0; i < attachmentFiles.length; i++) {
+          const file = attachmentFiles[i];
+          const title = attachmentTitles[i] || '';
 
-          if (attachmentError) {
-            console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+          if (file && file.size > 0) {
+            const filename = `submersible/service/${Date.now()}-${sanitizeFilename(file.name)}`;
+
+            const { error: uploadError } = await serviceSupabase.storage
+              .from('service-reports')
+              .upload(filename, file, {
+                cacheControl: '3600',
+                upsert: false,
+              });
+
+            if (uploadError) {
+              console.error(`Error uploading file ${file.name}:`, uploadError);
+              continue;
+            }
+
+            const { data: publicUrlData } = serviceSupabase.storage
+              .from('service-reports')
+              .getPublicUrl(filename);
+
+            const fileUrl = publicUrlData.publicUrl;
+
+            // Insert into attachments table
+            const { error: attachmentError } = await supabase
+              .from('submersible_pump_service_attachments')
+              .insert([
+                {
+                  report_id: formId,
+                  file_url: fileUrl,
+                  file_name: title || file.name,
+                  file_type: file.type,
+                  file_size: file.size,
+                },
+              ]);
+
+            if (attachmentError) {
+              console.error(`Error inserting attachment record for ${file.name}:`, attachmentError);
+            }
           }
         }
       }

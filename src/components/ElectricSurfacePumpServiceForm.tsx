@@ -178,7 +178,7 @@ export default function ElectricSurfacePumpServiceForm() {
             <JobOrderAutocomplete
               label="Job Order"
               value={formData.job_order}
-              onChange={(value) => setFormData({ job_order: value })}
+              onChange={(value) => setFormData({ job_order: value, customer: "", address: "" })}
               onSelect={(jo) => setFormData({
                 job_order: jo.shop_field_jo_number || "",
                 customer: jo.full_customer_name || "",

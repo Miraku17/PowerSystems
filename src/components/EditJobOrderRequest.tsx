@@ -7,9 +7,9 @@ import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import SignatorySelect from "./SignatorySelect";
-import SignaturePad from "./SignaturePad";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditJobOrderRequestProps {
   data: Record<string, any>;
@@ -74,14 +74,46 @@ const SelectDropdown = ({ label, name, value, options, onChange }: { label: stri
   </div>
 );
 
+const ReadOnlySignatory = ({ label, name, signature, subtitle }: {
+  label: string; name: string; signature?: string; subtitle?: string;
+}) => (
+  <div className="flex flex-col space-y-3">
+    <div className="flex flex-col w-full">
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="w-full px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm min-h-[42px] flex items-center">
+        {name || <span className="italic text-gray-400">—</span>}
+      </div>
+    </div>
+    {name && signature && (
+      <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 flex justify-center">
+        <img src={signature} alt={`${name}'s signature`} className="max-h-24 object-contain" />
+      </div>
+    )}
+    {subtitle && name && signature && (
+      <p className="text-xs text-gray-500 italic text-center">{subtitle}</p>
+    )}
+  </div>
+);
+
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
   const { uploadFiles } = useSupabaseUpload();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
+  const currentUser = useCurrentUser();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
   const canEditJoNumber = hasPermission("job_order_number", "edit");
+
+  const currentUserPosition = React.useMemo(() => {
+    const found = users.find(u => u.id === currentUser?.id);
+    return (found?.position?.name || '').toLowerCase();
+  }, [users, currentUser?.id]);
+
+  const canApproveByDeptHead = ['admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
+  const canReceiveByServiceDept = ['user 1', 'admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
+  const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
+
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
@@ -284,34 +316,36 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             {/* Request & Approval */}
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Input
-                    label="Requested By (Sales/Service Engineer)"
-                    name="requested_by_name"
-                    value={formData.requested_by_name}
-                    onChange={handleFieldChange}
-                  />
-                  <div className="mt-3">
-                    <SignaturePad
-                      label="Signature"
-                      value={formData.requested_by_signature}
-                      onChange={(sig) => handleFieldChange("requested_by_signature", sig)}
-                      subtitle="Sales/Service Engineer"
-                    />
-                  </div>
-                </div>
+              <div className={`grid grid-cols-1 ${canApproveByDeptHead ? 'md:grid-cols-2' : ''} gap-6`}>
                 <SignatorySelect
-                  label="Approved By (Department Head)"
-                  name="approved_by_name"
-                  value={formData.approved_by_name}
-                  signatureValue={formData.approved_by_signature}
+                  label="Requested By (Sales/Service Engineer)"
+                  name="requested_by_name"
+                  value={formData.requested_by_name}
+                  signatureValue={formData.requested_by_signature}
                   onChange={handleFieldChange}
-                  onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
+                  onSignatureChange={(sig) => handleFieldChange("requested_by_signature", sig)}
                   users={users}
-                  subtitle="Department Head"
-                  showAllUsers
+                  subtitle="Sales/Service Engineer"
                 />
+                {canApproveByDeptHead ? (
+                  <SignatorySelect
+                    label="Approved By (Department Head)"
+                    name="approved_by_name"
+                    value={formData.approved_by_name}
+                    signatureValue={formData.approved_by_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
+                    users={users}
+                    subtitle="Department Head"
+                  />
+                ) : (
+                  <ReadOnlySignatory
+                    label="Approved By (Department Head)"
+                    name={formData.approved_by_name}
+                    signature={formData.approved_by_signature}
+                    subtitle="Department Head"
+                  />
+                )}
               </div>
             </div>
 
@@ -319,28 +353,44 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request Received By</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <SignatorySelect
-                  label="Service Dept."
-                  name="received_by_service_dept_name"
-                  value={formData.received_by_service_dept_name}
-                  signatureValue={formData.received_by_service_dept_signature}
-                  onChange={handleFieldChange}
-                  onSignatureChange={(sig) => handleFieldChange("received_by_service_dept_signature", sig)}
-                  users={users}
-                  subtitle="Service Department"
-                  showAllUsers
-                />
-                <SignatorySelect
-                  label="Credit & Collection"
-                  name="received_by_credit_collection_name"
-                  value={formData.received_by_credit_collection_name}
-                  signatureValue={formData.received_by_credit_collection_signature}
-                  onChange={handleFieldChange}
-                  onSignatureChange={(sig) => handleFieldChange("received_by_credit_collection_signature", sig)}
-                  users={users}
-                  subtitle="Credit & Collection"
-                  showAllUsers
-                />
+                {canReceiveByServiceDept ? (
+                  <SignatorySelect
+                    label="Service Dept."
+                    name="received_by_service_dept_name"
+                    value={formData.received_by_service_dept_name}
+                    signatureValue={formData.received_by_service_dept_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("received_by_service_dept_signature", sig)}
+                    users={users}
+                    subtitle="Service Department"
+                  />
+                ) : (
+                  <ReadOnlySignatory
+                    label="Service Dept."
+                    name={formData.received_by_service_dept_name}
+                    signature={formData.received_by_service_dept_signature}
+                    subtitle="Service Department"
+                  />
+                )}
+                {canReceiveByCreditCollection ? (
+                  <SignatorySelect
+                    label="Credit & Collection"
+                    name="received_by_credit_collection_name"
+                    value={formData.received_by_credit_collection_name}
+                    signatureValue={formData.received_by_credit_collection_signature}
+                    onChange={handleFieldChange}
+                    onSignatureChange={(sig) => handleFieldChange("received_by_credit_collection_signature", sig)}
+                    users={users}
+                    subtitle="Credit & Collection"
+                  />
+                ) : (
+                  <ReadOnlySignatory
+                    label="Credit & Collection"
+                    name={formData.received_by_credit_collection_name}
+                    signature={formData.received_by_credit_collection_signature}
+                    subtitle="Credit & Collection"
+                  />
+                )}
               </div>
             </div>
 

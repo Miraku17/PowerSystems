@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignatorySelect from './SignatorySelect';
-import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
@@ -12,6 +11,7 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
+import { useCurrentUser } from '@/stores/authStore';
 
 export default function JobOrderRequestForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -70,6 +70,17 @@ export default function JobOrderRequestForm() {
   const handleSignatoryChange = (name: string, value: string) => {
     setFormData({ [name]: value });
   };
+
+  const currentUser = useCurrentUser();
+
+  const currentUserPosition = React.useMemo(() => {
+    const found = users.find(u => u.id === currentUser?.id);
+    return (found?.position?.name || '').toLowerCase();
+  }, [users, currentUser?.id]);
+
+  const canApproveByDeptHead = ['admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
+  const canReceiveByServiceDept = ['user 1', 'admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
+  const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
 
   const verifiedByUsers = React.useMemo<FormUser[]>(() =>
     users.filter(user => {
@@ -301,69 +312,67 @@ export default function JobOrderRequestForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Request & Approval</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <div>
-              <Input
-                label="Requested By (Sales/Service Engineer)"
-                name="requested_by_name"
-                value={formData.requested_by_name}
-                onChange={handleChange}
-                placeholder="Enter name"
-              />
-              <div className="mt-3">
-                <SignaturePad
-                  label="Signature"
-                  value={formData.requested_by_signature}
-                  onChange={(sig) => setFormData({ requested_by_signature: sig })}
-                  subtitle="Sales/Service Engineer"
-                />
-              </div>
-            </div>
+          <div className={`grid grid-cols-1 ${canApproveByDeptHead ? 'md:grid-cols-2' : ''} gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100`}>
             <SignatorySelect
-              label="Approved By (Department Head)"
-              name="approved_by_name"
-              value={formData.approved_by_name}
-              signatureValue={formData.approved_by_signature}
+              label="Requested By (Sales/Service Engineer)"
+              name="requested_by_name"
+              value={formData.requested_by_name}
+              signatureValue={formData.requested_by_signature}
               onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+              onSignatureChange={(sig) => setFormData({ requested_by_signature: sig })}
               users={users}
-              subtitle="Department Head"
-              showAllUsers
+              subtitle="Sales/Service Engineer"
             />
+            {canApproveByDeptHead && (
+              <SignatorySelect
+                label="Approved By (Department Head)"
+                name="approved_by_name"
+                value={formData.approved_by_name}
+                signatureValue={formData.approved_by_signature}
+                onChange={handleSignatoryChange}
+                onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+                users={users}
+                subtitle="Department Head"
+              />
+            )}
           </div>
         </div>
 
         {/* Section: Request Received By */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Request Received By</h3>
+        {(canReceiveByServiceDept || canReceiveByCreditCollection) && (
+          <div>
+            <div className="flex items-center mb-4">
+              <div className="w-1 h-6 bg-blue-600 mr-2"></div>
+              <h3 className="text-lg font-bold text-gray-800 uppercase">Request Received By</h3>
+            </div>
+            <div className={`grid grid-cols-1 ${canReceiveByServiceDept && canReceiveByCreditCollection ? 'md:grid-cols-2' : ''} gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100`}>
+              {canReceiveByServiceDept && (
+                <SignatorySelect
+                  label="Service Dept."
+                  name="received_by_service_dept_name"
+                  value={formData.received_by_service_dept_name}
+                  signatureValue={formData.received_by_service_dept_signature}
+                  onChange={handleSignatoryChange}
+                  onSignatureChange={(sig) => setFormData({ received_by_service_dept_signature: sig })}
+                  users={users}
+                  subtitle="Service Department"
+                />
+              )}
+              {canReceiveByCreditCollection && (
+                <SignatorySelect
+                  label="Credit & Collection"
+                  name="received_by_credit_collection_name"
+                  value={formData.received_by_credit_collection_name}
+                  signatureValue={formData.received_by_credit_collection_signature}
+                  onChange={handleSignatoryChange}
+                  onSignatureChange={(sig) => setFormData({ received_by_credit_collection_signature: sig })}
+                  users={users}
+                  subtitle="Credit & Collection"
+                />
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <SignatorySelect
-              label="Service Dept."
-              name="received_by_service_dept_name"
-              value={formData.received_by_service_dept_name}
-              signatureValue={formData.received_by_service_dept_signature}
-              onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ received_by_service_dept_signature: sig })}
-              users={users}
-              subtitle="Service Department"
-              showAllUsers
-            />
-            <SignatorySelect
-              label="Credit & Collection"
-              name="received_by_credit_collection_name"
-              value={formData.received_by_credit_collection_name}
-              signatureValue={formData.received_by_credit_collection_signature}
-              onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ received_by_credit_collection_signature: sig })}
-              users={users}
-              subtitle="Credit & Collection"
-              showAllUsers
-            />
-          </div>
-        </div>
+        )}
 
         {/* Section: Service Use Only */}
         <div>

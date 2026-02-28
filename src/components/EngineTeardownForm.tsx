@@ -910,10 +910,10 @@ export default function EngineTeardownForm() {
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
           <button
             type="button"
-            onClick={() => resetFormData()}
+            onClick={() => { resetFormData(); setAttachments([]); }}
             className="px-6 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition"
           >
-            Reset Form
+            Clear Form
           </button>
           <button
             type="submit"

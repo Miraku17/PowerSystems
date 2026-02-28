@@ -497,7 +497,14 @@ export default function EngineInspectionReceivingForm() {
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end pt-6 border-t border-gray-200">
+        <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={() => { resetFormData(); }}
+            className="px-6 py-3 bg-white text-gray-700 font-bold rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors"
+          >
+            Clear Form
+          </button>
           <button
             type="submit"
             disabled={isSubmitting}

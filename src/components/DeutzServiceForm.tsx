@@ -800,10 +800,11 @@ export default function DeutzServiceForm() {
         <div className="flex flex-col-reverse space-y-3 space-y-reverse md:flex-row md:space-y-0 md:justify-end md:space-x-4 pt-6 pb-12">
           <button
             type="button"
+            onClick={() => { resetFormData(); setAttachments([]); }}
             className="w-full md:w-auto bg-white text-gray-700 font-bold py-2 px-4 md:py-3 md:px-6 rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition duration-150 text-sm md:text-base"
             disabled={isSubmitting}
           >
-            Cancel
+            Clear Form
           </button>
           <button
             type="submit"

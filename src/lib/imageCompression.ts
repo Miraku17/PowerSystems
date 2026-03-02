@@ -1,13 +1,13 @@
 /**
  * Compress an image file by resizing and converting to JPEG.
- * Max dimensions: 1920x1920, JPEG quality: 0.8
- * Only compresses files larger than the threshold (default 2MB).
+ * Max dimensions: 1920x1920, JPEG quality: 0.7
+ * Only compresses files larger than the threshold (default 1MB).
  */
 
-const COMPRESSION_THRESHOLD = 2 * 1024 * 1024; // 2MB
+const COMPRESSION_THRESHOLD = 1 * 1024 * 1024; // 1MB
 const MAX_WIDTH = 1920;
 const MAX_HEIGHT = 1920;
-const JPEG_QUALITY = 0.8;
+const JPEG_QUALITY = 0.7;
 
 export const compressImage = (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {

@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
 import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
@@ -170,6 +171,7 @@ const createEmptyEntry = (hasDate: boolean): TimeSheetEntry => ({
 
 export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }: EditDailyTimeSheetProps) {
   const { uploadFiles } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
   const { data: users = [] } = useUsers();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [entries, setEntries] = useState<TimeSheetEntry[]>([]);
@@ -430,7 +432,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (newAttachments.length > 0) {
-        const loadingToast = toast.loading('Uploading images...');
+        showUploadLoading('Uploading images...');
         const results = await uploadFiles(
           newAttachments.map(a => a.file),
           { bucket: 'service-reports', pathPrefix: 'daily-time-sheet' }
@@ -448,7 +450,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             console.error(`Failed to upload file: ${r.error}`);
           }
         });
-        toast.dismiss(loadingToast);
+        hideUploadLoading();
       }
 
       // Send attachment metadata as JSON
@@ -463,6 +465,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       onSaved();
       onClose();
     } catch (error: any) {
+      hideUploadLoading();
       console.error("Error updating Daily Time Sheet:", error);
       const errMsg = error.response?.data?.error;
       const errorMessage = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Failed to update Daily Time Sheet");

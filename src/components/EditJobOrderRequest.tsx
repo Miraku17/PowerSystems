@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -97,6 +98,7 @@ const ReadOnlySignatory = ({ label, name, signature, subtitle }: {
 
 export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }: EditJobOrderRequestProps) {
   const { uploadFiles } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
@@ -167,7 +169,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (newAttachments.length > 0) {
-        const uploadToast = toast.loading('Uploading files...');
+        showUploadLoading('Uploading files...');
         const results = await uploadFiles(
           newAttachments.map(a => a.file),
           { bucket: 'service-reports', pathPrefix: 'job-order' }
@@ -185,7 +187,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             console.error(`Failed to upload file: ${r.error}`);
           }
         });
-        toast.dismiss(uploadToast);
+        hideUploadLoading();
       }
 
       // Send attachment metadata as JSON
@@ -200,6 +202,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
       onSaved();
       onClose();
     } catch (error: any) {
+      hideUploadLoading();
       console.error("Error updating Job Order Request:", error);
       const errMsg = error.response?.data?.error;
       const errorMessage = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Failed to update Job Order Request");

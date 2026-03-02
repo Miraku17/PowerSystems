@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignatorySelect from "./SignatorySelect";
 import { useSupabaseUpload } from "@/hooks/useSupabaseUpload";
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
@@ -191,6 +192,7 @@ export default function EditSubmersiblePumpTeardown({
 
   // Use the same upload hook as the create form
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   // Compress image before adding to attachments (same as create form)
   const compressImage = async (file: File): Promise<File> => {
@@ -288,7 +290,6 @@ export default function EditSubmersiblePumpTeardown({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const loadingToast = toast.loading("Saving changes...");
 
     try {
       // 1. Update report data
@@ -310,7 +311,7 @@ export default function EditSubmersiblePumpTeardown({
 
         // Upload pre-teardown attachments
         if (newPreTeardownAttachments.length > 0) {
-          toast.loading('Uploading pre-teardown images...', { id: loadingToast });
+          showUploadLoading('Uploading pre-teardown images...');
           const results = await uploadFiles(
             newPreTeardownAttachments.map(a => a.file),
             { bucket: 'service-reports', pathPrefix: 'submersible/teardown/pre-teardown' }
@@ -333,7 +334,7 @@ export default function EditSubmersiblePumpTeardown({
 
         // Upload wet-end attachments
         if (newWetEndAttachments.length > 0) {
-          toast.loading('Uploading wet-end images...', { id: loadingToast });
+          showUploadLoading('Uploading wet-end images...');
           const results = await uploadFiles(
             newWetEndAttachments.map(a => a.file),
             { bucket: 'service-reports', pathPrefix: 'submersible/teardown/wet-end' }
@@ -356,7 +357,7 @@ export default function EditSubmersiblePumpTeardown({
 
         // Upload motor attachments
         if (newMotorAttachments.length > 0) {
-          toast.loading('Uploading motor images...', { id: loadingToast });
+          showUploadLoading('Uploading motor images...');
           const results = await uploadFiles(
             newMotorAttachments.map(a => a.file),
             { bucket: 'service-reports', pathPrefix: 'submersible/teardown/motor' }
@@ -378,7 +379,7 @@ export default function EditSubmersiblePumpTeardown({
         }
 
         // 3. Send attachment metadata (URLs, deletions, title updates) as JSON
-        toast.loading('Updating attachments...', { id: loadingToast });
+        showUploadLoading('Updating attachments...');
         await apiClient.post('/forms/submersible-pump-teardown/attachments', {
           report_id: recordId,
           attachments_to_delete: attachmentsToDelete,
@@ -386,17 +387,18 @@ export default function EditSubmersiblePumpTeardown({
           uploaded_new_attachments: uploadedNewAttachments,
         });
 
-        toast.success("Report updated successfully!", { id: loadingToast });
+        hideUploadLoading();
+        toast.success("Report updated successfully!");
         onSaved();
         onClose();
       }
     } catch (error: any) {
+      hideUploadLoading();
       console.error("Error updating report:", error);
       const errorMsg = error.response?.data?.error;
       const displayError = typeof errorMsg === 'string' ? errorMsg : (errorMsg ? JSON.stringify(errorMsg) : "Unknown error");
       toast.error(
-        `Failed to update report: ${displayError}`,
-        { id: loadingToast }
+        `Failed to update report: ${displayError}`
       );
     } finally {
       setIsSaving(false);

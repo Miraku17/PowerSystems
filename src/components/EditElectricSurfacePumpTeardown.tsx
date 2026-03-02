@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignatorySelect from "./SignatorySelect";
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
@@ -108,6 +109,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
 
   // Supabase upload hook
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -149,7 +151,6 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const loadingToast = toast.loading("Saving changes...");
 
     try {
       // 1. Update form data
@@ -161,7 +162,7 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
         const hasDeletedAttachments = attachmentsToDelete.length > 0;
 
         if (hasNewAttachments || hasDeletedAttachments) {
-          toast.loading('Uploading new images...', { id: loadingToast });
+          showUploadLoading('Uploading new images...');
 
           // Upload new attachments
           const uploadedData: {
@@ -223,15 +224,17 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
           });
         }
 
-        toast.success("Report updated successfully!", { id: loadingToast });
+        hideUploadLoading();
+        toast.success("Report updated successfully!");
         onSaved();
         onClose();
       }
     } catch (error: any) {
+      hideUploadLoading();
       console.error("Error updating report:", error);
       const errMsg = error.response?.data?.error;
       const displayError = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Unknown error");
-      toast.error(`Failed to update report: ${displayError}`, { id: loadingToast });
+      toast.error(`Failed to update report: ${displayError}`);
     } finally {
       setIsSaving(false);
     }

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import { useIsOnline } from '@/stores/networkStore';
 import { useSyncStore } from '@/stores/syncStore';
+import { useUploadLoadingStore } from '@/stores/uploadLoadingStore';
 import {
   addPendingSubmission,
   fileToStorable,
@@ -54,6 +55,7 @@ interface SubmitOptions {
 export function useOfflineSubmit() {
   const isOnline = useIsOnline();
   const { incrementPendingCount } = useSyncStore();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const submit = async ({
@@ -66,7 +68,7 @@ export function useOfflineSubmit() {
     additionalFields = {},
   }: SubmitOptions): Promise<boolean> => {
     setIsSubmitting(true);
-    const loadingToastId = toast.loading('Submitting form...');
+    showUploadLoading('Submitting form...');
 
     // Combine all attachments for offline storage
     const allAttachments = [
@@ -131,12 +133,13 @@ export function useOfflineSubmit() {
           });
         }
 
-        toast.success('Form submitted successfully!', { id: loadingToastId });
+        hideUploadLoading();
+        toast.success('Form submitted successfully!');
         onSuccess?.();
         return true;
       } else {
         // Offline: Save to IndexedDB
-        toast.loading('Saving form offline...', { id: loadingToastId });
+        showUploadLoading('Saving form offline...');
 
         // Convert all attachments to storable format
         const storableAttachments: StorableAttachment[] = await Promise.all(
@@ -150,8 +153,8 @@ export function useOfflineSubmit() {
         await addPendingSubmission(formType, mergedFormData, storableAttachments);
         incrementPendingCount();
 
+        hideUploadLoading();
         toast.success('Form saved offline. It will sync when you\'re back online.', {
-          id: loadingToastId,
           duration: 5000,
           icon: '📴',
         });
@@ -170,7 +173,7 @@ export function useOfflineSubmit() {
       ) {
         // Save offline instead
         try {
-          toast.loading('Network error. Saving form offline...', { id: loadingToastId });
+          showUploadLoading('Network error. Saving form offline...');
 
           const storableAttachments: StorableAttachment[] = await Promise.all(
             allAttachments.map((att) => fileToStorable(att.file, att.title))
@@ -180,8 +183,8 @@ export function useOfflineSubmit() {
           await addPendingSubmission(formType, mergedFormData, storableAttachments);
           incrementPendingCount();
 
+          hideUploadLoading();
           toast.success('Form saved offline. It will sync when you\'re back online.', {
-            id: loadingToastId,
             duration: 5000,
             icon: '📴',
           });
@@ -189,7 +192,8 @@ export function useOfflineSubmit() {
           return true;
         } catch (offlineError) {
           console.error('Failed to save offline:', offlineError);
-          toast.error('Failed to save form. Please try again.', { id: loadingToastId });
+          hideUploadLoading();
+          toast.error('Failed to save form. Please try again.');
           onError?.(offlineError as Error);
           return false;
         }
@@ -221,7 +225,8 @@ export function useOfflineSubmit() {
         errorMessage = error;
       }
 
-      toast.error(`Failed to submit: ${errorMessage}`, { id: loadingToastId });
+      hideUploadLoading();
+      toast.error(`Failed to submit: ${errorMessage}`);
 
       onError?.(error as Error);
       return false;

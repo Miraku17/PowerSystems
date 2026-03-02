@@ -6,6 +6,7 @@ import { knowledgeBaseService } from "@/services/knowledgeBase";
 import { useKBFormStore } from "@/stores/knowledgeBaseFormStore";
 import imageCompression from "browser-image-compression";
 import toast from "react-hot-toast";
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import {
   XMarkIcon,
   PhotoIcon,
@@ -38,6 +39,7 @@ export default function KnowledgeBaseFormModal({
   onSuccess,
 }: KnowledgeBaseFormModalProps) {
   const { formData, setFormData, resetFormData } = useKBFormStore();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   // Edit mode local state (not persisted)
   const [editData, setEditData] = useState({
@@ -114,7 +116,7 @@ export default function KnowledgeBaseFormModal({
       useWebWorker: true,
     };
 
-    const loadingToast = toast.loading("Compressing images...");
+    showUploadLoading("Compressing images...");
 
     try {
       const newPreviews: ImagePreview[] = [];
@@ -131,10 +133,11 @@ export default function KnowledgeBaseFormModal({
       }
 
       setImages((prev) => [...prev, ...newPreviews]);
-      toast.success("Images compressed successfully", { id: loadingToast });
+      hideUploadLoading();
     } catch (error) {
       console.error("Error compressing images:", error);
-      toast.error("Failed to compress images", { id: loadingToast });
+      hideUploadLoading();
+      toast.error("Failed to compress images");
     }
 
     // Reset file input
@@ -180,7 +183,7 @@ export default function KnowledgeBaseFormModal({
     e.preventDefault();
     setIsSubmitting(true);
 
-    const loadingToast = toast.loading(
+    showUploadLoading(
       mode === "create" ? "Creating article..." : "Updating article..."
     );
 
@@ -247,11 +250,11 @@ export default function KnowledgeBaseFormModal({
         await knowledgeBaseService.uploadImages(articleId, formDataObj);
       }
 
+      hideUploadLoading();
       toast.success(
         mode === "create"
           ? "Article created successfully!"
-          : "Article updated successfully!",
-        { id: loadingToast }
+          : "Article updated successfully!"
       );
 
       if (mode === "create") {
@@ -267,9 +270,8 @@ export default function KnowledgeBaseFormModal({
       onClose();
     } catch (error: any) {
       console.error("Error saving article:", error);
-      toast.error(error.message || "Failed to save article", {
-        id: loadingToast,
-      });
+      hideUploadLoading();
+      toast.error(error.message || "Failed to save article");
     } finally {
       setIsSubmitting(false);
     }

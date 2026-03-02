@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { useElectricSurfacePumpTeardownFormStore } from "@/stores/electricSurfacePumpTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -20,6 +21,7 @@ export default function ElectricSurfacePumpTeardownForm() {
 
   // Supabase upload hook
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   // Approved job orders for autocomplete
   const approvedJOs = useApprovedJobOrders();
@@ -145,7 +147,7 @@ export default function ElectricSurfacePumpTeardownForm() {
 
     try {
       // Step 1: Upload all images to Supabase Storage
-      const loadingToastId = toast.loading('Uploading images to storage...');
+      showUploadLoading('Uploading images...');
 
       const uploadedData: {
         motor_components: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }>;
@@ -171,7 +173,8 @@ export default function ElectricSurfacePumpTeardownForm() {
         if (failedUploads.length > 0) {
           console.error('Some motor components files failed to upload:', failedUploads);
           const errorMsg = failedUploads[0]?.error || 'Unknown error';
-          toast.error(`Failed to upload ${failedUploads.length} motor components file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
+          hideUploadLoading();
+          toast.error(`Failed to upload ${failedUploads.length} motor components file(s): ${errorMsg}`, { duration: 5000 });
         }
 
         uploadedData.motor_components = successfulUploads.map((r, i) => ({
@@ -199,7 +202,8 @@ export default function ElectricSurfacePumpTeardownForm() {
         if (failedUploads.length > 0) {
           console.error('Some wet-end files failed to upload:', failedUploads);
           const errorMsg = failedUploads[0]?.error || 'Unknown error';
-          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s): ${errorMsg}`, { id: loadingToastId, duration: 5000 });
+          hideUploadLoading();
+          toast.error(`Failed to upload ${failedUploads.length} wet-end file(s): ${errorMsg}`, { duration: 5000 });
         }
 
         uploadedData.wet_end = successfulUploads.map((r, i) => ({
@@ -211,7 +215,7 @@ export default function ElectricSurfacePumpTeardownForm() {
         }));
       }
 
-      toast.success('Images uploaded successfully', { id: loadingToastId });
+      hideUploadLoading();
 
       // Step 2: Submit form data with URLs to API
       await submit({
@@ -228,6 +232,7 @@ export default function ElectricSurfacePumpTeardownForm() {
       });
     } catch (error) {
       console.error('Upload error:', error);
+      hideUploadLoading();
       toast.error('Failed to upload images. Please try again.');
     }
   };

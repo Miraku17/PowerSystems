@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import ToastProvider from "@/components/ToastProvider";
 import QueryProvider from "@/components/QueryProvider";
+import FullScreenLoading from "@/components/FullScreenLoading";
 
 
 export const metadata: Metadata = {
@@ -48,6 +49,7 @@ export default function RootLayout({
       >
         <QueryProvider>
           <ToastProvider />
+          <FullScreenLoading />
           {children}
         </QueryProvider>
       </body>

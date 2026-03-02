@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
@@ -133,6 +134,7 @@ export default function EditEngineSurfacePumpService({
   onSignatoryChange,
 }: EditEngineSurfacePumpServiceProps) {
   const { uploadFiles } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
   const currentUser = useCurrentUser();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
@@ -198,7 +200,6 @@ export default function EditEngineSurfacePumpService({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const loadingToast = toast.loading("Saving changes...");
 
     try {
       // 1. Update the main form data
@@ -212,7 +213,7 @@ export default function EditEngineSurfacePumpService({
         const uploadedNewAttachments: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
         if (newAttachments.length > 0) {
-          toast.loading('Uploading images...', { id: loadingToast });
+          showUploadLoading('Uploading images...');
           const results = await uploadFiles(
             newAttachments.map(a => a.file),
             { bucket: 'service-reports', pathPrefix: 'engine-surface/service' }
@@ -233,7 +234,7 @@ export default function EditEngineSurfacePumpService({
         }
 
         // Send attachment metadata as JSON
-        toast.loading('Updating attachments...', { id: loadingToast });
+        showUploadLoading('Updating attachments...');
         await apiClient.post('/forms/engine-surface-pump-service/attachments', {
           report_id: recordId,
           attachments_to_delete: attachmentsToDelete,
@@ -241,15 +242,17 @@ export default function EditEngineSurfacePumpService({
           uploaded_new_attachments: uploadedNewAttachments,
         });
 
-        toast.success("Report updated successfully!", { id: loadingToast });
+        hideUploadLoading();
+        toast.success("Report updated successfully!");
         onSaved();
         onClose();
       }
     } catch (error: any) {
+      hideUploadLoading();
       console.error("Error updating report:", error);
       const errMsg = error.response?.data?.error;
       const displayError = typeof errMsg === 'string' ? errMsg : (errMsg && typeof errMsg === 'object' ? (errMsg.message || JSON.stringify(errMsg)) : "Unknown error");
-      toast.error(`Failed to update report: ${displayError}`, { id: loadingToast });
+      toast.error(`Failed to update report: ${displayError}`);
     } finally {
       setIsSaving(false);
     }

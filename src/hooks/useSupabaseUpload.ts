@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import apiClient from '@/lib/axios';
 import { validateFileType, validateFileSize } from '@/lib/uploadHelpers';
+import { compressImageIfNeeded } from '@/lib/imageCompression';
 
 interface UploadOptions {
   bucket: string;
@@ -78,9 +79,12 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
       setUploadProgress(prev => ({ ...prev, [index]: 0 }));
       onProgress?.(index, 0);
 
+      // Compress image before uploading to reduce file size
+      const fileToUpload = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
+
       // Upload file via API route (uses service role, bypasses RLS)
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       formData.append('pathPrefix', pathPrefix);
       formData.append('bucket', bucket);
 

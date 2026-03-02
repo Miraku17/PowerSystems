@@ -7,6 +7,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import { useEngineTeardownFormStore } from "@/stores/engineTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
+import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
@@ -18,6 +19,7 @@ export default function EngineTeardownForm() {
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { uploadFiles } = useSupabaseUpload();
+  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
@@ -84,7 +86,7 @@ export default function EngineTeardownForm() {
       const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (attachments.length > 0) {
-        const loadingToastId = toast.loading('Uploading images to storage...');
+        showUploadLoading('Uploading images...');
         const results = await uploadFiles(
           attachments.map(a => a.file),
           { bucket: 'service-reports', pathPrefix: 'engine/teardown' }
@@ -93,7 +95,8 @@ export default function EngineTeardownForm() {
         const failedUploads = results.filter(r => !r.success);
         if (failedUploads.length > 0) {
           console.error('Some files failed to upload:', failedUploads);
-          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { id: loadingToastId, duration: 5000 });
+          hideUploadLoading();
+          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { duration: 5000 });
         }
 
         results.forEach((r, i) => {
@@ -108,7 +111,7 @@ export default function EngineTeardownForm() {
           }
         });
 
-        toast.success('Images uploaded successfully', { id: loadingToastId });
+        hideUploadLoading();
       }
 
       // Step 2: Submit form data with URLs to API
@@ -125,6 +128,7 @@ export default function EngineTeardownForm() {
       });
     } catch (error) {
       console.error('Upload error:', error);
+      hideUploadLoading();
       toast.error('Failed to upload images. Please try again.');
     }
   };

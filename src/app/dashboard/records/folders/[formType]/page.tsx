@@ -214,6 +214,8 @@ export default function FormRecordsPage() {
   const [endDate, setEndDate] = useState<string>("");
 
   const canEditRecord = (record: FormRecord): boolean => {
+    // Creator can always edit their own records
+    if (!!currentUser && record.created_by === currentUser.id) return true;
     if (!canEditPermission("form_records")) return false;
     if (editScope === "all") return true;
     if (editScope === "branch") {

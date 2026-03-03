@@ -608,7 +608,8 @@ export const PATCH = withAuth(async (request, { user }) => {
         .from('deutz_commissioning_report')
         .select('id')
         .eq('job_order_no', job_order_no)
-        .neq('id', id) // Exclude current record
+        .neq('id', id)
+        .is('deleted_at', null)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') {

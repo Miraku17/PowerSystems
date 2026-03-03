@@ -509,7 +509,8 @@ export const PATCH = withAuth(async (request, { user }) => {
         .from('deutz_service_report')
         .select('id')
         .eq('job_order', job_order)
-        .neq('id', id) // Exclude current record
+        .neq('id', id)
+        .is('deleted_at', null)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"

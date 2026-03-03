@@ -311,6 +311,7 @@ export const POST = withAuth(async (request, { user }) => {
         .from('submersible_pump_teardown_report')
         .select('id')
         .eq('job_order', job_order)
+        .is('deleted_at', null)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') {
@@ -764,6 +765,7 @@ export const PATCH = withAuth(async (request, { user }) => {
         .select('id')
         .eq('job_order', job_order)
         .neq('id', id)
+        .is('deleted_at', null)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') {

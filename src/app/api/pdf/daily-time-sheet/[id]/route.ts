@@ -165,7 +165,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Advance yPos by address height
     const addressRowHeight = addressLines.length * lineHeight;
-    yPos += Math.max(addressRowHeight, 6) - 6;
+    yPos += Math.max(addressRowHeight, 6);
 
     // Draw line under header info
     yPos += 5;
@@ -259,10 +259,10 @@ export const GET = withAuth(async (request, { user, params }) => {
         const totalHours = entry.total_hours ? parseFloat(entry.total_hours).toFixed(2) : "";
         doc.text(totalHours, leftMargin + dateColWidth + startColWidth + stopColWidth + totalColWidth / 2, yPos + 4, { align: "center" });
 
-        // Job description - truncate to fit
+        // Job description - show wrapped lines that fit in the row
         doc.setFontSize(6);
         const descLines = doc.splitTextToSize(entry.job_description || "", jobDescWidth - 4);
-        doc.text(descLines[0] || "", leftMargin + manhoursTableWidth + 2, yPos + 4);
+        doc.text(descLines.slice(0, 2), leftMargin + manhoursTableWidth + 2, yPos + 3);
       }
 
       yPos += rowHeight;

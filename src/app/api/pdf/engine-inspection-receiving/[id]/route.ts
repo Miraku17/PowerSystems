@@ -133,67 +133,80 @@ export const GET = withAuth(async (request, { user, params }) => {
     const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>, cols: number = 3) => {
       checkPageBreak(25);
 
-      let rows = 0;
-      let currentColumn = 0;
+      const colWidth = (contentWidth - 4) / cols;
+      const minRowHeight = 10;
+      const valueFontLineHeight = 3; // line height for font size 7
+
+      // Pass 1: group fields into layout rows with dynamic heights
+      const layoutRows: Array<{ fields: Array<{ field: any; fieldSpan: number }>; height: number }> = [];
+      let pendingFields: Array<{ field: any; fieldSpan: number }> = [];
+      let column = 0;
+
+      const calcRowHeight = (rowFields: Array<{ field: any; fieldSpan: number }>) => {
+        let maxLines = 1;
+        rowFields.forEach(({ field, fieldSpan }) => {
+          const maxWidth = fieldSpan >= cols ? contentWidth - 4 : colWidth * fieldSpan - 2;
+          const displayValue = field.value && field.value !== '-' ? String(field.value) : '________________';
+          doc.setFontSize(7);
+          const lines = doc.splitTextToSize(displayValue, maxWidth);
+          maxLines = Math.max(maxLines, lines.length);
+        });
+        return Math.max(minRowHeight, 6 + maxLines * valueFontLineHeight + 1);
+      };
+
       fields.forEach((field) => {
         const fieldSpan = field.span || 1;
         if (fieldSpan >= cols) {
-          if (currentColumn > 0) {
-            rows++;
-            currentColumn = 0;
+          if (column > 0) {
+            layoutRows.push({ fields: [...pendingFields], height: calcRowHeight(pendingFields) });
+            pendingFields = [];
+            column = 0;
           }
-          rows++;
+          layoutRows.push({ fields: [{ field, fieldSpan }], height: calcRowHeight([{ field, fieldSpan }]) });
         } else {
-          currentColumn += fieldSpan;
-          if (currentColumn >= cols) {
-            rows++;
-            currentColumn = 0;
+          pendingFields.push({ field, fieldSpan });
+          column += fieldSpan;
+          if (column >= cols) {
+            layoutRows.push({ fields: [...pendingFields], height: calcRowHeight(pendingFields) });
+            pendingFields = [];
+            column = 0;
           }
         }
       });
-      if (currentColumn > 0) rows++;
+      if (pendingFields.length > 0) {
+        layoutRows.push({ fields: pendingFields, height: calcRowHeight(pendingFields) });
+      }
 
-      const boxHeight = rows * 10 + 3;
+      const boxHeight = layoutRows.reduce((sum, r) => sum + r.height, 0) + 3;
 
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
       doc.setLineWidth(0.1);
       doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
 
-      let xOffset = leftMargin + 2;
+      // Pass 2: render
       let yOffset = yPos + 2;
-      const columnWidth = (contentWidth - 4) / cols;
-      let column = 0;
+      layoutRows.forEach((row) => {
+        let xOffset = leftMargin + 2;
+        let colIdx = 0;
+        row.fields.forEach(({ field, fieldSpan }) => {
+          doc.setFontSize(6);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+          doc.text(field.label, xOffset, yOffset + 2.5);
 
-      fields.forEach((field) => {
-        const fieldSpan = field.span || 1;
-        doc.setFontSize(6);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(field.label, xOffset, yOffset + 2.5);
+          doc.setFontSize(7);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(0, 0, 0);
+          const maxWidth = fieldSpan >= cols ? contentWidth - 4 : colWidth * fieldSpan - 2;
+          const displayValue = field.value && field.value !== '-' ? String(field.value) : '________________';
+          const lines = doc.splitTextToSize(displayValue, maxWidth);
+          doc.text(lines, xOffset, yOffset + 6);
 
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        const maxWidth = fieldSpan >= cols ? contentWidth - 4 : columnWidth * fieldSpan - 2;
-        const displayValue = field.value && field.value !== '-' ? String(field.value) : '________________';
-        const lines = doc.splitTextToSize(displayValue, maxWidth);
-        doc.text(lines, xOffset, yOffset + 6);
-
-        if (fieldSpan >= cols) {
-          yOffset += 10;
-          xOffset = leftMargin + 2;
-          column = 0;
-        } else {
-          column += fieldSpan;
-          if (column >= cols) {
-            yOffset += 10;
-            xOffset = leftMargin + 2;
-            column = 0;
-          } else {
-            xOffset = leftMargin + 2 + column * columnWidth;
-          }
-        }
+          colIdx += fieldSpan;
+          xOffset = leftMargin + 2 + colIdx * colWidth;
+        });
+        yOffset += row.height;
       });
 
       yPos += boxHeight + 2;
@@ -323,7 +336,7 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
         const itemLabel = doc.splitTextToSize(item.label, colWidths.item - 3);
-        doc.text(itemLabel[0], leftMargin + 2, yPos + 3.5);
+        doc.text(itemLabel.slice(0, 2), leftMargin + 2, yPos + 3.5);
 
         // Field Status
         xPos = leftMargin + colWidths.item;
@@ -344,7 +357,7 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
         doc.setFont("helvetica", "normal");
         const fieldRemarks = doc.splitTextToSize(itemData.field_remarks || '-', colWidths.fieldRemarks - 2);
-        doc.text(fieldRemarks[0], xPos + 1, yPos + 3.5);
+        doc.text(fieldRemarks.slice(0, 2), xPos + 1, yPos + 3.5);
 
         // Shop Status
         xPos += colWidths.fieldRemarks;
@@ -365,7 +378,7 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
         doc.setFont("helvetica", "normal");
         const shopRemarks = doc.splitTextToSize(itemData.shop_remarks || '-', colWidths.shopRemarks - 2);
-        doc.text(shopRemarks[0], xPos + 1, yPos + 3.5);
+        doc.text(shopRemarks.slice(0, 2), xPos + 1, yPos + 3.5);
 
         yPos += rowHeight;
       }

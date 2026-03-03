@@ -134,12 +134,23 @@ export const GET = withAuth(async (request, { user, params }) => {
     };
 
     const addFieldsRow = (fields: Array<{ label: string; value: any }>) => {
-      checkPageBreak(12);
       const fieldWidth = contentWidth / fields.length;
+      const minRowHeight = 10;
+
+      // Calculate dynamic height based on text content
+      let maxLines = 1;
+      fields.forEach((field) => {
+        doc.setFontSize(8);
+        const lines = doc.splitTextToSize(getValue(field.value), fieldWidth - 4);
+        maxLines = Math.max(maxLines, lines.length);
+      });
+      const rowHeight = Math.max(minRowHeight, 4 + maxLines * 3 + 1);
+
+      checkPageBreak(rowHeight + 2);
       doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.rect(leftMargin, yPos, contentWidth, 10, "F");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "F");
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.rect(leftMargin, yPos, contentWidth, 10, "S");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "S");
 
       fields.forEach((field, i) => {
         const x = leftMargin + i * fieldWidth + 2;
@@ -150,19 +161,30 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
-        doc.text(getValue(field.value), x, yPos + 7.5);
+        const lines = doc.splitTextToSize(getValue(field.value), fieldWidth - 4);
+        doc.text(lines, x, yPos + 7.5);
       });
-      yPos += 12;
+      yPos += rowHeight + 2;
     };
 
     const addSpecsRow = (meta: any, specFields: Array<{ label: string; key: string }>) => {
       if (!meta) return;
-      checkPageBreak(10);
       const fieldWidth = contentWidth / specFields.length;
+      const minRowHeight = 8;
+
+      let maxLines = 1;
+      specFields.forEach((field) => {
+        doc.setFontSize(7);
+        const lines = doc.splitTextToSize(getValue(meta[field.key]), fieldWidth - 4);
+        maxLines = Math.max(maxLines, lines.length);
+      });
+      const rowHeight = Math.max(minRowHeight, 3 + maxLines * 2.8 + 1);
+
+      checkPageBreak(rowHeight + 2);
       doc.setFillColor(240, 249, 255);
-      doc.rect(leftMargin, yPos, contentWidth, 8, "F");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "F");
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.rect(leftMargin, yPos, contentWidth, 8, "S");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "S");
 
       specFields.forEach((field, i) => {
         const x = leftMargin + i * fieldWidth + 2;
@@ -173,14 +195,14 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
-        doc.text(getValue(meta[field.key]), x, yPos + 6.5);
+        const lines = doc.splitTextToSize(getValue(meta[field.key]), fieldWidth - 4);
+        doc.text(lines, x, yPos + 6.5);
       });
-      yPos += 10;
+      yPos += rowHeight + 2;
     };
 
     const addFooterRow = (meta: any) => {
       if (!meta) return;
-      checkPageBreak(10);
       const fields = [
         { label: "Remarks", value: meta.remarks },
         { label: "Technician", value: meta.technician },
@@ -188,10 +210,21 @@ export const GET = withAuth(async (request, { user, params }) => {
         { label: "Checked By", value: meta.checked_by },
       ];
       const fieldWidth = contentWidth / 4;
+      const minRowHeight = 8;
+
+      let maxLines = 1;
+      fields.forEach((field) => {
+        doc.setFontSize(7);
+        const lines = doc.splitTextToSize(getValue(field.value), fieldWidth - 4);
+        maxLines = Math.max(maxLines, lines.length);
+      });
+      const rowHeight = Math.max(minRowHeight, 3 + maxLines * 2.8 + 1);
+
+      checkPageBreak(rowHeight + 2);
       doc.setFillColor(255, 255, 255);
-      doc.rect(leftMargin, yPos, contentWidth, 8, "F");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "F");
       doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.rect(leftMargin, yPos, contentWidth, 8, "S");
+      doc.rect(leftMargin, yPos, contentWidth, rowHeight, "S");
 
       fields.forEach((field, i) => {
         const x = leftMargin + i * fieldWidth + 2;
@@ -202,9 +235,10 @@ export const GET = withAuth(async (request, { user, params }) => {
         doc.setFontSize(7);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
-        doc.text(getValue(field.value), x, yPos + 6.5);
+        const lines = doc.splitTextToSize(getValue(field.value), fieldWidth - 4);
+        doc.text(lines, x, yPos + 6.5);
       });
-      yPos += 10;
+      yPos += rowHeight + 2;
     };
 
     const addSimpleTable = (headers: string[], rows: string[][], colWidths?: number[]) => {

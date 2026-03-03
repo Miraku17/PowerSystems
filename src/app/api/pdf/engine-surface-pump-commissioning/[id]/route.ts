@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
+import { createGridHelpers } from "@/lib/pdf-grid-helpers";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
@@ -54,6 +55,13 @@ export const GET = withAuth(async (request, { user, params }) => {
     const borderGray = [229, 231, 235];
     const textGray = [100, 100, 100];
 
+    const { renderGridBox, addFieldsGrid, addTextAreaField } = createGridHelpers(doc, {
+      leftMargin, contentWidth, pageHeight,
+      lightGray, borderGray, textGray, getValue,
+      getYPos: () => yPos,
+      setYPos: (y) => { yPos = y; },
+    });
+
     // Header
     doc.setFillColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.rect(0, yPos, pageWidth, 55, "F");
@@ -102,46 +110,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.setFont("helvetica", "bold");
       doc.text(title.toUpperCase(), leftMargin + 5, yPos + 5.5);
       yPos += 10;
-    };
-
-    const renderGridBox = (gridFields: any[], startY: number) => {
-      let rows = 0, currentColumn = 0;
-      gridFields.forEach((field) => { if (field.span === 2) { if (currentColumn > 0) { rows++; currentColumn = 0; } rows++; } else { currentColumn++; if (currentColumn === 2) { rows++; currentColumn = 0; } } });
-      if (currentColumn > 0) rows++;
-      const boxHeight = rows * 14 + 4;
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.1);
-      doc.rect(leftMargin, startY, contentWidth, boxHeight, "FD");
-      let xOffset = leftMargin + 3, yOffset = startY + 3;
-      const columnWidth = (contentWidth - 6) / 2;
-      let column = 0;
-      gridFields.forEach((field) => {
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(field.label, xOffset, yOffset + 3);
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        const maxWidth = field.span === 2 ? contentWidth - 6 : columnWidth - 3;
-        const lines = doc.splitTextToSize(getValue(field.value), maxWidth);
-        doc.text(lines, xOffset, yOffset + 7);
-        if (field.span === 2) { yOffset += 14; xOffset = leftMargin + 3; column = 0; } else { column++; if (column === 2) { yOffset += 14; xOffset = leftMargin + 3; column = 0; } else { xOffset = leftMargin + 3 + columnWidth; } }
-      });
-      return boxHeight;
-    };
-
-    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>) => {
-      const fieldRows: number[] = [];
-      let currentRowCount = 0, currentColumn = 0;
-      fields.forEach((field) => { if (field.span === 2) { if (currentColumn > 0) { currentRowCount++; currentColumn = 0; } fieldRows.push(currentRowCount); currentRowCount++; } else { fieldRows.push(currentRowCount); currentColumn++; if (currentColumn === 2) { currentRowCount++; currentColumn = 0; } } });
-      const totalRows = currentColumn > 0 ? currentRowCount + 1 : currentRowCount;
-      const totalHeight = totalRows * 14 + 4;
-      if (yPos + totalHeight <= pageHeight - 20) { const actualHeight = renderGridBox(fields, yPos); yPos += actualHeight + 5; return; }
-      doc.addPage(); yPos = 15;
-      const actualHeight = renderGridBox(fields, yPos);
-      yPos += actualHeight + 5;
     };
 
     // Sections

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
+import { createGridHelpers } from "@/lib/pdf-grid-helpers";
 import path from "path";
 import fs from "fs";
 
@@ -110,6 +111,13 @@ export const GET = withAuth(async (request, { user, params }) => {
     const borderGray = [229, 231, 235];
     const textGray = [100, 100, 100];
 
+    const { renderGridBox, addFieldsGrid, addTextAreaField } = createGridHelpers(doc, {
+      leftMargin, contentWidth, pageHeight,
+      lightGray, borderGray, textGray, getValue,
+      getYPos: () => yPos,
+      setYPos: (y) => { yPos = y; },
+    });
+
     // Header with dark blue background
     doc.setFillColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.rect(0, yPos, pageWidth, 55, "F");
@@ -171,173 +179,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.text(title.toUpperCase(), leftMargin + 5, yPos + 5.5);
 
       yPos += 10;
-    };
-
-    // Helper function to render a specific grid box
-    const renderGridBox = (gridFields: any[], startY: number, boxWidth: number = contentWidth, xStart: number = leftMargin) => {
-      let rows = 0;
-      let currentColumn = 0;
-      gridFields.forEach((field) => {
-        if (field.span === 2) {
-          if (currentColumn > 0) {
-            rows++;
-            currentColumn = 0;
-          }
-          rows++;
-        } else {
-          currentColumn++;
-          if (currentColumn === 2) {
-            rows++;
-            currentColumn = 0;
-          }
-        }
-      });
-      if (currentColumn > 0) rows++;
-
-      const boxHeight = rows * 14 + 4;
-
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.1);
-      doc.rect(xStart, startY, boxWidth, boxHeight, "FD");
-
-      let xOffset = xStart + 3;
-      let yOffset = startY + 3;
-      const columnWidth = (boxWidth - 6) / 2;
-      let column = 0;
-
-      gridFields.forEach((field) => {
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(field.label, xOffset, yOffset + 3);
-
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        const valueText = getValue(field.value);
-        const maxWidth = field.span === 2 ? boxWidth - 6 : columnWidth - 3;
-        const lines = doc.splitTextToSize(valueText, maxWidth);
-        doc.text(lines, xOffset, yOffset + 7);
-
-        if (field.span === 2) {
-          yOffset += 14;
-          xOffset = xStart + 3;
-          column = 0;
-        } else {
-          column++;
-          if (column === 2) {
-            yOffset += 14;
-            xOffset = xStart + 3;
-            column = 0;
-          } else {
-            xOffset = xStart + 3 + columnWidth;
-          }
-        }
-      });
-
-      return boxHeight;
-    };
-
-    // Helper function to add fields in a grid with pagination support
-    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>) => {
-      const fieldRows: number[] = [];
-      let currentRowCount = 0;
-      let currentColumn = 0;
-
-      fields.forEach((field) => {
-        if (field.span === 2) {
-          if (currentColumn > 0) {
-            currentRowCount++;
-            currentColumn = 0;
-          }
-          fieldRows.push(currentRowCount);
-          currentRowCount++;
-        } else {
-          fieldRows.push(currentRowCount);
-          currentColumn++;
-          if (currentColumn === 2) {
-            currentRowCount++;
-            currentColumn = 0;
-          }
-        }
-      });
-
-      const totalRows = currentColumn > 0 ? currentRowCount + 1 : currentRowCount;
-      const rowHeight = 14;
-      const boxPadding = 4;
-      const totalHeight = totalRows * rowHeight + boxPadding;
-
-      if (yPos + totalHeight <= pageHeight - 20) {
-        const actualHeight = renderGridBox(fields, yPos);
-        yPos += actualHeight + 5;
-        return;
-      }
-
-      const availableHeight = (pageHeight - 20) - yPos;
-      const maxFitRows = Math.floor((availableHeight - boxPadding) / rowHeight);
-
-      if (maxFitRows < 1) {
-        doc.addPage();
-        yPos = 15;
-        const actualHeight = renderGridBox(fields, yPos);
-        yPos += actualHeight + 5;
-        return;
-      }
-
-      let splitIndex = 0;
-      for (let i = 0; i < fields.length; i++) {
-        if (fieldRows[i] >= maxFitRows) {
-          splitIndex = i;
-          break;
-        }
-      }
-
-      if (splitIndex === 0) {
-        doc.addPage();
-        yPos = 15;
-        addFieldsGrid(fields);
-        return;
-      }
-
-      const firstPageFields = fields.slice(0, splitIndex);
-      const secondPageFields = fields.slice(splitIndex);
-
-      renderGridBox(firstPageFields, yPos);
-
-      doc.addPage();
-      yPos = 15;
-
-      addFieldsGrid(secondPageFields);
-    };
-
-    const addTextAreaField = (label: string, value: any) => {
-      const valueText = getValue(value);
-      const lines = doc.splitTextToSize(valueText, contentWidth - 6);
-      const boxHeight = Math.max(lines.length * 4 + 8, 16);
-
-      if (yPos + boxHeight > pageHeight - 20) {
-        doc.addPage();
-        yPos = 15;
-      }
-
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.1);
-
-      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
-
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-      doc.text(label, leftMargin + 3, yPos + 4);
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(0, 0, 0);
-      doc.text(lines, leftMargin + 3, yPos + 8);
-
-      yPos += boxHeight + 5;
     };
 
     // Helper to render a table with findings

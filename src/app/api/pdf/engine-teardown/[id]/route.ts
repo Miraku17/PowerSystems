@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
+import { createGridHelpers } from "@/lib/pdf-grid-helpers";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
@@ -107,6 +108,13 @@ export const GET = withAuth(async (request, { user, params }) => {
     const textGray = [100, 100, 100];
     const greenColor = [34, 197, 94];
 
+    const { renderGridBox, addFieldsGrid, addTextAreaField } = createGridHelpers(doc, {
+      leftMargin, contentWidth, pageHeight,
+      lightGray, borderGray, textGray, getValue,
+      getYPos: () => yPos,
+      setYPos: (y) => { yPos = y; },
+    });
+
     // Header
     doc.setFillColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.rect(0, yPos, pageWidth, 50, "F");
@@ -151,77 +159,6 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.setFont("helvetica", "bold");
       doc.text(title.toUpperCase(), leftMargin + 5, yPos + 5.5);
       yPos += 10;
-    };
-
-    const addFieldsGrid = (fields: Array<{ label: string; value: any; span?: number }>, cols: number = 2) => {
-      checkPageBreak(30);
-
-      // Show all fields (don't filter out empty ones)
-      let rows = 0;
-      let currentColumn = 0;
-      fields.forEach((field) => {
-        const fieldSpan = field.span || 1;
-        if (fieldSpan >= cols) {
-          if (currentColumn > 0) {
-            rows++;
-            currentColumn = 0;
-          }
-          rows++;
-        } else {
-          currentColumn += fieldSpan;
-          if (currentColumn >= cols) {
-            rows++;
-            currentColumn = 0;
-          }
-        }
-      });
-      if (currentColumn > 0) rows++;
-
-      const boxHeight = rows * 12 + 4;
-
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.1);
-      doc.rect(leftMargin, yPos, contentWidth, boxHeight, "FD");
-
-      let xOffset = leftMargin + 3;
-      let yOffset = yPos + 3;
-      const columnWidth = (contentWidth - 6) / cols;
-      let column = 0;
-
-      fields.forEach((field) => {
-        const fieldSpan = field.span || 1;
-        doc.setFontSize(7);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(field.label, xOffset, yOffset + 3);
-
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(0, 0, 0);
-        const maxWidth = fieldSpan >= cols ? contentWidth - 6 : columnWidth * fieldSpan - 3;
-        // Show value or underline for empty fields
-        const displayValue = field.value && field.value !== '-' ? String(field.value) : '________________________';
-        const lines = doc.splitTextToSize(displayValue, maxWidth);
-        doc.text(lines, xOffset, yOffset + 7);
-
-        if (fieldSpan >= cols) {
-          yOffset += 12;
-          xOffset = leftMargin + 3;
-          column = 0;
-        } else {
-          column += fieldSpan;
-          if (column >= cols) {
-            yOffset += 12;
-            xOffset = leftMargin + 3;
-            column = 0;
-          } else {
-            xOffset = leftMargin + 3 + column * columnWidth;
-          }
-        }
-      });
-
-      yPos += boxHeight + 3;
     };
 
     // Helper to draw a checkbox (empty or with checkmark)

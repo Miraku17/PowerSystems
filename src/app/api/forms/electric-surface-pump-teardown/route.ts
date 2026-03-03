@@ -425,6 +425,7 @@ export const PATCH = withAuth(async (request, { user }) => {
         .select('id')
         .eq('job_order', body.job_order)
         .neq('id', id)
+        .is('deleted_at', null)
         .single();
 
       if (searchError && searchError.code !== 'PGRST116') {

@@ -86,23 +86,24 @@ export async function checkRecordPermission(
   action: 'edit' | 'delete' = 'edit',
   module: string = 'form_records'
 ): Promise<PermissionCheckResult> {
-  const permAction = action === 'delete' ? 'delete' : 'write';
-  const allowed = await hasPermission(supabase, userId, module, permAction);
+  // Creator can always edit their own records
+  const isOwner = recordCreatedBy === userId;
+  if (action === 'edit' && isOwner) {
+    return { allowed: true, isAdmin: false, isOwner: true };
+  }
+
+  let allowed: boolean;
+  if (action === 'edit') {
+    allowed = await hasPermission(supabase, userId, module, 'edit');
+  } else {
+    allowed = await hasPermission(supabase, userId, module, 'delete');
+  }
 
   if (!allowed) {
-    // For edit, also allow if user is the record owner and has write permission
-    if (action === 'edit') {
-      const isOwner = recordCreatedBy === userId;
-      const canWrite = await hasPermission(supabase, userId, module, 'write');
-      if (isOwner && canWrite) {
-        return { allowed: true, isAdmin: false, isOwner: true };
-      }
-    }
-
     return {
       allowed: false,
       isAdmin: false,
-      isOwner: recordCreatedBy === userId,
+      isOwner,
       error: NextResponse.json(
         { error: `You do not have permission to ${action} this record` },
         { status: 403 }
@@ -110,7 +111,7 @@ export async function checkRecordPermission(
     };
   }
 
-  // For edit, check scope using the dedicated 'edit' permission (separate from 'write')
+  // For edit, check scope using the dedicated 'edit' permission
   if (action === 'edit') {
     const scope = await getPermissionScope(supabase, userId, module, 'edit');
 
@@ -132,7 +133,7 @@ export async function checkRecordPermission(
         return {
           allowed: false,
           isAdmin: false,
-          isOwner: recordCreatedBy === userId,
+          isOwner,
           error: NextResponse.json(
             { error: 'You can only edit records from your branch' },
             { status: 403 }
@@ -157,7 +158,7 @@ export async function checkRecordPermission(
   return {
     allowed: true,
     isAdmin: true,
-    isOwner: recordCreatedBy === userId,
+    isOwner,
   };
 }
 

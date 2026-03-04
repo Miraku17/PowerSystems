@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission } from "@/lib/permissions";
+import { checkRecordPermission, getReadScopeFilter } from "@/lib/permissions";
 
 // --- GET: Fetch a single report by ID with all measurement data ---
 export const GET = withAuth(async (request, { user, params }) => {
@@ -168,6 +168,14 @@ export const GET = withAuth(async (request, { user, params }) => {
         airCoolingBlower: airCoolingBlowerData?.[0] || null,
       },
     };
+
+    const allowedUserIds = await getReadScopeFilter(supabase, user.id);
+    if (allowedUserIds !== null && (!mainRecord.created_by || !allowedUserIds.includes(mainRecord.created_by))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view this record" },
+        { status: 403 }
+      );
+    }
 
     return NextResponse.json({ success: true, data: fullRecord });
   } catch (error: any) {

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { getReadScopeFilter } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses } from "@/lib/users";
 
@@ -80,9 +81,14 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+    const allowedUserIds = await getReadScopeFilter(supabase, user.id);
+
+    if (allowedUserIds !== null && allowedUserIds.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
 
     // Fetch main reports with all related data
-    const { data: reports, error } = await supabase
+    let query = supabase
       .from("engine_teardown_reports")
       .select(`
         *,
@@ -105,6 +111,12 @@ export const GET = withAuth(async (request, { user }) => {
       `)
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
+
+    if (allowedUserIds !== null) {
+      query = query.in("created_by", allowedUserIds);
+    }
+
+    const { data: reports, error } = await query;
 
     if (error) {
       console.error("Supabase error fetching engine teardown reports:", error);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { getReadScopeFilter } from "@/lib/permissions";
 
 // Map form types to their database table names
 const formTypeTables: Record<string, string> = {
@@ -24,16 +25,33 @@ const formTypeTables: Record<string, string> = {
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+    const allowedUserIds = await getReadScopeFilter(supabase, user.id);
+
+    // No read permission → all counts are 0
+    if (allowedUserIds !== null && allowedUserIds.length === 0) {
+      const counts: Record<string, number> = {};
+      for (const formType of Object.keys(formTypeTables)) {
+        counts[formType] = 0;
+      }
+      return NextResponse.json({ counts });
+    }
+
     const counts: Record<string, number> = {};
 
     // Fetch count for each form type
     await Promise.all(
       Object.entries(formTypeTables).map(async ([formType, tableName]) => {
         try {
-          const { count, error } = await supabase
+          let query = supabase
             .from(tableName)
             .select("*", { count: "exact", head: true })
             .is("deleted_at", null);
+
+          if (allowedUserIds !== null) {
+            query = query.in("created_by", allowedUserIds);
+          }
+
+          const { count, error } = await query;
 
           if (error) {
             console.error(`Error fetching count for ${formType}:`, error);

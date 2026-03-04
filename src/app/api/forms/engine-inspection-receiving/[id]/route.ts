@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { hasPermission } from "@/lib/permissions";
+import { hasPermission, getReadScopeFilter } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -48,6 +48,14 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     if (!data) {
       return NextResponse.json({ success: false, message: "Record not found" }, { status: 404 });
+    }
+
+    const allowedUserIds = await getReadScopeFilter(supabase, user.id);
+    if (allowedUserIds !== null && (!data.created_by || !allowedUserIds.includes(data.created_by))) {
+      return NextResponse.json(
+        { success: false, message: "You do not have permission to view this record" },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json({ success: true, data });

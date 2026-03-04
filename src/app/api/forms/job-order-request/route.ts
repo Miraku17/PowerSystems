@@ -1,17 +1,30 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
+import { getReadScopeFilter } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 import { getUserAddresses } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const { data, error } = await supabase
+    const allowedUserIds = await getReadScopeFilter(supabase, user.id);
+
+    if (allowedUserIds !== null && allowedUserIds.length === 0) {
+      return NextResponse.json({ success: true, data: [] });
+    }
+
+    let query = supabase
       .from("job_order_request_form")
       .select("*")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
+
+    if (allowedUserIds !== null) {
+      query = query.in("created_by", allowedUserIds);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Supabase error fetching job order requests:", error);

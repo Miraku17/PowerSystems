@@ -163,6 +163,51 @@ export async function checkRecordPermission(
 }
 
 /**
+ * Get the list of user IDs that the current user is allowed to read,
+ * based on their read permission scope.
+ * - scope "all" → returns null (no filter needed, show everything)
+ * - scope "branch" → returns IDs of all users with the same address
+ * - scope "own" → returns [userId]
+ * - no permission configured → returns null (no filter, preserves default behavior)
+ */
+export async function getReadScopeFilter(
+  supabase: SupabaseClient,
+  userId: string,
+  module: string = 'form_records'
+): Promise<string[] | null> {
+  const scope = await getPermissionScope(supabase, userId, module, 'read');
+
+  // No read permission configured — default to own records only
+  if (scope === null) return [userId];
+
+  if (scope === 'all') return null;
+
+  if (scope === 'branch') {
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('address')
+      .eq('id', userId)
+      .single();
+
+    if (!currentUser?.address) return [userId];
+
+    const { data: branchUsers } = await supabase
+      .from('users')
+      .select('id')
+      .eq('address', currentUser.address);
+
+    if (!branchUsers || branchUsers.length === 0) return [userId];
+
+    return branchUsers.map((u: { id: string }) => u.id);
+  }
+
+  if (scope === 'own') return [userId];
+
+  // Unknown scope value — default to own for safety
+  return [userId];
+}
+
+/**
  * Simple role check - returns user role from database
  */
 export async function getUserRole(

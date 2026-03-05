@@ -355,9 +355,9 @@ export default function Users() {
                     <th className="px-6 py-4 text-xs font-bold text-[#607D8B] uppercase tracking-wider">
                       User Profile
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-[#607D8B] uppercase tracking-wider">
+                    {/* <th className="px-6 py-4 text-xs font-bold text-[#607D8B] uppercase tracking-wider">
                       Position
-                    </th>
+                    </th> */}
                     <th className="px-6 py-4 text-xs font-bold text-[#607D8B] uppercase tracking-wider">
                       Contact Details
                     </th>
@@ -402,13 +402,13 @@ export default function Users() {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        {/* <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold uppercase tracking-wider border shadow-sm ${getPositionBadgeColor(user.position?.name)}`}
                           >
                             {user.position?.name || "Unassigned"}
                           </span>
-                        </td>
+                        </td> */}
                         <td className="px-6 py-4">
                           <div className="flex flex-col gap-1.5">
                             <div className="flex items-center gap-1.5 text-xs text-[#1A2F4F] font-medium">

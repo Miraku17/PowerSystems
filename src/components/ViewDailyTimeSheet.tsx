@@ -468,10 +468,6 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 <div className="md:col-span-4">
                   <Field label="Note" value={data.service_office_note} />
                 </div>
-                <div className="md:col-span-4 text-xs text-gray-600 italic">
-                  <p>ACTUAL MANHOUR = REGULAR + OVERTIME</p>
-                  <p>PERFORMANCE = SRT / ACTUAL MANHOUR</p>
-                </div>
               </div>
             </div>
 

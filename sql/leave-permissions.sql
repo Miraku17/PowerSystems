@@ -32,19 +32,19 @@ INSERT INTO position_permissions (position_id, permission_id)
 SELECT p.id, perm.id
 FROM positions p
 CROSS JOIN permissions perm
-WHERE p.name IN ('Super Admin', 'Admin 1', 'Admin 2')
+WHERE p.name IN ('Super Admin', 'Admin 1', 'Admin 2', 'Super User')
   AND perm.module = 'leave_approval'
   AND perm.action = 'access'
 ON CONFLICT DO NOTHING;
 
 -- ============================================
--- leave_approval.edit - Admins can approve/reject leave
+-- leave_approval.edit - Admins + Super User can approve/reject leave
 -- ============================================
 INSERT INTO position_permissions (position_id, permission_id)
 SELECT p.id, perm.id
 FROM positions p
 CROSS JOIN permissions perm
-WHERE p.name IN ('Super Admin', 'Admin 1', 'Admin 2')
+WHERE p.name IN ('Super Admin', 'Admin 1', 'Admin 2', 'Super User')
   AND perm.module = 'leave_approval'
   AND perm.action = 'edit'
 ON CONFLICT DO NOTHING;

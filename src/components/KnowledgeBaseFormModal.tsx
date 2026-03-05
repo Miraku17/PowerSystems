@@ -15,6 +15,7 @@ import {
   VideoCameraIcon,
   TagIcon,
   DocumentTextIcon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
 
 interface KnowledgeBaseFormModalProps {
@@ -47,6 +48,7 @@ export default function KnowledgeBaseFormModal({
     title: article?.title || "",
     content: article?.content || "",
     videoLinks: article?.videoLinks || [] as string[],
+    documentLinks: article?.documentLinks || [] as string[],
   });
 
   const currentData = mode === "edit" ? editData : formData;
@@ -179,6 +181,23 @@ export default function KnowledgeBaseFormModal({
     });
   };
 
+  // Document links management
+  const addDocumentLink = () => {
+    updateData({ documentLinks: [...currentData.documentLinks, ""] });
+  };
+
+  const updateDocumentLink = (index: number, value: string) => {
+    const updated = [...currentData.documentLinks];
+    updated[index] = value;
+    updateData({ documentLinks: updated });
+  };
+
+  const removeDocumentLink = (index: number) => {
+    updateData({
+      documentLinks: currentData.documentLinks.filter((_, i) => i !== index),
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -191,8 +210,11 @@ export default function KnowledgeBaseFormModal({
       let articleId: string;
 
       if (mode === "create") {
-        // Filter out empty video links
+        // Filter out empty links
         const filteredLinks = currentData.videoLinks.filter(
+          (link) => link.trim() !== ""
+        );
+        const filteredDocLinks = currentData.documentLinks.filter(
           (link) => link.trim() !== ""
         );
 
@@ -201,6 +223,7 @@ export default function KnowledgeBaseFormModal({
           title: currentData.title,
           content: currentData.content,
           videoLinks: filteredLinks,
+          documentLinks: filteredDocLinks,
         });
 
         if (!response.success || !response.data) {
@@ -214,11 +237,15 @@ export default function KnowledgeBaseFormModal({
         const filteredLinks = currentData.videoLinks.filter(
           (link) => link.trim() !== ""
         );
+        const filteredDocLinks = currentData.documentLinks.filter(
+          (link) => link.trim() !== ""
+        );
 
         const response = await knowledgeBaseService.update(article.id, {
           title: currentData.title,
           content: currentData.content,
           videoLinks: filteredLinks,
+          documentLinks: filteredDocLinks,
         });
 
         if (!response.success) {
@@ -494,6 +521,56 @@ export default function KnowledgeBaseFormModal({
             ) : (
               <p className="text-sm text-gray-400">
                 No video links added yet.
+              </p>
+            )}
+          </div>
+
+          {/* Document Links */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700 flex items-center">
+                <PaperClipIcon className="h-4 w-4 mr-1.5" />
+                Document Links
+              </label>
+              <button
+                type="button"
+                onClick={addDocumentLink}
+                className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <PlusIcon className="h-4 w-4" />
+                Add Link
+              </button>
+            </div>
+
+            {currentData.documentLinks.length > 0 ? (
+              <div className="space-y-2">
+                {currentData.documentLinks.map((link, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <PaperClipIcon className="h-4 w-4 text-gray-400" />
+                      </div>
+                      <input
+                        type="url"
+                        value={link}
+                        onChange={(e) => updateDocumentLink(idx, e.target.value)}
+                        className="block w-full pl-9 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors text-sm"
+                        placeholder="https://drive.google.com/..."
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeDocumentLink(idx)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">
+                No document links added yet.
               </p>
             )}
           </div>

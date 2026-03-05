@@ -181,6 +181,7 @@ export interface KBArticle {
   title: string;
   content: string;
   videoLinks: string[];
+  documentLinks: string[];
   images: KBArticleImage[];
   createdBy: string;
   createdByName: string | null;
@@ -208,12 +209,14 @@ export type CreateKBArticleData = {
   title: string;
   content: string;
   videoLinks: string[];
+  documentLinks: string[];
 };
 
 export type UpdateKBArticleData = {
   title?: string;
   content?: string;
   videoLinks?: string[];
+  documentLinks?: string[];
 };
 
 /**

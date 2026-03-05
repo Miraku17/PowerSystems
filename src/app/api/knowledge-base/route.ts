@@ -50,6 +50,7 @@ export const GET = withAuth(async (request, { user }) => {
       title: item.title,
       content: item.content,
       videoLinks: item.video_links || [],
+      documentLinks: item.document_links || [],
       images: (item.knowledge_base_article_images || [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((img: any) => ({
@@ -94,7 +95,7 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     const body = await request.json();
-    const { category, title, content, videoLinks } = body;
+    const { category, title, content, videoLinks, documentLinks } = body;
 
     if (!category || !title || !content) {
       return NextResponse.json(
@@ -137,6 +138,7 @@ export const POST = withAuth(async (request, { user }) => {
           title,
           content,
           video_links: videoLinks || [],
+          document_links: documentLinks || [],
           created_by: user.id,
         },
       ])
@@ -166,6 +168,7 @@ export const POST = withAuth(async (request, { user }) => {
       title: data.title,
       content: data.content,
       videoLinks: data.video_links || [],
+      documentLinks: data.document_links || [],
       images: [],
       createdBy: data.created_by,
       createdByName: creatorData ? `${creatorData.firstname} ${creatorData.lastname}`.trim() : null,

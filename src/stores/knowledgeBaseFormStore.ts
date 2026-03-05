@@ -7,6 +7,7 @@ interface KBFormData {
   title: string;
   content: string;
   videoLinks: string[];
+  documentLinks: string[];
 }
 
 interface KBFormStore {
@@ -20,6 +21,7 @@ const initialFormData: KBFormData = {
   title: "",
   content: "",
   videoLinks: [],
+  documentLinks: [],
 };
 
 export const useKBFormStore = create<KBFormStore>()(

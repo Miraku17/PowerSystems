@@ -37,6 +37,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       title: data.title,
       content: data.content,
       videoLinks: data.video_links || [],
+      documentLinks: data.document_links || [],
       images: (data.knowledge_base_article_images || [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((img: any) => ({
@@ -86,6 +87,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
     if (body.title !== undefined) updateData.title = body.title;
     if (body.content !== undefined) updateData.content = body.content;
     if (body.videoLinks !== undefined) updateData.video_links = body.videoLinks;
+    if (body.documentLinks !== undefined) updateData.document_links = body.documentLinks;
 
     updateData.updated_by = user.id;
     updateData.updated_at = new Date().toISOString();
@@ -113,6 +115,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
       title: data.title,
       content: data.content,
       videoLinks: data.video_links || [],
+      documentLinks: data.document_links || [],
       images: (data.knowledge_base_article_images || [])
         .sort((a: any, b: any) => a.sort_order - b.sort_order)
         .map((img: any) => ({

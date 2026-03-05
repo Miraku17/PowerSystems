@@ -77,20 +77,37 @@ export default function DailyTimeSheetForm() {
     let totalRegular = 0;
     let totalOT = 0;
 
+    let totalTravel = 0;
+
     formData.entries.forEach((entry) => {
       const { regular, ot } = calculateRegularAndOT(entry.start_time, entry.stop_time);
       totalRegular += regular;
       totalOT += ot;
+      totalTravel += parseFloat(entry.travel_time_hours || '0') || 0;
     });
 
     const regStr = totalRegular.toFixed(2);
     const grandStr = (totalRegular + totalOT).toFixed(2);
+    const otStr = totalOT.toFixed(2);
+    const travelStr = totalTravel.toFixed(2);
 
     if (formData.total_manhours !== regStr) {
       setFormData({ total_manhours: regStr });
     }
     if (formData.grand_total_manhours !== grandStr) {
       setFormData({ grand_total_manhours: grandStr });
+    }
+    if (formData.total_service_manhours !== grandStr) {
+      setFormData({ total_service_manhours: grandStr });
+    }
+    if (formData.actual_manhour !== regStr) {
+      setFormData({ actual_manhour: regStr });
+    }
+    if (formData.total_srt !== otStr) {
+      setFormData({ total_srt: otStr });
+    }
+    if (formData.performance !== travelStr) {
+      setFormData({ performance: travelStr });
     }
   }, [formData.entries]);
 
@@ -600,10 +617,10 @@ export default function DailyTimeSheetForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">For Service Office Only</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
-            <Input label="Total Overtime" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleChange} />
-            <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} />
-            <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} />
-            <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} />
+            <Input label="Total Overtime" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleChange} disabled placeholder=" " />
+            <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} disabled placeholder=" " />
+            <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled placeholder=" " />
+            <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
             <Select label="CHK. BY" name="checked_by" value={formData.checked_by} onChange={handleChange} options={users.map(user => user.fullName)} />
             <Select label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} onChange={handleChange} options={users.map(user => user.fullName)} />
             <Select label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} onChange={handleChange} options={users.map(user => user.fullName)} />

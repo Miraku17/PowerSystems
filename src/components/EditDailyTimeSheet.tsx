@@ -317,32 +317,26 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
     let totalRegular = 0;
     let totalOT = 0;
 
+    let totalTravel = 0;
+
     entries.forEach((entry) => {
       const { regular, ot } = calculateRegularAndOT(entry.start_time, entry.stop_time);
       totalRegular += regular;
       totalOT += ot;
+      totalTravel += parseFloat(entry.travel_time_hours || '0') || 0;
     });
 
     const regStr = totalRegular.toFixed(2);
     const grandStr = (totalRegular + totalOT).toFixed(2);
+    const otStr = totalOT.toFixed(2);
+    const travelStr = totalTravel.toFixed(2);
 
     setFormData((prev) => {
-      if (prev.total_manhours === regStr && prev.grand_total_manhours === grandStr) return prev;
-      return { ...prev, total_manhours: regStr, grand_total_manhours: grandStr };
+      if (prev.total_manhours === regStr && prev.grand_total_manhours === grandStr && prev.total_service_manhours === grandStr && prev.actual_manhour === regStr && prev.total_srt === otStr && prev.performance === travelStr) return prev;
+      return { ...prev, total_manhours: regStr, grand_total_manhours: grandStr, total_service_manhours: grandStr, actual_manhour: regStr, total_srt: otStr, performance: travelStr };
     });
   }, [entries]);
 
-  // Auto-calculate performance
-  useEffect(() => {
-    const srt = parseFloat(formData.total_srt) || 0;
-    const actualManhour = parseFloat(formData.actual_manhour) || 0;
-    if (actualManhour > 0) {
-      const perf = ((srt / actualManhour) * 100).toFixed(2);
-      if (formData.performance !== perf) {
-        handleFieldChange('performance', perf);
-      }
-    }
-  }, [formData.total_srt, formData.actual_manhour]);
 
   const handleFieldChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -787,10 +781,10 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
             <div className="bg-red-50 p-6 rounded-xl border border-red-200">
               <h4 className="text-base font-bold text-red-700 mb-4 pb-2 border-b border-red-300 uppercase">For Service Office Only</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Input label="Total SRT" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleFieldChange} />
-                <Input label="Actual Manhour" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} />
-                <Input label="Performance (%)" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
-                <div></div>
+                <Input label="Total Overtime" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleFieldChange} disabled />
+                <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} disabled />
+                <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
+                <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleFieldChange} disabled />
                 <Select label="CHK. BY" name="checked_by" value={formData.checked_by} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
                 <Select label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
                 <Select label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} options={users.map(u => u.fullName)} onChange={handleFieldChange} />

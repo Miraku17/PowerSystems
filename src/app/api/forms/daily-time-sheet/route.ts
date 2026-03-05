@@ -132,6 +132,7 @@ export const POST = withAuth(async (request, { user }) => {
     const total_srt = getString('total_srt');
     const actual_manhour = getString('actual_manhour');
     const performance = getString('performance');
+    const total_service_manhours = getString('total_service_manhours');
     const service_office_note = getString('service_office_note');
     const checked_by = getString('checked_by');
     const service_coordinator = getString('service_coordinator');
@@ -181,6 +182,7 @@ export const POST = withAuth(async (request, { user }) => {
           total_srt: total_srt ? parseFloat(total_srt) : null,
           actual_manhour: actual_manhour ? parseFloat(actual_manhour) : null,
           performance: performance ? parseFloat(performance) : null,
+          total_service_manhours: total_service_manhours ? parseFloat(total_service_manhours) : null,
           service_office_note,
           checked_by,
           service_coordinator,

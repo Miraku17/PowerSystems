@@ -457,10 +457,10 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
             <div className="mb-6">
               <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">For Service Office Only</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-4 rounded-lg">
-                <Field label="Total SRT" value={formatNumber(data.total_srt)} />
-                <Field label="Actual Manhour" value={formatNumber(data.actual_manhour)} />
-                <Field label="Performance (%)" value={data.performance ? `${formatNumber(data.performance)}%` : '-'} />
-                <div></div>
+                <Field label="Total Overtime" value={formatNumber(data.total_srt)} />
+                <Field label="Total Regular Hours" value={formatNumber(data.actual_manhour)} />
+                <Field label="Total Travel Hours" value={formatNumber(data.performance)} />
+                <Field label="Total ManHours" value={formatNumber(data.total_service_manhours)} />
                 <Field label="CHK. BY" value={data.checked_by} />
                 <Field label="SVC. CO'RDNTR" value={data.service_coordinator} />
                 <Field label="APVD. BY" value={data.approved_by_service} />

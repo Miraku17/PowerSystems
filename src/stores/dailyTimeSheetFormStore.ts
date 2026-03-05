@@ -61,6 +61,7 @@ interface DailyTimeSheetFormData {
   total_srt: string;
   actual_manhour: string;
   performance: string;
+  total_service_manhours: string;
   service_office_note: string;
   checked_by: string;
   service_coordinator: string;
@@ -128,6 +129,7 @@ const initialFormData: DailyTimeSheetFormData = {
   total_srt: '',
   actual_manhour: '',
   performance: '',
+  total_service_manhours: '',
   service_office_note: '',
   checked_by: '',
   service_coordinator: '',

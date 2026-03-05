@@ -320,10 +320,10 @@ export const GET = withAuth(async (request, { user, params }) => {
     const col2LabelWidth = 35;
     const fieldSpacing = 8;
 
-    // Row 1: Total SRT | CHK. BY
+    // Row 1: Total Overtime | CHK. BY
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text("TOTAL SRT", col1X, serviceY);
+    doc.text("TOTAL OVERTIME", col1X, serviceY);
     doc.rect(valueBoxX, serviceY - 3, col1ValueWidth, 5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -336,11 +336,11 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFontSize(8);
     doc.text(getValue(record.checked_by), col2X + col2LabelWidth, serviceY);
 
-    // Row 2: Actual Manhour | SVC. CO'RDNTR
+    // Row 2: Total Regular Hours | SVC. CO'RDNTR
     serviceY += fieldSpacing;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("ACTUAL MANHOUR", col1X, serviceY);
+    doc.text("TOTAL REGULAR HOURS", col1X, serviceY);
     doc.rect(valueBoxX, serviceY - 3, col1ValueWidth, 5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
@@ -353,16 +353,15 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFontSize(8);
     doc.text(getValue(record.service_coordinator), col2X + col2LabelWidth, serviceY);
 
-    // Row 3: Performance | APVD. BY
+    // Row 3: Total Travel Hours | APVD. BY
     serviceY += fieldSpacing;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("PERFORMANCE", col1X, serviceY);
+    doc.text("TOTAL TRAVEL HOURS", col1X, serviceY);
     doc.rect(valueBoxX, serviceY - 3, col1ValueWidth, 5);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
-    const perf = record.performance ? `${parseFloat(record.performance).toFixed(0)}%` : "";
-    doc.text(perf, valueBoxX + col1ValueWidth / 2, serviceY, { align: "center" });
+    doc.text(record.performance?.toString() || "", valueBoxX + col1ValueWidth / 2, serviceY, { align: "center" });
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
@@ -371,18 +370,28 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFontSize(8);
     doc.text(getValue(record.approved_by_service), col2X + col2LabelWidth, serviceY);
 
-    // Row 4: Note | SVC. MANAGER
+    // Row 4: Total ManHours | SVC. MANAGER
     serviceY += fieldSpacing;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("NOTE:", col1X, serviceY);
+    doc.text("TOTAL MANHOURS", col1X, serviceY);
+    doc.rect(valueBoxX, serviceY - 3, col1ValueWidth, 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(record.total_service_manhours?.toString() || "", valueBoxX + col1ValueWidth / 2, serviceY, { align: "center" });
 
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
     doc.text("SVC. MANAGER:", col2X, serviceY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(getValue(record.service_manager), col2X + col2LabelWidth, serviceY);
 
+    // Row 5: Note
+    serviceY += fieldSpacing;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("NOTE:", col1X, serviceY);
 
     yPos = serviceY + 8;
 

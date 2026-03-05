@@ -236,6 +236,7 @@ function DashboardLayoutInner({
       name: "DTS Requests",
       icon: ClockIcon,
       href: "/dashboard/pending-dts",
+      permission: { module: "dts_approval" },
     },
     {
       name: "Audit Logs",
@@ -277,7 +278,6 @@ function DashboardLayoutInner({
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
         item.href === "/dashboard/pending-jo-requests" ||
-        item.href === "/dashboard/pending-dts" ||
         item.href === "/dashboard/leave" ||
         item.href === "/dashboard/leave-management"
       );
@@ -294,7 +294,7 @@ function DashboardLayoutInner({
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||
-        pathname.startsWith("/dashboard/pending-dts") ||
+        (pathname.startsWith("/dashboard/pending-dts") && canAccess("dts_approval")) ||
         (pathname.startsWith("/dashboard/my-signatures") && canAccess("signatures")) ||
         (pathname.startsWith("/dashboard/all-signatures") && hasPermission("signatures", "view_all")) ||
         (pathname.startsWith("/dashboard/knowledge-base") && canRead("knowledge_base")) ||

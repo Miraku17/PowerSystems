@@ -138,7 +138,7 @@ export default function PendingDailyTimeSheets() {
 
   const { getScope } = usePermissions();
   const currentUser = useAuthStore((state) => state.user);
-  const approvalScope = getScope("approvals", "edit");
+  const approvalScope = getScope("dts_approval", "edit");
 
   const canChangeStatusForRecord = (record: PendingDTS): boolean => {
     if (!meta?.canEdit) return false;

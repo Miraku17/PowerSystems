@@ -21,7 +21,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     }
 
     // Check permission: user must have approvals/edit permission
-    const canEdit = await hasPermission(supabase, user.id, "approvals", "edit");
+    const canEdit = await hasPermission(supabase, user.id, "dts_approval", "edit");
     if (!canEdit) {
       return NextResponse.json(
         { success: false, message: "You do not have permission to change status" },
@@ -56,7 +56,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
         .from("position_permissions")
         .select("scope, permissions!inner(module, action)")
         .eq("position_id", userData.position_id)
-        .eq("permissions.module", "approvals")
+        .eq("permissions.module", "dts_approval")
         .eq("permissions.action", "edit")
         .maybeSingle();
 

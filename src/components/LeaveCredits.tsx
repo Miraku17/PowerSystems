@@ -129,7 +129,6 @@ export default function LeaveCredits() {
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Employee</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Position</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Total Credits</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Used</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Remaining</th>
@@ -144,7 +143,6 @@ export default function LeaveCredits() {
                   <td className="px-4 py-3 text-gray-900 font-medium">
                     {uc.user.firstname} {uc.user.lastname}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{uc.user.position?.name || "-"}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{uc.credits.total_credits}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{uc.credits.used_credits}</td>
                   <td className="px-4 py-3 text-right">

@@ -8,7 +8,7 @@ export const GET = withAuth(async (request, { user }) => {
     const supabase = getServiceSupabase();
 
     // Check if user has edit permission on approvals (can manage statuses)
-    const canEdit = await hasPermission(supabase, user.id, "approvals", "edit");
+    const canEdit = await hasPermission(supabase, user.id, "dts_approval", "edit");
 
     // Get user address and position for branch filtering
     const { data: userData, error: userError } = await supabase
@@ -34,7 +34,7 @@ export const GET = withAuth(async (request, { user }) => {
         .from("position_permissions")
         .select("scope, permissions!inner(module, action)")
         .eq("position_id", userData.position_id)
-        .eq("permissions.module", "approvals")
+        .eq("permissions.module", "dts_approval")
         .eq("permissions.action", "edit")
         .maybeSingle();
 

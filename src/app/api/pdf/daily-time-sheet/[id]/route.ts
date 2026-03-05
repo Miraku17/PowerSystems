@@ -383,13 +383,6 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFontSize(8);
     doc.text(getValue(record.service_manager), col2X + col2LabelWidth, serviceY);
 
-    // Note formulas
-    serviceY += 6;
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(6);
-    doc.text("ACTUAL MANHOUR = REGULAR + OVERTIME", col1X, serviceY);
-    serviceY += 3;
-    doc.text("PERFORMANCE = SRT / ACTUAL MANHOUR", col1X, serviceY);
 
     yPos = serviceY + 8;
 

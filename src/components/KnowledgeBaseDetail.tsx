@@ -10,6 +10,7 @@ import {
   UserIcon,
   ArrowTopRightOnSquareIcon,
   ClockIcon,
+  PaperClipIcon,
 } from "@heroicons/react/24/outline";
 import { useState } from "react";
 
@@ -96,7 +97,7 @@ export default function KnowledgeBaseDetail({
           </div>
 
           {/* Media Grid (Images & Videos) */}
-          {(article.images?.length > 0 || article.videoLinks?.length > 0) && (
+          {(article.images?.length > 0 || article.videoLinks?.length > 0 || article.documentLinks?.length > 0) && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-6 border-t border-gray-100">
               {/* Images */}
               {article.images && article.images.length > 0 && (
@@ -146,6 +147,37 @@ export default function KnowledgeBaseDetail({
                           </div>
                           <span className="text-sm font-semibold text-gray-700 truncate group-hover:text-gray-900">
                             {link.split('/').pop() || 'View Video Resource'}
+                          </span>
+                        </div>
+                        <ArrowTopRightOnSquareIcon className="h-4 w-4 text-gray-400 group-hover:text-[#2B4C7E] flex-shrink-0" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Documents */}
+              {article.documentLinks && article.documentLinks.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest flex items-center">
+                    <PaperClipIcon className="h-4.5 w-4.5 mr-2 text-blue-500" />
+                    Document References ({article.documentLinks.length})
+                  </h3>
+                  <div className="space-y-3">
+                    {article.documentLinks.map((link, idx) => (
+                      <a
+                        key={idx}
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex items-center justify-between gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 hover:bg-white hover:border-[#2B4C7E] hover:shadow-md transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="p-2 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
+                            <PaperClipIcon className="h-5 w-5 text-blue-600" />
+                          </div>
+                          <span className="text-sm font-semibold text-gray-700 truncate group-hover:text-gray-900">
+                            {link.split('/').pop() || 'View Document'}
                           </span>
                         </div>
                         <ArrowTopRightOnSquareIcon className="h-4 w-4 text-gray-400 group-hover:text-[#2B4C7E] flex-shrink-0" />

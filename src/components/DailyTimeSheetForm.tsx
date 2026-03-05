@@ -622,10 +622,6 @@ export default function DailyTimeSheetForm() {
             <div className="lg:col-span-4">
               <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
             </div>
-            <div className="lg:col-span-4 text-xs text-gray-600 italic">
-              <p>ACTUAL MANHOUR = REGULAR + OVERTIME</p>
-              <p>PERFORMANCE = SRT / ACTUAL MANHOUR</p>
-            </div>
           </div>
         </div>
 

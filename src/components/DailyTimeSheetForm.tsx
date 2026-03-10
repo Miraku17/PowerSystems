@@ -114,7 +114,7 @@ export default function DailyTimeSheetForm() {
   // Auto-check approved leave on date change
   useEffect(() => {
     if (!formData.date) {
-      setFormData({ leave_hours: '' });
+      setFormData({ leave_hours: '0' });
       return;
     }
 

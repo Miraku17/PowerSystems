@@ -63,6 +63,9 @@ interface DailyTimeSheetFormData {
   performance: string;
   total_service_manhours: string;
   service_office_note: string;
+  available_manhour: string;
+  leave_hours: string;
+  daily_average_utilization: string;
   checked_by: string;
   service_coordinator: string;
   approved_by_service: string;
@@ -131,6 +134,9 @@ const initialFormData: DailyTimeSheetFormData = {
   performance: '',
   total_service_manhours: '',
   service_office_note: '',
+  available_manhour: '',
+  leave_hours: '',
+  daily_average_utilization: '',
   checked_by: '',
   service_coordinator: '',
   approved_by_service: '',
@@ -180,7 +186,7 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
     }),
     {
       name: 'psi-daily-time-sheet-form-draft',
-      version: 4,
+      version: 5,
       migrate: (persistedState: any, version: number) => {
         const state = persistedState as any;
         if (state.formData) {
@@ -222,6 +228,9 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
             formData: {
               ...restFormData,
               entries: entries.length > 0 ? entries : [createEntry(true)],
+              available_manhour: restFormData.available_manhour || '',
+              leave_hours: restFormData.leave_hours || '',
+              daily_average_utilization: restFormData.daily_average_utilization || '',
             },
           };
         }

@@ -468,8 +468,6 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 <div className="md:col-span-4">
                   <Field label="Note" value={data.service_office_note} />
                 </div>
-                <Field label="Leave (Hours)" value={formatNumber(data.leave_hours)} />
-                <Field label="Actual Available Manhour" value={formatNumber(data.available_manhour)} />
                 <Field label="Daily Average Utilization (%)" value={data.daily_average_utilization ? `${parseFloat(data.daily_average_utilization).toFixed(2)}%` : '-'} />
               </div>
             </div>

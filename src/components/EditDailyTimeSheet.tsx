@@ -826,8 +826,6 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                 <div className="lg:col-span-4">
                   <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
                 </div>
-                <Input label="Leave (Hours)" name="leave_hours" type="number" step="0.01" value={formData.leave_hours || ''} onChange={() => {}} disabled />
-                <Input label="Actual Available Manhour" name="available_manhour" type="number" step="0.01" value={formData.available_manhour || ''} onChange={() => {}} disabled />
                 <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization || ''} onChange={() => {}} disabled />
               </div>
             </div>

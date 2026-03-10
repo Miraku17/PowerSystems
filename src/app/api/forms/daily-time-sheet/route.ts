@@ -134,6 +134,9 @@ export const POST = withAuth(async (request, { user }) => {
     const performance = getString('performance');
     const total_service_manhours = getString('total_service_manhours');
     const service_office_note = getString('service_office_note');
+    const available_manhour = getString('available_manhour');
+    const leave_hours = getString('leave_hours');
+    const daily_average_utilization = getString('daily_average_utilization');
     const checked_by = getString('checked_by');
     const service_coordinator = getString('service_coordinator');
     const approved_by_service = getString('approved_by_service');
@@ -184,6 +187,9 @@ export const POST = withAuth(async (request, { user }) => {
           performance: performance ? parseFloat(performance) : null,
           total_service_manhours: total_service_manhours ? parseFloat(total_service_manhours) : null,
           service_office_note,
+          available_manhour: available_manhour ? parseFloat(available_manhour) : null,
+          leave_hours: leave_hours ? parseFloat(leave_hours) : null,
+          daily_average_utilization: daily_average_utilization ? parseFloat(daily_average_utilization) : null,
           checked_by,
           service_coordinator,
           approved_by_service,

@@ -111,6 +111,46 @@ export default function DailyTimeSheetForm() {
     }
   }, [formData.entries]);
 
+  // Auto-check approved leave on date change
+  useEffect(() => {
+    if (!formData.date) {
+      setFormData({ leave_hours: '0' });
+      return;
+    }
+
+    const checkLeave = async () => {
+      try {
+        const res = await apiClient.get(`/leave-requests/check?date=${formData.date}`);
+        setFormData({ leave_hours: res.data.hasLeave ? '8' : '0' });
+      } catch {
+        setFormData({ leave_hours: '0' });
+      }
+    };
+
+    checkLeave();
+  }, [formData.date]);
+
+  // Auto-calculate daily average utilization
+  // Formula: Actual Available Manhour = 24 - Leave, Utilization = Total Manhour / Actual Available Manhour × 100
+  useEffect(() => {
+    const totalManhours = parseFloat(formData.total_service_manhours) || 0;
+    const leave = parseFloat(formData.leave_hours) || 0;
+    const actualAvailable = 24 - leave;
+
+    const availableStr = actualAvailable.toFixed(2);
+    if (formData.available_manhour !== availableStr) {
+      setFormData({ available_manhour: availableStr });
+    }
+
+    let utilization = '';
+    if (actualAvailable > 0 && totalManhours > 0) {
+      utilization = ((totalManhours / actualAvailable) * 100).toFixed(2) + '%';
+    }
+
+    if (formData.daily_average_utilization !== utilization) {
+      setFormData({ daily_average_utilization: utilization });
+    }
+  }, [formData.total_service_manhours, formData.leave_hours]);
 
   // Calculate total hours for an entry when start/stop time changes
   const calculateTotalHours = (entry: TimeSheetEntry) => {
@@ -628,6 +668,9 @@ export default function DailyTimeSheetForm() {
             <div className="lg:col-span-4">
               <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
             </div>
+            <Input label="Leave (Hours)" name="leave_hours" type="number" step="0.01" value={formData.leave_hours} onChange={() => {}} disabled placeholder=" " />
+            <Input label="Actual Available Manhour" name="available_manhour" type="number" step="0.01" value={formData.available_manhour} onChange={() => {}} disabled placeholder=" " />
+            <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization} onChange={() => {}} disabled placeholder=" " />
           </div>
         </div>
 

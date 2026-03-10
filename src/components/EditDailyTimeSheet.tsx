@@ -337,6 +337,40 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
     });
   }, [entries]);
 
+  // Auto-check approved leave on date change
+  useEffect(() => {
+    if (!formData.date) return;
+
+    const checkLeave = async () => {
+      try {
+        const res = await apiClient.get(`/leave-requests/check?date=${formData.date}`);
+        setFormData((prev) => ({ ...prev, leave_hours: res.data.hasLeave ? '8' : '0' }));
+      } catch {
+        setFormData((prev) => ({ ...prev, leave_hours: '0' }));
+      }
+    };
+
+    checkLeave();
+  }, [formData.date]);
+
+  // Auto-calculate daily average utilization
+  // Formula: Actual Available Manhour = 24 - Leave, Utilization = Total Manhour / Actual Available Manhour × 100
+  useEffect(() => {
+    const totalManhours = parseFloat(formData.total_service_manhours) || 0;
+    const leave = parseFloat(formData.leave_hours) || 0;
+    const actualAvailable = 24 - leave;
+
+    const availableStr = actualAvailable.toFixed(2);
+    let utilization = '';
+    if (actualAvailable > 0 && totalManhours > 0) {
+      utilization = ((totalManhours / actualAvailable) * 100).toFixed(2) + '%';
+    }
+
+    setFormData((prev) => {
+      if (prev.available_manhour === availableStr && prev.daily_average_utilization === utilization) return prev;
+      return { ...prev, available_manhour: availableStr, daily_average_utilization: utilization };
+    });
+  }, [formData.total_service_manhours, formData.leave_hours]);
 
   const handleFieldChange = (name: string, value: any) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -792,6 +826,9 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                 <div className="lg:col-span-4">
                   <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
                 </div>
+                <Input label="Leave (Hours)" name="leave_hours" type="number" step="0.01" value={formData.leave_hours || ''} onChange={() => {}} disabled />
+                <Input label="Actual Available Manhour" name="available_manhour" type="number" step="0.01" value={formData.available_manhour || ''} onChange={() => {}} disabled />
+                <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization || ''} onChange={() => {}} disabled />
               </div>
             </div>
 

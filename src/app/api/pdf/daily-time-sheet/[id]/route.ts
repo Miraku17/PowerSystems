@@ -392,6 +392,34 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.text("NOTE:", col1X, serviceY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(getValue(record.service_office_note), col1X + col2LabelWidth, serviceY);
+
+    // Row 6: Utilization
+    serviceY += fieldSpacing;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("ACTUAL AVAIL. MANHOUR:", col1X, serviceY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(getValue(record.available_manhour), col1X + col2LabelWidth, serviceY);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("LEAVE (HRS):", col2X, serviceY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(getValue(record.leave_hours), col2X + col2LabelWidth, serviceY);
+
+    serviceY += fieldSpacing;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.text("DAILY AVG. UTILIZATION:", col1X, serviceY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    const utilValue = record.daily_average_utilization ? `${parseFloat(record.daily_average_utilization).toFixed(2)}%` : '-';
+    doc.text(utilValue, col1X + col2LabelWidth, serviceY);
 
     yPos = serviceY + 8;
 

@@ -62,8 +62,8 @@ export const GET = withAuth(async (request, { user, params }) => {
         const date = new Date(dateStr);
         return date.toLocaleDateString("en-US", {
           year: "numeric",
-          month: "short",
-          day: "2-digit",
+          month: "long",
+          day: "numeric",
         });
       } catch {
         return dateStr;
@@ -213,47 +213,58 @@ export const GET = withAuth(async (request, { user, params }) => {
     addTextAreaField("Work To Be Done", record.work_to_be_done);
     addFieldsGrid([
       { label: "Preferred Service Date", value: formatDate(record.preferred_service_date) },
-      { label: "Preferred Service Time", value: formatTime(record.preferred_service_time) },
-      { label: "Charges Absorbed By", value: record.charges_absorbed_by, span: 2 },
-    ]);
+      { label: "Time", value: formatTime(record.preferred_service_time) },
+      { label: "Charges Absorbed By", value: record.charges_absorbed_by },
+    ], 3);
 
     // Attached References
     addSection("Attached References");
     addFieldsGrid([
-      { label: "Quotation Reference", value: record.qtn_ref },
-      { label: "Customer's PO/Warranty Claim No.", value: record.customers_po_wty_claim_no },
-      { label: "Delivery Receipt Number", value: record.dr_number },
-    ]);
+      { label: "QTN. REF", value: record.qtn_ref },
+      { label: "Customer's P.O/WTY Claim No.", value: record.customers_po_wty_claim_no },
+      { label: "D.R. Number", value: record.dr_number },
+    ], 3);
 
-    // Request and Approval Signatures
-    addSection("Request and Approval");
+    // Helper to fetch and add a signature image to PDF
+    const addSignatureImage = async (sigUrl: string, x: number, y: number, w: number, h: number) => {
+      try {
+        const imgResponse = await fetch(sigUrl);
+        if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
+        let contentType = imgResponse.headers.get('content-type') || '';
+        const arrayBuffer = await imgResponse.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const imgBase64 = buffer.toString('base64');
 
-    const addRequestApprovalSignatures = async () => {
-      const signatures = [
-        {
-          label: "Requested By\n(Sales/Service Engineer)",
-          name: record.requested_by_name,
-          imageUrl: await resolveSignature(record.requested_by_signature, record.requested_by_name),
-        },
-        {
-          label: "Approved By\n(Department Head)",
-          name: record.approved_by_name,
-          imageUrl: await resolveSignature(record.approved_by_signature, record.approved_by_name),
-        },
-        {
-          label: "Received By\n(Service Dept.)",
-          name: record.received_by_service_dept_name,
-          imageUrl: await resolveSignature(record.received_by_service_dept_signature, record.received_by_service_dept_name),
-        },
-        {
-          label: "Received By\n(Credit & Collection)",
-          name: record.received_by_credit_collection_name,
-          imageUrl: await resolveSignature(record.received_by_credit_collection_signature, record.received_by_credit_collection_name),
-        },
-      ];
+        const urlPath = sigUrl.split('?')[0].toLowerCase();
+        let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+        if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
+          imageFormat = 'JPEG'; contentType = 'image/jpeg';
+        } else if (urlPath.endsWith('.png')) {
+          imageFormat = 'PNG'; contentType = 'image/png';
+        } else if (urlPath.endsWith('.gif')) {
+          imageFormat = 'GIF'; contentType = 'image/gif';
+        } else if (urlPath.endsWith('.webp')) {
+          imageFormat = 'WEBP'; contentType = 'image/webp';
+        } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
+          imageFormat = 'JPEG';
+        } else if (contentType.includes('png')) {
+          imageFormat = 'PNG';
+        } else if (contentType.includes('gif')) {
+          imageFormat = 'GIF';
+        } else {
+          contentType = 'image/png'; imageFormat = 'PNG';
+        }
 
+        doc.addImage(`data:${contentType};base64,${imgBase64}`, imageFormat, x, y, w, h, undefined, "FAST");
+      } catch (error) {
+        console.error("Error loading signature image:", error);
+      }
+    };
+
+    // Helper to render a row of 2 signatures side by side
+    const addSignatureRow = async (signatures: Array<{ label: string; name: string | null; imageUrl: string | null }>) => {
       const sigBoxHeight = 42;
-      const sigBoxWidth = (contentWidth - 6) / 4;
+      const sigBoxWidth = (contentWidth - 6) / 2;
 
       if (yPos + sigBoxHeight > pageHeight - 15) {
         doc.addPage();
@@ -269,66 +280,14 @@ export const GET = withAuth(async (request, { user, params }) => {
         const sig = signatures[i];
         const xOffset = leftMargin + 3 + i * (sigBoxWidth + 3);
 
-        // Signature box with border
         doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
         doc.setLineWidth(0.3);
         doc.rect(xOffset, yPos + 2, sigBoxWidth - 3, 25);
 
-        // Add signature image if available
         if (sig.imageUrl) {
-          try {
-            // Fetch the image
-            const imgResponse = await fetch(sig.imageUrl);
-            if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
-            let contentType = imgResponse.headers.get('content-type') || '';
-            const arrayBuffer = await imgResponse.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const imgBase64 = buffer.toString('base64');
-
-            // Detect image format from URL extension (ignore query params)
-            const urlPath = sig.imageUrl.split('?')[0].toLowerCase();
-            let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
-            if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
-              imageFormat = 'JPEG';
-              contentType = 'image/jpeg';
-            } else if (urlPath.endsWith('.png')) {
-              imageFormat = 'PNG';
-              contentType = 'image/png';
-            } else if (urlPath.endsWith('.gif')) {
-              imageFormat = 'GIF';
-              contentType = 'image/gif';
-            } else if (urlPath.endsWith('.webp')) {
-              imageFormat = 'WEBP';
-              contentType = 'image/webp';
-            } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-              imageFormat = 'JPEG';
-            } else if (contentType.includes('png')) {
-              imageFormat = 'PNG';
-            } else if (contentType.includes('gif')) {
-              imageFormat = 'GIF';
-            } else {
-              // Default to PNG for signatures
-              contentType = 'image/png';
-              imageFormat = 'PNG';
-            }
-
-            // Add image to PDF
-            doc.addImage(
-              `data:${contentType};base64,${imgBase64}`,
-              imageFormat,
-              xOffset + 2,
-              yPos + 4,
-              sigBoxWidth - 7,
-              20,
-              undefined,
-              "FAST"
-            );
-          } catch (error) {
-            console.error("Error loading signature image:", error);
-          }
+          await addSignatureImage(sig.imageUrl, xOffset + 2, yPos + 4, sigBoxWidth - 7, 20);
         }
 
-        // Name below signature
         doc.setFontSize(8);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(0, 0, 0);
@@ -336,7 +295,6 @@ export const GET = withAuth(async (request, { user, params }) => {
         const nameLines = doc.splitTextToSize(nameText, sigBoxWidth - 6);
         doc.text(nameLines, xOffset + (sigBoxWidth - 3) / 2, yPos + 32, { align: "center" });
 
-        // Label below Name
         doc.setFontSize(6);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
@@ -351,129 +309,96 @@ export const GET = withAuth(async (request, { user, params }) => {
       yPos += sigBoxHeight + 15;
     };
 
-    await addRequestApprovalSignatures();
+    // Request & Approval (2 signatures)
+    addSection("Request & Approval");
+    await addSignatureRow([
+      {
+        label: "Requested By\n(Sales/Service Engineer)",
+        name: record.requested_by_name,
+        imageUrl: await resolveSignature(record.requested_by_signature, record.requested_by_name),
+      },
+      {
+        label: "Approved By\n(Department Head)",
+        name: record.approved_by_name,
+        imageUrl: await resolveSignature(record.approved_by_signature, record.approved_by_name),
+      },
+    ]);
 
-    // Service Use Only Section
+    // Request Received By (2 signatures)
+    addSection("Request Received By");
+    await addSignatureRow([
+      {
+        label: "Service Dept.",
+        name: record.received_by_service_dept_name,
+        imageUrl: await resolveSignature(record.received_by_service_dept_signature, record.received_by_service_dept_name),
+      },
+      {
+        label: "Credit & Collection",
+        name: record.received_by_credit_collection_name,
+        imageUrl: await resolveSignature(record.received_by_credit_collection_signature, record.received_by_credit_collection_name),
+      },
+    ]);
+
+    // Service Use Only Section (includes costs, remarks, verified by - matching view form)
     addSection("Service Use Only");
     addFieldsGrid([
-      { label: "Estimated Repair Days", value: record.estimated_repair_days },
+      { label: "Estimated No. of Repairs Days", value: record.estimated_repair_days },
       { label: "Technicians Involved", value: record.technicians_involved, span: 2 },
       { label: "Date Job Started", value: formatDate(record.date_job_started) },
       { label: "Date Job Completed/Closed", value: formatDate(record.date_job_completed_closed) },
-    ]);
-
-    // Cost Breakdown
-    addSection("Cost Breakdown");
-    addFieldsGrid([
+      { label: "Status", value: record.status },
       { label: "Parts Cost", value: formatCurrency(record.parts_cost) },
       { label: "Labor Cost", value: formatCurrency(record.labor_cost) },
       { label: "Other Cost", value: formatCurrency(record.other_cost) },
       { label: "Total Cost", value: formatCurrency(record.total_cost) },
       { label: "Date of Invoice", value: formatDate(record.date_of_invoice) },
       { label: "Invoice Number", value: record.invoice_number },
-    ]);
+    ], 3);
 
-    // Remarks
-    addSection("Remarks");
+    // Remarks (full width within Service Use Only)
     addTextAreaField("Remarks", record.remarks);
 
-    // Verified By Signature
-    addSection("Verification");
+    // Verified By Signature (within Service Use Only)
+    const verifiedSigUrl = await resolveSignature(record.verified_by_signature, record.verified_by_name);
+    const verifiedSigBoxHeight = 42;
+    const verifiedSigBoxWidth = contentWidth / 3;
 
-    const addVerifiedBySignature = async () => {
-      const sigBoxHeight = 42;
-      const sigBoxWidth = contentWidth / 3;
+    if (yPos + verifiedSigBoxHeight > pageHeight - 15) {
+      doc.addPage();
+      yPos = 15;
+    }
 
-      if (yPos + sigBoxHeight > pageHeight - 15) {
-        doc.addPage();
-        yPos = 15;
-      }
+    doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+    doc.setLineWidth(0.1);
+    doc.rect(leftMargin, yPos, contentWidth, verifiedSigBoxHeight + 8, "FD");
 
-      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.1);
-      doc.rect(leftMargin, yPos, contentWidth, sigBoxHeight + 8, "FD");
+    const verifiedXOffset = leftMargin + 3;
 
-      const xOffset = leftMargin + contentWidth / 2 - sigBoxWidth / 2;
+    // Label "Verified By"
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(textGray[0], textGray[1], textGray[2]);
+    doc.text("Verified By", verifiedXOffset, yPos + 4);
 
-      // Signature box with border
-      doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-      doc.setLineWidth(0.3);
-      doc.rect(xOffset, yPos + 2, sigBoxWidth, 25);
+    // Signature box
+    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+    doc.setLineWidth(0.3);
+    doc.rect(verifiedXOffset, yPos + 6, verifiedSigBoxWidth, 25);
 
-      // Add signature image if available
-      const verifiedSigUrl = await resolveSignature(record.verified_by_signature, record.verified_by_name);
-      if (verifiedSigUrl) {
-        try {
-          // Fetch the image
-          const imgResponse = await fetch(verifiedSigUrl);
-          if (!imgResponse.ok) throw new Error(`Failed to fetch signature: ${imgResponse.status}`);
-          let contentType = imgResponse.headers.get('content-type') || '';
-          const arrayBuffer = await imgResponse.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const imgBase64 = buffer.toString('base64');
+    if (verifiedSigUrl) {
+      await addSignatureImage(verifiedSigUrl, verifiedXOffset + 5, yPos + 8, verifiedSigBoxWidth - 10, 20);
+    }
 
-          // Detect image format from URL extension (ignore query params)
-          const urlPath = verifiedSigUrl.split('?')[0].toLowerCase();
-          let imageFormat: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
-          if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) {
-            imageFormat = 'JPEG';
-            contentType = 'image/jpeg';
-          } else if (urlPath.endsWith('.png')) {
-            imageFormat = 'PNG';
-            contentType = 'image/png';
-          } else if (urlPath.endsWith('.gif')) {
-            imageFormat = 'GIF';
-            contentType = 'image/gif';
-          } else if (urlPath.endsWith('.webp')) {
-            imageFormat = 'WEBP';
-            contentType = 'image/webp';
-          } else if (contentType.includes('jpeg') || contentType.includes('jpg')) {
-            imageFormat = 'JPEG';
-          } else if (contentType.includes('png')) {
-            imageFormat = 'PNG';
-          } else if (contentType.includes('gif')) {
-            imageFormat = 'GIF';
-          } else {
-            // Default to PNG for signatures
-            contentType = 'image/png';
-            imageFormat = 'PNG';
-          }
+    // Name below signature
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    const verifiedNameText = getValue(record.verified_by_name);
+    const verifiedNameLines = doc.splitTextToSize(verifiedNameText, verifiedSigBoxWidth - 10);
+    doc.text(verifiedNameLines, verifiedXOffset + verifiedSigBoxWidth / 2, yPos + 36, { align: "center" });
 
-          // Add image to PDF
-          doc.addImage(
-            `data:${contentType};base64,${imgBase64}`,
-            imageFormat,
-            xOffset + 5,
-            yPos + 4,
-            sigBoxWidth - 10,
-            20,
-            undefined,
-            "FAST"
-          );
-        } catch (error) {
-          console.error("Error loading signature image:", error);
-        }
-      }
-
-      // Name below signature
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0, 0, 0);
-      const nameText = getValue(record.verified_by_name);
-      const nameLines = doc.splitTextToSize(nameText, sigBoxWidth - 10);
-      doc.text(nameLines, xOffset + sigBoxWidth / 2, yPos + 32, { align: "center" });
-
-      // Label below Name
-      doc.setFontSize(7);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-      doc.text("Verified By", xOffset + sigBoxWidth / 2, yPos + 38, { align: "center" });
-
-      yPos += sigBoxHeight + 11;
-    };
-
-    await addVerifiedBySignature();
+    yPos += verifiedSigBoxHeight + 11;
 
     // Fetch and display attachments
     const { data: attachments } = await supabase

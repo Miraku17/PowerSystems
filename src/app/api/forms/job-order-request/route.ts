@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { getReadScopeFilter } from "@/lib/permissions";
+import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
 import { getUserAddresses } from "@/lib/users";
 
@@ -116,6 +116,14 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+    const canAccessForm = await hasPermission(supabase, user.id, "fill_up_form", "access");
+    if (!canAccessForm) {
+      return NextResponse.json(
+        { error: "You do not have permission to submit forms" },
+        { status: 403 }
+      );
+    }
+
     const serviceSupabase = supabase;
 
     const body = await request.json();

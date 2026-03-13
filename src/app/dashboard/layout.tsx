@@ -190,6 +190,7 @@ function DashboardLayoutInner({
       name: "Daily Time Sheet",
       icon: ClockIcon,
       href: "/dashboard/daily-time-sheet",
+      permission: { module: "dts" },
     },
     {
       name: "Form Records",
@@ -274,7 +275,6 @@ function DashboardLayoutInner({
     if (userRole === "user") {
       return (
         item.href === "/dashboard/fill-up-form" ||
-        item.href === "/dashboard/daily-time-sheet" ||
         item.href === "/dashboard/records" ||
         item.href === "/dashboard/pending-forms" ||
         item.href === "/dashboard/pending-jo-requests" ||
@@ -285,12 +285,22 @@ function DashboardLayoutInner({
     return true;
   });
 
+  // Redirect users who lack permission for permission-gated pages (applies to ALL roles)
+  useEffect(() => {
+    if (!userLoading && !permissionsLoading) {
+      if (pathname.startsWith("/dashboard/daily-time-sheet") && !canAccess("dts")) {
+        router.push("/dashboard/fill-up-form");
+        return;
+      }
+    }
+  }, [pathname, userLoading, permissionsLoading, router]);
+
   // Redirect restricted users
   useEffect(() => {
     if (!userLoading && !permissionsLoading && userRole === "user") {
       const isAllowed =
         pathname.startsWith("/dashboard/fill-up-form") ||
-        pathname.startsWith("/dashboard/daily-time-sheet") ||
+        (pathname.startsWith("/dashboard/daily-time-sheet") && canAccess("dts")) ||
         pathname.startsWith("/dashboard/records") ||
         pathname.startsWith("/dashboard/pending-forms") ||
         pathname.startsWith("/dashboard/pending-jo-requests") ||

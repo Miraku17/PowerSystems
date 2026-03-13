@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { FolderIcon, FolderOpenIcon, ChevronRightIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import apiClient from "@/lib/axios";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function RecordsFoldersPage() {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const { canAccess } = usePermissions();
 
   const formTemplates = [
     {
@@ -118,8 +120,12 @@ export default function RecordsFoldersPage() {
     router.push(`/dashboard/records/folders/${normalizedFormType}`);
   };
 
-  // Filter templates based on search term
+  // Filter templates based on permissions and search term
   const filteredTemplates = formTemplates.filter((template) => {
+    // Hide DTS folder if user lacks dts.access permission
+    if (template.formType === "daily-time-sheet" && !canAccess("dts")) {
+      return false;
+    }
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (

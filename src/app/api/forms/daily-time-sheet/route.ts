@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { getReadScopeFilter } from "@/lib/permissions";
+import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getUserAddresses } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    const canAccessDts = await hasPermission(supabase, user.id, "dts", "access");
+    if (!canAccessDts) {
+      return NextResponse.json(
+        { error: "You do not have permission to access Daily Time Sheet" },
+        { status: 403 }
+      );
+    }
+
     const allowedUserIds = await getReadScopeFilter(supabase, user.id);
 
     if (allowedUserIds !== null && allowedUserIds.length === 0) {
@@ -100,6 +109,15 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+
+    const canAccessDts = await hasPermission(supabase, user.id, "dts", "access");
+    if (!canAccessDts) {
+      return NextResponse.json(
+        { error: "You do not have permission to access Daily Time Sheet" },
+        { status: 403 }
+      );
+    }
+
     // Check content type to determine if it's new format (JSON) or old format (FormData)
     const contentType = request.headers.get('content-type') || '';
     const isNewFormat = contentType.includes('application/json');

@@ -116,10 +116,10 @@ const uploadSignature = async (serviceSupabase: any, base64Data: string, fileNam
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
-    const canAccessForm = await hasPermission(supabase, user.id, "fill_up_form", "access");
-    if (!canAccessForm) {
+    const canAccessJO = await hasPermission(supabase, user.id, "job_order_request", "access");
+    if (!canAccessJO) {
       return NextResponse.json(
-        { error: "You do not have permission to submit forms" },
+        { error: "You do not have permission to submit job order requests" },
         { status: 403 }
       );
     }

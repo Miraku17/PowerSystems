@@ -181,10 +181,16 @@ function DashboardLayoutInner({
     },
 
     {
+      name: "Job Order Request",
+      icon: ClipboardDocumentListIcon,
+      href: "/dashboard/job-order-request",
+      section: "Forms",
+      permission: { module: "job_order_request" },
+    },
+    {
       name: "Fill Up Form",
       icon: DocumentTextIcon,
       href: "/dashboard/fill-up-form",
-      section: "Forms",
       permission: { module: "fill_up_form" },
     },
     {
@@ -288,6 +294,10 @@ function DashboardLayoutInner({
   // Redirect users who lack permission for permission-gated pages (applies to ALL roles)
   useEffect(() => {
     if (!userLoading && !permissionsLoading) {
+      if (pathname.startsWith("/dashboard/job-order-request") && !canAccess("job_order_request")) {
+        router.push("/dashboard/overview");
+        return;
+      }
       if (pathname.startsWith("/dashboard/fill-up-form") && !canAccess("fill_up_form")) {
         router.push("/dashboard/overview");
         return;
@@ -303,6 +313,7 @@ function DashboardLayoutInner({
   useEffect(() => {
     if (!userLoading && !permissionsLoading && userRole === "user") {
       const isAllowed =
+        (pathname.startsWith("/dashboard/job-order-request") && canAccess("job_order_request")) ||
         (pathname.startsWith("/dashboard/fill-up-form") && canAccess("fill_up_form")) ||
         (pathname.startsWith("/dashboard/daily-time-sheet") && canAccess("dts")) ||
         pathname.startsWith("/dashboard/records") ||

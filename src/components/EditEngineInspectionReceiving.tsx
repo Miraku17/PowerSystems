@@ -9,6 +9,7 @@ import { useUsers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import SignatorySelect from "./SignatorySelect";
+import SignaturePad from "./SignaturePad";
 import {
   SECTION_DEFINITIONS,
   type SectionDefinition,
@@ -433,12 +434,17 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
                     label="Acknowledged By"
                     name="acknowledged_by_name"
                     value={formState.acknowledged_by_name}
-                    signatureValue={formState.acknowledged_by_signature}
                     onChange={handleFieldChange}
-                    onSignatureChange={(sig) => handleFieldChange("acknowledged_by_signature", sig)}
+                    onSignatureChange={() => {}}
                     users={users}
-                    subtitle="Customer Signature"
                     showAllUsers
+                    hideSignature
+                  />
+                  <SignaturePad
+                    label="Acknowledged By Signature"
+                    value={formState.acknowledged_by_signature}
+                    onChange={(sig) => handleFieldChange("acknowledged_by_signature", sig)}
+                    subtitle="Customer Signature"
                   />
                 </div>
               </div>

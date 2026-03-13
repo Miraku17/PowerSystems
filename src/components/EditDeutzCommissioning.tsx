@@ -8,6 +8,7 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
+import SignaturePad from "./SignaturePad";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
@@ -1123,12 +1124,17 @@ export default function EditDeutzCommissioning({
                     label="Acknowledged By"
                     name="acknowledged_by"
                     value={formData.acknowledged_by}
-                    signatureValue={formData.acknowledged_by_signature}
                     onChange={handleChange}
-                    onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    onSignatureChange={() => {}}
                     users={users}
-                    subtitle="Sign above"
                     showAllUsers
+                    hideSignature
+                  />
+                  <SignaturePad
+                    label="Acknowledged By Signature"
+                    value={formData.acknowledged_by_signature}
+                    onChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    subtitle="Customer Signature"
                   />
                 </div>
               </div>

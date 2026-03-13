@@ -101,6 +101,7 @@ export const GET = withAuth(async (request, { user }) => {
           ? `${requester.firstname} ${requester.lastname}`
           : "Unknown",
         requester_address: requester?.address || "",
+        received_by_credit_collection_name: record.received_by_credit_collection_name || null,
       };
     });
 

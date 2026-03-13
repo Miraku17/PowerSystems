@@ -102,9 +102,9 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Validate leave_type
-    if (!["VL", "SL", "EL"].includes(leave_type)) {
+    if (!["VL", "SL", "EL", "LWOP"].includes(leave_type)) {
       return NextResponse.json(
-        { success: false, message: "Invalid leave type. Must be VL, SL, or EL" },
+        { success: false, message: "Invalid leave type. Must be VL, SL, EL, or LWOP" },
         { status: 400 }
       );
     }

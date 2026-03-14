@@ -223,7 +223,7 @@ export type UpdateKBArticleData = {
  * Leave Types
  */
 export type LeaveType = 'VL' | 'SL' | 'EL' | 'LWOP';
-export type LeaveStatus = 'pending' | 'approved' | 'rejected';
+export type LeaveStatus = 'pending' | 'conditional' | 'approved' | 'rejected';
 
 export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
   VL: 'Vacation Leave',

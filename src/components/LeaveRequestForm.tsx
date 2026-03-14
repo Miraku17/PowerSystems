@@ -1,12 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LeaveType, LeaveCredits, LEAVE_TYPE_LABELS } from "@/types";
+import { LeaveType, LEAVE_TYPE_LABELS } from "@/types";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 
+interface PerCategoryCredits {
+  VL: { total_credits: number; used_credits: number };
+  SL: { total_credits: number; used_credits: number };
+}
+
 export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [credits, setCredits] = useState<LeaveCredits | null>(null);
+  const [credits, setCredits] = useState<PerCategoryCredits | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,7 +60,19 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
     }
   };
 
-  const remaining = credits ? credits.total_credits - credits.used_credits : 0;
+  // Get remaining credits for the selected leave type
+  const getRemaining = (type: LeaveType) => {
+    if (!credits) return 0;
+    if (type === "VL" || type === "SL") {
+      const c = credits[type];
+      return c.total_credits - c.used_credits;
+    }
+    // EL and LWOP don't consume credits
+    return Infinity;
+  };
+
+  const remaining = getRemaining(leaveType);
+  const hasEnoughCredits = leaveType === "EL" || leaveType === "LWOP" || remaining >= totalDays;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,8 +82,8 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
       return;
     }
 
-    if (totalDays > remaining) {
-      toast.error(`Insufficient leave credits. You have ${remaining} day(s) remaining.`);
+    if (!hasEnoughCredits) {
+      toast.error(`Insufficient ${leaveType} credits. You have ${remaining} day(s) remaining.`);
       return;
     }
 
@@ -104,24 +121,35 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
 
       {/* Credit Balance */}
       <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-blue-800">Leave Credits</span>
-          {creditsLoading ? (
-            <span className="text-sm text-blue-600">Loading...</span>
-          ) : (
-            <div className="flex gap-4 text-sm">
-              <span className="text-blue-700">
-                Total: <strong>{credits?.total_credits || 0}</strong>
-              </span>
-              <span className="text-blue-700">
-                Used: <strong>{credits?.used_credits || 0}</strong>
-              </span>
-              <span className="text-blue-900 font-semibold">
-                Remaining: <strong>{remaining}</strong>
-              </span>
+        <span className="text-sm font-medium text-blue-800 block mb-2">Leave Credits</span>
+        {creditsLoading ? (
+          <span className="text-sm text-blue-600">Loading...</span>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="bg-white rounded-md p-2 border border-blue-100">
+              <div className="text-xs text-gray-500 mb-1">Vacation Leave (VL)</div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">
+                  {credits?.VL.total_credits || 0} total
+                </span>
+                <span className="font-semibold text-blue-900">
+                  {credits ? credits.VL.total_credits - credits.VL.used_credits : 0} left
+                </span>
+              </div>
             </div>
-          )}
-        </div>
+            <div className="bg-white rounded-md p-2 border border-blue-100">
+              <div className="text-xs text-gray-500 mb-1">Sick Leave (SL)</div>
+              <div className="flex justify-between">
+                <span className="text-blue-700">
+                  {credits?.SL.total_credits || 0} total
+                </span>
+                <span className="font-semibold text-blue-900">
+                  {credits ? credits.SL.total_credits - credits.SL.used_credits : 0} left
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -140,6 +168,13 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
             ))}
           </select>
         </div>
+
+        {/* Show remaining for selected type */}
+        {(leaveType === "VL" || leaveType === "SL") && !creditsLoading && (
+          <div className="p-2 bg-gray-50 rounded-lg text-sm text-gray-600">
+            Available {LEAVE_TYPE_LABELS[leaveType]} credits: <strong className="text-gray-900">{remaining}</strong> day(s)
+          </div>
+        )}
 
         {/* Date Range */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -189,7 +224,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
 
         <button
           type="submit"
-          disabled={isSubmitting || totalDays <= 0 || totalDays > remaining}
+          disabled={isSubmitting || totalDays <= 0 || !hasEnoughCredits}
           className="w-full px-4 py-2.5 bg-[#083459] text-white rounded-lg hover:bg-[#0a4470] transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSubmitting ? "Submitting..." : "Submit Leave Request"}

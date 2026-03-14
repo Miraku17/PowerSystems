@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { getReadScopeFilter } from "@/lib/permissions";
+import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses } from "@/lib/users";
 
@@ -159,6 +159,14 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+    const canAccessForm = await hasPermission(supabase, user.id, "fill_up_form", "access");
+    if (!canAccessForm) {
+      return NextResponse.json(
+        { error: "You do not have permission to submit forms" },
+        { status: 403 }
+      );
+    }
+
     // Check content type to determine if it's new format (JSON) or old format (FormData)
     const contentType = request.headers.get('content-type') || '';
     const isNewFormat = contentType.includes('application/json');

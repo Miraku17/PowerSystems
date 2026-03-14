@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission, getReadScopeFilter } from "@/lib/permissions";
+import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { SECTION_DEFINITIONS } from "@/stores/engineInspectionReceivingFormStore";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses } from "@/lib/users";
@@ -144,6 +144,14 @@ export const GET = withAuth(async (request, { user }) => {
 export const POST = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
+    const canAccessForm = await hasPermission(supabase, user.id, "fill_up_form", "access");
+    if (!canAccessForm) {
+      return NextResponse.json(
+        { error: "You do not have permission to submit forms" },
+        { status: 403 }
+      );
+    }
+
     const formData = await request.formData();
 
     const getString = (key: string) => (formData.get(key) as string) || '';

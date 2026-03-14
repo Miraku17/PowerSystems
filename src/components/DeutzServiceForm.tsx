@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import SignatorySelect from "./SignatorySelect";
+import SignaturePad from "./SignaturePad";
 import { supabase } from "@/lib/supabase";
 import ConfirmationModal from "./ConfirmationModal";
 import { useDeutzServiceFormStore } from "@/stores/deutzServiceFormStore";
@@ -790,12 +791,17 @@ export default function DeutzServiceForm() {
                 label="Acknowledged By"
                 name="acknowledged_by"
                 value={formData.acknowledged_by}
-                signatureValue={formData.acknowledged_by_signature}
                 onChange={handleSignatoryChange}
-                onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+                onSignatureChange={() => {}}
                 users={users}
-                subtitle="Customer Signature"
                 showAllUsers
+                hideSignature
+              />
+              <SignaturePad
+                label="Acknowledged By Signature"
+                value={formData.acknowledged_by_signature}
+                onChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+                subtitle="Customer Signature"
               />
             </div>
           </div>

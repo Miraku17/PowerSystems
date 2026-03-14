@@ -20,7 +20,7 @@ export const GET = withAuth(async (request, { user }) => {
       .from("leave_requests")
       .select("id")
       .eq("user_id", user.id)
-      .eq("status", "approved")
+      .in("status", ["approved", "conditional"])
       .lte("start_date", date)
       .gte("end_date", date)
       .limit(1);

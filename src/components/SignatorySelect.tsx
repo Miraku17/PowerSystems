@@ -15,6 +15,7 @@ interface SignatorySelectProps {
   users: FormUser[];
   subtitle?: string;
   showAllUsers?: boolean;
+  hideSignature?: boolean;
 }
 
 export default function SignatorySelect({
@@ -27,6 +28,7 @@ export default function SignatorySelect({
   users,
   subtitle,
   showAllUsers = false,
+  hideSignature = false,
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -137,7 +139,7 @@ export default function SignatorySelect({
       </div>
 
       {/* Signature preview — visible to everyone */}
-      {value && displaySignature && (
+      {!hideSignature && value && displaySignature && (
         <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 flex justify-center">
           <img
             src={displaySignature}
@@ -146,12 +148,12 @@ export default function SignatorySelect({
           />
         </div>
       )}
-      {hasNoSignature && (
+      {!hideSignature && hasNoSignature && (
         <div className="border border-yellow-300 rounded-lg p-2 bg-yellow-50 text-yellow-700 text-xs text-center">
           You have no saved signature
         </div>
       )}
-      {subtitle && value && displaySignature && (
+      {!hideSignature && subtitle && value && displaySignature && (
         <p className="text-xs text-gray-500 italic text-center">{subtitle}</p>
       )}
     </div>

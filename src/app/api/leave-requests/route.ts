@@ -102,9 +102,9 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Validate leave_type
-    if (!["VL", "SL", "EL"].includes(leave_type)) {
+    if (!["VL", "SL", "EL", "LWOP"].includes(leave_type)) {
       return NextResponse.json(
-        { success: false, message: "Invalid leave type. Must be VL, SL, or EL" },
+        { success: false, message: "Invalid leave type. Must be VL, SL, EL, or LWOP" },
         { status: 400 }
       );
     }
@@ -117,19 +117,23 @@ export const POST = withAuth(async (request, { user }) => {
       );
     }
 
-    // Check if user has enough credits remaining
-    const { data: credits } = await supabase
-      .from("leave_credits")
-      .select("total_credits, used_credits")
-      .eq("user_id", user.id)
-      .single();
+    // Check if user has enough credits remaining for the specific leave type
+    // LWOP and EL don't consume credits
+    if (leave_type === "VL" || leave_type === "SL") {
+      const { data: credits } = await supabase
+        .from("leave_credits")
+        .select("total_credits, used_credits")
+        .eq("user_id", user.id)
+        .eq("leave_type", leave_type)
+        .single();
 
-    const remaining = (credits?.total_credits || 0) - (credits?.used_credits || 0);
-    if (remaining < total_days) {
-      return NextResponse.json(
-        { success: false, message: `Insufficient leave credits. You have ${remaining} day(s) remaining.` },
-        { status: 400 }
-      );
+      const remaining = (credits?.total_credits || 0) - (credits?.used_credits || 0);
+      if (remaining < total_days) {
+        return NextResponse.json(
+          { success: false, message: `Insufficient ${leave_type} credits. You have ${remaining} day(s) remaining.` },
+          { status: 400 }
+        );
+      }
     }
 
     // Insert leave request

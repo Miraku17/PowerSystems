@@ -25,6 +25,7 @@ interface PendingJO {
   status: string;
   requester_name: string;
   requester_address: string;
+  received_by_credit_collection_name: string | null;
 }
 
 const STATUS_OPTIONS = ["In-Progress", "Pending", "Close", "Cancelled"];
@@ -36,6 +37,8 @@ export default function PendingJORequests() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [meta, setMeta] = useState<{ canEdit: boolean; isRequester: boolean } | null>(null);
   const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null);
+  const [approvingCreditCollection, setApprovingCreditCollection] = useState<string | null>(null);
+  const [confirmApprovalId, setConfirmApprovalId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const recordsPerPage = 5;
 
@@ -137,14 +140,39 @@ export default function PendingJORequests() {
     });
   };
 
-  const { getScope } = usePermissions();
+  const { getScope, hasPermission: hasPerm } = usePermissions();
   const currentUser = useAuthStore((state) => state.user);
   const approvalScope = getScope("approvals", "edit");
+  const canApproveCreditCollection = hasPerm("jo_credit_collection_approval", "edit");
 
   const canChangeStatusForRecord = (record: PendingJO): boolean => {
     if (!meta?.canEdit) return false;
     if (approvalScope !== "branch") return true;
     return !!currentUser?.address && record.requester_address === currentUser.address;
+  };
+
+  const handleApproveCreditCollection = async (id: string) => {
+    setConfirmApprovalId(null);
+    setApprovingCreditCollection(id);
+    try {
+      const response = await apiClient.patch(`/forms/job-order-request/${id}/approve-credit-collection`);
+      if (response.data.success) {
+        toast.success("Credit & Collection approval recorded");
+        setRecords((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? { ...r, received_by_credit_collection_name: response.data.data.received_by_credit_collection_name }
+              : r
+          )
+        );
+      } else {
+        toast.error(response.data.message || "Failed to approve");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to approve");
+    } finally {
+      setApprovingCreditCollection(null);
+    }
   };
 
   const filteredRecords = records.filter(
@@ -234,12 +262,17 @@ export default function PendingJORequests() {
                 <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   Status
                 </TableHead>
+                {canApproveCreditCollection && (
+                  <TableHead className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                    Credit & Collection
+                  </TableHead>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody className="bg-white divide-y divide-gray-200">
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={canApproveCreditCollection ? 7 : 6}>
                     <TableSkeleton rows={5} />
                   </TableCell>
                 </TableRow>
@@ -290,12 +323,39 @@ export default function PendingJORequests() {
                           </span>
                         )}
                       </TableCell>
+                      {canApproveCreditCollection && (
+                        <TableCell className="px-6 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          {record.received_by_credit_collection_name ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                              {record.received_by_credit_collection_name}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmApprovalId(record.id)}
+                              disabled={approvingCreditCollection === record.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {approvingCreditCollection === record.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                                  Approving...
+                                </>
+                              ) : (
+                                "Approve"
+                              )}
+                            </button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="px-6 py-16 text-center">
+                  <TableCell colSpan={canApproveCreditCollection ? 7 : 6} className="px-6 py-16 text-center">
                     <div className="flex flex-col items-center justify-center space-y-3">
                       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                         <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400" />
@@ -358,6 +418,49 @@ export default function PendingJORequests() {
           data={viewData}
           onClose={() => setSelectedRecordId(null)}
         />
+      )}
+
+      {/* Confirm Credit & Collection Approval Modal */}
+      {confirmApprovalId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+          onClick={() => setConfirmApprovalId(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Confirm Approval</h3>
+                <p className="text-sm text-gray-500">Credit & Collection</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Your name and signature will be recorded as the Credit & Collection approver for this Job Order Request. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmApprovalId(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleApproveCreditCollection(confirmApprovalId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Confirm Approval
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Loading overlay for view */}

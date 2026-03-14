@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import SignatorySelect from './SignatorySelect';
+import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
 import { useEngineTeardownFormStore } from "@/stores/engineTeardownFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
@@ -900,12 +901,17 @@ export default function EngineTeardownForm() {
               label="Acknowledged By"
               name="acknowledged_by_name"
               value={formData.acknowledged_by_name}
-              signatureValue={formData.acknowledged_by_signature}
               onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+              onSignatureChange={() => {}}
               users={users}
-              subtitle="Customer Signature"
               showAllUsers
+              hideSignature
+            />
+            <SignaturePad
+              label="Acknowledged By Signature"
+              value={formData.acknowledged_by_signature}
+              onChange={(sig) => setFormData({ acknowledged_by_signature: sig })}
+              subtitle="Customer Signature"
             />
           </div>
         </div>

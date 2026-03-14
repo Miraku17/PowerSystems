@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import SignatorySelect from "./SignatorySelect";
+import SignaturePad from "./SignaturePad";
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { useCurrentUser } from "@/stores/authStore";
@@ -740,12 +741,17 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                     label="Acknowledged By"
                     name="acknowledged_by_name"
                     value={formData.acknowledged_by_name}
-                    signatureValue={formData.acknowledged_by_signature}
                     onChange={handleChange}
-                    onSignatureChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    onSignatureChange={() => {}}
                     users={users}
-                    subtitle="Customer Representative"
                     showAllUsers
+                    hideSignature
+                  />
+                  <SignaturePad
+                    label="Acknowledged By Signature"
+                    value={formData.acknowledged_by_signature}
+                    onChange={(sig) => handleChange("acknowledged_by_signature", sig)}
+                    subtitle="Customer Representative"
                   />
                 </div>
               </div>

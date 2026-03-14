@@ -15,36 +15,36 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Get or create leave credits for current user
-    let { data, error } = await supabase
+    // Get leave credits for current user (per category)
+    const { data: credits, error } = await supabase
       .from("leave_credits")
       .select("*")
-      .eq("user_id", user.id)
-      .single();
+      .eq("user_id", user.id);
 
-    if (error && error.code === "PGRST116") {
-      // No record found - create one with defaults
-      const { data: newData, error: insertError } = await supabase
-        .from("leave_credits")
-        .insert({ user_id: user.id })
-        .select()
-        .single();
-
-      if (insertError) {
-        return NextResponse.json(
-          { success: false, message: insertError.message },
-          { status: 500 }
-        );
-      }
-      data = newData;
-    } else if (error) {
+    if (error) {
       return NextResponse.json(
         { success: false, message: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, data });
+    // Build per-category response
+    const defaultCredits = { total_credits: 0, used_credits: 0 };
+    const result: Record<string, { total_credits: number; used_credits: number }> = {
+      VL: { ...defaultCredits },
+      SL: { ...defaultCredits },
+    };
+
+    for (const c of credits || []) {
+      if (c.leave_type === "VL" || c.leave_type === "SL") {
+        result[c.leave_type] = {
+          total_credits: Number(c.total_credits),
+          used_credits: Number(c.used_credits),
+        };
+      }
+    }
+
+    return NextResponse.json({ success: true, data: result });
   } catch (error: any) {
     console.error("API error fetching leave credits:", error);
     return NextResponse.json(

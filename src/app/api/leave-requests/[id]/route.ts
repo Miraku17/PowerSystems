@@ -66,37 +66,44 @@ export const PATCH = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // If approving, check that user has enough remaining credits
+    // If approving, check that user has enough remaining credits for the specific leave type
     if (status === "approved") {
-      const { data: credits } = await supabase
-        .from("leave_credits")
-        .select("total_credits, used_credits")
-        .eq("user_id", leaveRequest.user_id)
-        .single();
+      const leaveType = leaveRequest.leave_type;
 
-      const remaining = (credits?.total_credits || 0) - (credits?.used_credits || 0);
-      if (remaining < leaveRequest.total_days) {
-        return NextResponse.json(
-          { success: false, message: `Insufficient leave credits. User has ${remaining} day(s) remaining but needs ${leaveRequest.total_days}.` },
-          { status: 400 }
-        );
-      }
+      // LWOP and EL don't consume credits
+      if (leaveType === "VL" || leaveType === "SL") {
+        const { data: credits } = await supabase
+          .from("leave_credits")
+          .select("total_credits, used_credits")
+          .eq("user_id", leaveRequest.user_id)
+          .eq("leave_type", leaveType)
+          .single();
 
-      // Deduct credits
-      const { error: creditError } = await supabase
-        .from("leave_credits")
-        .update({
-          used_credits: (credits?.used_credits || 0) + leaveRequest.total_days,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", leaveRequest.user_id);
+        const remaining = (credits?.total_credits || 0) - (credits?.used_credits || 0);
+        if (remaining < leaveRequest.total_days) {
+          return NextResponse.json(
+            { success: false, message: `Insufficient ${leaveType} credits. User has ${remaining} day(s) remaining but needs ${leaveRequest.total_days}.` },
+            { status: 400 }
+          );
+        }
 
-      if (creditError) {
-        console.error("Error deducting leave credits:", creditError);
-        return NextResponse.json(
-          { success: false, message: "Failed to deduct leave credits" },
-          { status: 500 }
-        );
+        // Deduct credits from the specific leave type
+        const { error: creditError } = await supabase
+          .from("leave_credits")
+          .update({
+            used_credits: (credits?.used_credits || 0) + leaveRequest.total_days,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("user_id", leaveRequest.user_id)
+          .eq("leave_type", leaveType);
+
+        if (creditError) {
+          console.error("Error deducting leave credits:", creditError);
+          return NextResponse.json(
+            { success: false, message: "Failed to deduct leave credits" },
+            { status: 500 }
+          );
+        }
       }
     }
 

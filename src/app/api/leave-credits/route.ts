@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
 
-// Admin: list all users with leave credits
+// Admin: list all users with leave credits (per category)
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -40,14 +40,24 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    // Merge users with their credits
-    const creditsMap = new Map(credits?.map((c: any) => [c.user_id, c]) || []);
+    // Group credits by user_id
+    const creditsMap = new Map<string, Record<string, { total_credits: number; used_credits: number }>>();
+    for (const c of credits || []) {
+      if (!creditsMap.has(c.user_id)) {
+        creditsMap.set(c.user_id, {});
+      }
+      creditsMap.get(c.user_id)![c.leave_type] = {
+        total_credits: Number(c.total_credits),
+        used_credits: Number(c.used_credits),
+      };
+    }
+
+    const defaultCredits = { total_credits: 0, used_credits: 0 };
     const data = users?.map((u: any) => ({
       user: u,
-      credits: creditsMap.get(u.id) || {
-        user_id: u.id,
-        total_credits: 0,
-        used_credits: 0,
+      credits: {
+        VL: creditsMap.get(u.id)?.VL || { ...defaultCredits },
+        SL: creditsMap.get(u.id)?.SL || { ...defaultCredits },
       },
     }));
 
@@ -61,7 +71,7 @@ export const GET = withAuth(async (request, { user }) => {
   }
 });
 
-// Admin: update a user's total credits
+// Admin: update a user's total credits for a specific leave type
 export const PATCH = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -75,11 +85,18 @@ export const PATCH = withAuth(async (request, { user }) => {
     }
 
     const body = await request.json();
-    const { user_id, total_credits } = body;
+    const { user_id, leave_type, total_credits } = body;
 
-    if (!user_id || total_credits === undefined || total_credits < 0) {
+    if (!user_id || !leave_type || total_credits === undefined || total_credits < 0) {
       return NextResponse.json(
-        { success: false, message: "Valid user_id and total_credits are required" },
+        { success: false, message: "Valid user_id, leave_type, and total_credits are required" },
+        { status: 400 }
+      );
+    }
+
+    if (!["VL", "SL"].includes(leave_type)) {
+      return NextResponse.json(
+        { success: false, message: "leave_type must be VL or SL" },
         { status: 400 }
       );
     }
@@ -90,11 +107,12 @@ export const PATCH = withAuth(async (request, { user }) => {
       .upsert(
         {
           user_id,
+          leave_type,
           total_credits,
           updated_by: user.id,
           updated_at: new Date().toISOString(),
         },
-        { onConflict: "user_id" }
+        { onConflict: "user_id,leave_type" }
       )
       .select()
       .single();

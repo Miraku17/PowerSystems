@@ -368,7 +368,7 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Set as Conditional</h3>
             <p className="text-sm text-gray-600 mb-6">
-              Set the leave request for <strong>{conditionalModal.name}</strong> as <strong>conditional</strong>? This means the leave is acknowledged but subject to explanation/endorsement to managers. No credits will be deducted yet.
+              Set the leave request for <strong>{conditionalModal.name}</strong> as <strong>conditional</strong>? This means the leave is acknowledged but subject to explanation/endorsement to managers. Leave credits will be deducted.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -434,9 +434,9 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
             <p className="text-sm text-gray-600 mb-2">
               Revoke the <strong className="capitalize">{revokeModal.currentStatus}</strong> status for <strong>{revokeModal.name}</strong>&apos;s leave request? This will set it back to <strong>pending</strong>.
             </p>
-            {revokeModal.currentStatus === "approved" && (
+            {(revokeModal.currentStatus === "approved" || revokeModal.currentStatus === "conditional") && (
               <p className="text-sm text-amber-600 bg-amber-50 rounded-lg p-3 mb-4">
-                Since this leave was approved, revoking will restore the deducted leave credits.
+                Revoking will restore the deducted leave credits.
               </p>
             )}
             <div className="flex gap-3 justify-end mt-4">

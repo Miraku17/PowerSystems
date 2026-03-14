@@ -82,8 +82,8 @@ export const PATCH = withAuth(async (request, { user, params }) => {
         );
       }
 
-      // If revoking from "approved", restore credits
-      if (currentStatus === "approved") {
+      // If revoking from "approved" or "conditional", restore credits
+      if (currentStatus === "approved" || currentStatus === "conditional") {
         const leaveType = leaveRequest.leave_type;
         if (leaveType === "VL" || leaveType === "SL") {
           const { data: credits } = await supabase
@@ -148,8 +148,9 @@ export const PATCH = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // If approving, check and deduct credits
-    if (status === "approved") {
+    // Deduct credits for conditional or approved (but not if already deducted from conditional)
+    const needsDeduction = (status === "conditional" || status === "approved") && currentStatus === "pending";
+    if (needsDeduction) {
       const leaveType = leaveRequest.leave_type;
 
       // LWOP and EL don't consume credits

@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PowerSystems Inc. — Enterprise Management System
+
+A comprehensive web-based management system for industrial equipment operations, workforce tracking, and service documentation. Built for field and office teams to manage job orders, service forms, employee time and leave, approvals, and reporting — with full offline support for field use.
+
+---
+
+## Features
+
+### Equipment & Customer Management
+- Manage **companies**, **customers**, **engines**, and **pumps** with full technical specifications
+- Track service history and equipment details per customer
+
+### Service Forms & Documentation
+14+ specialized forms covering the full service lifecycle:
+- Deutz Commissioning & Service
+- Submersible Pump Commissioning, Service & Teardown
+- Electric Surface Pump Commissioning, Service & Teardown
+- Engine Surface Pump Commissioning & Service
+- Engine Teardown, Inspection & Receiving
+- Components Teardown / Measuring Report
+- Job Order Requests
+- Daily Time Sheets
+
+All forms support **file attachments**, **PDF export**, and **digital signatures**.
+
+### Approval Workflows
+- Multi-level signatory approval routing
+- Digital signature pad per approver
+- Status tracking: Draft → Pending → Approved → Completed
+- Dedicated pending approvals dashboard per form type
+
+### Time & Leave Management
+- Daily Time Sheet submission and approval
+- Leave requests (Vacation, Sick, Emergency, LWOP)
+- Leave credit tracking and balance management
+- Leave approval workflow with admin controls
+
+### Reporting & Analytics
+- Dashboard overview with form statistics
+- Job order reports: generated, status, WIP, cancelled, manhours, engine-specific
+- Date range and equipment filtering
+- CSV export
+
+### Knowledge Base
+- Searchable, categorized internal documentation
+- Rich content with image support
+
+### User & Access Control
+- Role-based access control (RBAC) via positions
+- Granular per-module, per-action permissions
+- User creation and management
+- Audit logs for all actions
+
+### AI Assistant
+- Integrated OpenAI-powered chatbot for user support
+
+### Offline Support
+- IndexedDB-based offline sync for field operations
+- Data syncs automatically when connectivity is restored
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 |
+| State | Zustand + TanStack React Query |
+| Database | Supabase (PostgreSQL) |
+| Auth | Supabase Auth |
+| PDF | Puppeteer + jsPDF |
+| Offline | IndexedDB (idb) |
+| AI | OpenAI API |
+| Deployment | Vercel |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- A Supabase project
+- (Optional) OpenAI API key for the AI assistant
+
+### Installation
+
+```bash
+git clone https://github.com/Miraku17/PowerSystems.git
+cd PowerSystems
+npm install
+```
+
+### Environment Variables
+
+Create a `.env` file in the root with the following:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+NEXT_PUBLIC_API_KEY=your_internal_api_key
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+OPENAI_API_KEY=your_openai_api_key
+```
+
+### Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Deployment
 
-## Learn More
+The application is deployed on **Vercel**. Set the environment variables above in your Vercel project settings and push to `main` to trigger a deployment.
 
-To learn more about Next.js, take a look at the following resources:
+Live URL: [https://power-systems.vercel.app](https://power-systems.vercel.app)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/          # Next.js pages and API routes
+  components/   # Reusable UI components
+  hooks/        # Custom React hooks
+  lib/          # Utility functions and Supabase client
+  services/     # API service layer
+  stores/       # Zustand state stores
+  types/        # TypeScript type definitions
+supabase/
+  migrations/   # Database migration scripts
+```

@@ -46,5 +46,11 @@ next-env.d.ts
 .env*.local
 /docs
 /scripts
+/sql
 .agents/
 .claude/
+
+# local-only documentation
+CHANGELOG_LOGIN_IMPROVEMENTS.md
+TESTING.md
+TESTS_README.md

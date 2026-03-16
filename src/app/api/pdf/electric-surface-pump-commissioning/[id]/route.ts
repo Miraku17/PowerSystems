@@ -29,8 +29,24 @@ export const GET = withAuth(async (request, { user, params }) => {
     }
 
     // Helper: resolve signature — fall back to user's saved signature if DB record has none
-    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null) => {
+    const resolveSignature = async (dbSignature: string | null, signatoryName: string | null, userId: string | null = null) => {
       if (dbSignature) return dbSignature;
+
+      // Try direct lookup by user_id first (most reliable)
+      if (userId) {
+        const { data: userById } = await supabase
+          .from("users")
+          .select("user_signatures(signature_url)")
+          .eq("id", userId)
+          .single();
+        if (userById) {
+          const sigs = userById.user_signatures as any;
+          const url = Array.isArray(sigs) ? sigs[0]?.signature_url : sigs?.signature_url;
+          if (url) return url;
+        }
+      }
+
+      // Fallback: lookup by name
       if (!signatoryName) return null;
       const { data: userData } = await supabase
         .from("users")
@@ -380,7 +396,7 @@ export const GET = withAuth(async (request, { user, params }) => {
           label: "Svc. Manager",
           title: "Noted By",
           name: record.noted_by_name,
-          imageUrl: await resolveSignature(record.noted_by_signature, record.noted_by_name),
+          imageUrl: await resolveSignature(record.noted_by_signature, record.noted_by_name, record.noted_by_user_id),
         },
         {
           label: "Customer Representative",

@@ -10,7 +10,6 @@ import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormS
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines, FormUser } from "@/hooks/useSharedQueries";
 
 export default function DeutzCommissioningReport() {
@@ -26,7 +25,6 @@ export default function DeutzCommissioningReport() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { data: engines = [] } = useEngines();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = useMemo(() =>
     users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase())),
@@ -171,7 +169,6 @@ export default function DeutzCommissioningReport() {
                     customer_name: jo.full_customer_name || "",
                     address: jo.address || "",
                   })}
-                  jobOrders={approvedJOs}
                   required
                 />
                 <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />

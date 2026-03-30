@@ -10,7 +10,6 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function EngineTeardownForm() {
@@ -25,7 +24,6 @@ export default function EngineTeardownForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = users
     .filter(user => {
@@ -203,7 +201,6 @@ export default function EngineTeardownForm() {
                   job_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",
                 })}
-                jobOrders={approvedJOs}
                 required
               />
             </div>

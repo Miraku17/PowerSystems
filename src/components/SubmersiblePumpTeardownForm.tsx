@@ -10,7 +10,6 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 
 export default function SubmersiblePumpTeardownForm() {
@@ -24,8 +23,6 @@ export default function SubmersiblePumpTeardownForm() {
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
   const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
-  // Approved job orders for autocomplete
-  const approvedJOs = useApprovedJobOrders();
 
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
@@ -476,7 +473,6 @@ export default function SubmersiblePumpTeardownForm() {
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />

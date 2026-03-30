@@ -179,7 +179,6 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
-  const [approvedJOs, setApprovedJOs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -237,20 +236,8 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       }
     };
 
-    const fetchApprovedJOs = async () => {
-      try {
-        const response = await apiClient.get('/forms/job-order-request/approved');
-        if (response.data.success) {
-          setApprovedJOs(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch approved job orders", error);
-      }
-    };
-
     fetchAttachments();
     fetchEntries();
-    fetchApprovedJOs();
 
     // Also check if entries are in data object
     if (data.daily_time_sheet_entries && Array.isArray(data.daily_time_sheet_entries)) {
@@ -533,7 +520,6 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   value={formData.job_number || ''}
                   onChange={(value) => handleFieldChange('job_number', value)}
                   onSelect={handleJobOrderSelect}
-                  jobOrders={approvedJOs}
                 />
                 <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
                 <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />

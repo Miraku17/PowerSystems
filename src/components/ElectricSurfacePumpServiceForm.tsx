@@ -11,7 +11,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function ElectricSurfacePumpServiceForm() {
@@ -36,7 +35,6 @@ export default function ElectricSurfacePumpServiceForm() {
       return posName === 'super admin' || posName === 'admin 1';
     });
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -189,7 +187,6 @@ export default function ElectricSurfacePumpServiceForm() {
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />

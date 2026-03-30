@@ -17,7 +17,6 @@ import {
 } from '@/stores/componentsTeardownMeasuringFormStore';
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 
 interface Customer {
@@ -34,7 +33,6 @@ export default function ComponentsTeardownMeasuringForm() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -1140,7 +1138,6 @@ export default function ComponentsTeardownMeasuringForm() {
                       job_order_no: jo.shop_field_jo_number || "",
                       customer: jo.full_customer_name || "",
                     } as any)}
-                    jobOrders={approvedJOs}
                     required
                   />
                 </div>

@@ -12,7 +12,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
 
 export default function DeutzServiceForm() {
@@ -29,7 +28,6 @@ export default function DeutzServiceForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
   const { data: engines = [] } = useEngines();
 
   const approvedByUsersList = useMemo(() =>
@@ -229,7 +227,6 @@ export default function DeutzServiceForm() {
                 customer_name: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input

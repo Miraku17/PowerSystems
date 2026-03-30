@@ -11,7 +11,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function SubmersiblePumpServiceForm() {
@@ -26,7 +25,6 @@ export default function SubmersiblePumpServiceForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = users
     .filter(user => {
@@ -190,7 +188,6 @@ export default function SubmersiblePumpServiceForm() {
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />

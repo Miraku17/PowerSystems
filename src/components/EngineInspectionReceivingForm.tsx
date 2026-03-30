@@ -13,7 +13,6 @@ import {
 } from '@/stores/engineInspectionReceivingFormStore';
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function EngineInspectionReceivingForm() {
@@ -24,7 +23,6 @@ export default function EngineInspectionReceivingForm() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = users
     .filter(user => {
@@ -283,7 +281,6 @@ export default function EngineInspectionReceivingForm() {
                   customer: jo.full_customer_name || "",
                   address: jo.address || "",
                 })}
-                jobOrders={approvedJOs}
                 required
               />
             </div>

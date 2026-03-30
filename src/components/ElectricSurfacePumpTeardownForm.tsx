@@ -10,7 +10,6 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function ElectricSurfacePumpTeardownForm() {
@@ -24,8 +23,6 @@ export default function ElectricSurfacePumpTeardownForm() {
   const { uploadFiles, uploadProgress, isUploading, cancelUpload } = useSupabaseUpload();
   const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
-  // Approved job orders for autocomplete
-  const approvedJOs = useApprovedJobOrders();
 
   const [motorComponentsAttachments, setMotorComponentsAttachments] = useState<{ file: File; title: string }[]>([]);
   const [wetEndAttachments, setWetEndAttachments] = useState<{ file: File; title: string }[]>([]);
@@ -378,9 +375,9 @@ export default function ElectricSurfacePumpTeardownForm() {
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
         <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
+        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275 to 78 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <p className="text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com
@@ -415,7 +412,6 @@ export default function ElectricSurfacePumpTeardownForm() {
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />
@@ -699,6 +695,7 @@ export default function ElectricSurfacePumpTeardownForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

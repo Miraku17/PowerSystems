@@ -12,7 +12,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
 
 export default function DeutzServiceForm() {
@@ -29,7 +28,6 @@ export default function DeutzServiceForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
   const { data: engines = [] } = useEngines();
 
   const approvedByUsersList = useMemo(() =>
@@ -186,12 +184,12 @@ export default function DeutzServiceForm() {
         </h1>
         <p className="text-xs md:text-sm text-gray-600 mt-2">
           2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street,
-          Bagumbayan, Libis, Quezon City
+          Bagumbayan, Quezon City
         </p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275
-          to 78 <span className="mx-2">|</span>{" "}
-          <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275
+          <span className="mx-2">|</span>{" "}
+          <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <p className="text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Email:</span>{" "}
@@ -229,7 +227,6 @@ export default function DeutzServiceForm() {
                 customer_name: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input
@@ -796,6 +793,7 @@ export default function DeutzServiceForm() {
                 users={users}
                 showAllUsers
                 hideSignature
+              allowTyping
               />
               <SignaturePad
                 label="Acknowledged By Signature"

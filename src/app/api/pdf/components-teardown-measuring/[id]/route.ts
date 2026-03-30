@@ -103,7 +103,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
       doc.text("C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City", pageWidth / 2, 18, { align: "center" });
-      doc.text("Tel No.: 287.8916, 285.0923", pageWidth / 2, 23, { align: "center" });
+      doc.text("Tel: (+63-2) 8687-9275  |  Fax: (+63-2) 8633-6678", pageWidth / 2, 23, { align: "center" });
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
       doc.text("COMPONENTS TEARDOWN MEASURING REPORT", pageWidth / 2, 33, { align: "center" });

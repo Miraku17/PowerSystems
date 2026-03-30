@@ -11,7 +11,6 @@ import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
 
 export default function EngineSurfacePumpCommissioningForm() {
@@ -26,7 +25,6 @@ export default function EngineSurfacePumpCommissioningForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = users
     .filter(user => {
@@ -149,9 +147,9 @@ export default function EngineSurfacePumpCommissioningForm() {
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
         <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
+        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275 to 78 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <p className="text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com
@@ -186,7 +184,6 @@ export default function EngineSurfacePumpCommissioningForm() {
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
               })}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="J.O Date" name="jo_date" type="date" value={formData.jo_date} onChange={handleChange} />
@@ -425,6 +422,7 @@ export default function EngineSurfacePumpCommissioningForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

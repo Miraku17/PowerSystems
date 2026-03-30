@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
+import { useApprovedJobOrders } from "@/hooks/useApprovedJobOrders";
 
 export interface ApprovedJobOrder {
   id: string;
@@ -15,7 +16,6 @@ interface JobOrderAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
   onSelect: (jo: ApprovedJobOrder) => void;
-  jobOrders: ApprovedJobOrder[];
   required?: boolean;
 }
 
@@ -24,7 +24,6 @@ const JobOrderAutocomplete = ({
   value,
   onChange,
   onSelect,
-  jobOrders,
   required = false,
 }: JobOrderAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -32,17 +31,25 @@ const JobOrderAutocomplete = ({
   const [selectedJO, setSelectedJO] = useState<ApprovedJobOrder | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const { approvedJOs, loading } = useApprovedJobOrders(
+    showDropdown ? searchTerm : "",
+  );
+
   // Sync selectedJO with value prop (e.g. when editing existing record)
+  const { approvedJOs: matchedJOs } = useApprovedJobOrders(
+    value && !selectedJO ? value : "",
+  );
+
   useEffect(() => {
-    if (value && !selectedJO) {
-      const match = jobOrders.find(
+    if (value && !selectedJO && matchedJOs.length > 0) {
+      const match = matchedJOs.find(
         (jo) => jo.shop_field_jo_number === value
       );
       if (match) {
         setSelectedJO(match);
       }
     }
-  }, [value, jobOrders, selectedJO]);
+  }, [value, matchedJOs, selectedJO]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -57,14 +64,6 @@ const JobOrderAutocomplete = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const filteredJOs = jobOrders.filter((jo) => {
-    const search = searchTerm.toLowerCase();
-    return (
-      (jo.shop_field_jo_number || "").toLowerCase().includes(search) ||
-      (jo.full_customer_name || "").toLowerCase().includes(search)
-    );
-  });
 
   const handleSelect = (jo: ApprovedJobOrder) => {
     setSelectedJO(jo);
@@ -115,8 +114,12 @@ const JobOrderAutocomplete = ({
             />
             {showDropdown && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                {filteredJOs.length > 0 ? (
-                  filteredJOs.map((jo) => (
+                {loading ? (
+                  <div className="px-3 py-2 text-sm text-gray-500">
+                    Searching...
+                  </div>
+                ) : approvedJOs.length > 0 ? (
+                  approvedJOs.map((jo) => (
                     <div
                       key={jo.id}
                       onClick={() => handleSelect(jo)}
@@ -130,7 +133,7 @@ const JobOrderAutocomplete = ({
                   ))
                 ) : (
                   <div className="px-3 py-2 text-sm text-gray-500">
-                    No pending job orders found
+                    No job orders found
                   </div>
                 )}
               </div>

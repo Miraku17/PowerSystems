@@ -196,28 +196,6 @@ export const POST = withAuth(async (request, { user }) => {
       console.error("Error parsing inspectionItems JSON:", e);
     }
 
-    // Check for duplicate JO Number
-    if (jo_number) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('engine_inspection_receiving_report')
-        .select('id')
-        .eq('jo_number', jo_number)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error checking for duplicate JO Number:', searchError);
-        return NextResponse.json({ error: 'Failed to validate JO Number uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `JO Number '${jo_number}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
-
     // Upload signatures
     const timestamp = Date.now();
     const service_technician_signature = await uploadSignature(
@@ -412,29 +390,6 @@ export const PATCH = withAuth(async (request, { user }) => {
       acknowledged_by_signature: rawAcknowledgedBySignature,
       inspectionItems,
     } = body;
-
-    // Check for duplicate JO Number
-    if (jo_number) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('engine_inspection_receiving_report')
-        .select('id')
-        .eq('jo_number', jo_number)
-        .neq('id', id)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error checking for duplicate JO Number:', searchError);
-        return NextResponse.json({ error: 'Failed to validate JO Number uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `JO Number '${jo_number}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
 
     // Process signatures
     const timestamp = Date.now();

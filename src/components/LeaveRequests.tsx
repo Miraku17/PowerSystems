@@ -81,7 +81,9 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
   const fetchRequests = async () => {
     setIsLoading(true);
     try {
-      const res = await apiClient.get("/leave-requests");
+      const res = await apiClient.get("/leave-requests", {
+        params: showAll ? undefined : { mine: "true" },
+      });
       if (res.data.success) {
         setRequests(res.data.data);
       }

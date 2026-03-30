@@ -585,6 +585,7 @@ export default function EditElectricSurfacePumpCommissioning({
                     users={users}
                     showAllUsers
                     hideSignature
+                  allowTyping
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

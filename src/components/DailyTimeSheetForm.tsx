@@ -26,22 +26,6 @@ export default function DailyTimeSheetForm() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
-  const [approvedJOs, setApprovedJOs] = useState<any[]>([]);
-
-  useEffect(() => {
-    const fetchApprovedJOs = async () => {
-      try {
-        const response = await apiClient.get('/forms/job-order-request/approved');
-        if (response.data.success) {
-          setApprovedJOs(response.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch approved job orders", error);
-      }
-    };
-
-    fetchApprovedJOs();
-  }, []);
 
   // Calculate regular and OT hours for an entry based on 8AM-5PM work schedule
   const calculateRegularAndOT = (startTime: string, stopTime: string) => {
@@ -335,7 +319,6 @@ export default function DailyTimeSheetForm() {
               value={formData.job_number}
               onChange={(value) => setFormData({ job_number: value })}
               onSelect={handleJobOrderSelect}
-              jobOrders={approvedJOs}
               required
             />
             <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />

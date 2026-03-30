@@ -725,10 +725,10 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
           </h1>
           <p className="text-xs text-gray-600 mb-1">
             2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,
-            Bagumbayan, Libis, Quezon City
+            Bagumbayan, Quezon City
           </p>
           <p className="text-xs text-gray-600 mb-1">
-            Tel: (+63-2) 687-9275 to 78 | Fax: (+63-2) 687-9279
+            Tel: (+63-2) 8687-9275 | Fax: (+63-2) 8633-6678
           </p>
           <p className="text-xs text-gray-600 mb-2">
             Email: sales@psi-deutz.com

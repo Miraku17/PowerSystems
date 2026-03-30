@@ -1129,6 +1129,7 @@ export default function EditDeutzCommissioning({
                     users={users}
                     showAllUsers
                     hideSignature
+                  allowTyping
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

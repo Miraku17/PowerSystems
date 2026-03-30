@@ -10,7 +10,6 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 
 export default function EngineTeardownForm() {
@@ -25,7 +24,6 @@ export default function EngineTeardownForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = users
     .filter(user => {
@@ -165,7 +163,7 @@ export default function EngineTeardownForm() {
         <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
         <p className="text-xs md:text-sm text-gray-600 mt-2">C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City</p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel No.:</span> 287.8916, 285.0923
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <div className="mt-6">
           <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
@@ -203,7 +201,6 @@ export default function EngineTeardownForm() {
                   job_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",
                 })}
-                jobOrders={approvedJOs}
                 required
               />
             </div>
@@ -906,6 +903,7 @@ export default function EngineTeardownForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

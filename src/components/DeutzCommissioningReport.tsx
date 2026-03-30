@@ -10,7 +10,6 @@ import { useDeutzCommissioningFormStore } from "@/stores/deutzCommissioningFormS
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useApprovedJobOrders } from '@/hooks/useApprovedJobOrders';
 import { useUsers, useCustomers, useEngines, FormUser } from "@/hooks/useSharedQueries";
 
 export default function DeutzCommissioningReport() {
@@ -26,7 +25,6 @@ export default function DeutzCommissioningReport() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { data: engines = [] } = useEngines();
-  const approvedJOs = useApprovedJobOrders();
 
   const approvedByUsers = useMemo(() =>
     users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase())),
@@ -135,9 +133,9 @@ export default function DeutzCommissioningReport() {
       {/* Header */}
       <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
         <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
+        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275 to 78 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <p className="text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com
@@ -171,7 +169,6 @@ export default function DeutzCommissioningReport() {
                     customer_name: jo.full_customer_name || "",
                     address: jo.address || "",
                   })}
-                  jobOrders={approvedJOs}
                   required
                 />
                 <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
@@ -667,6 +664,7 @@ export default function DeutzCommissioningReport() {
                     users={users}
                     showAllUsers
                     hideSignature
+                allowTyping
                 />
                 <SignaturePad
                   label="Acknowledged By Signature"

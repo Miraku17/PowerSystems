@@ -1,14 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { LeaveType, LEAVE_TYPE_LABELS } from "@/types";
+import { LeaveType, LEAVE_TYPE_LABELS, CREDIT_LEAVE_TYPES } from "@/types";
 import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 
-interface PerCategoryCredits {
-  VL: { total_credits: number; used_credits: number };
-  SL: { total_credits: number; used_credits: number };
-}
+type PerCategoryCredits = Record<string, { total_credits: number; used_credits: number }>;
 
 export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void }) {
   const [credits, setCredits] = useState<PerCategoryCredits | null>(null);
@@ -63,16 +60,17 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
   // Get remaining credits for the selected leave type
   const getRemaining = (type: LeaveType) => {
     if (!credits) return 0;
-    if (type === "VL" || type === "SL") {
+    if (CREDIT_LEAVE_TYPES.includes(type)) {
       const c = credits[type];
-      return c.total_credits - c.used_credits;
+      return c ? c.total_credits - c.used_credits : 0;
     }
-    // EL and LWOP don't consume credits
+    // LWOP doesn't consume credits
     return Infinity;
   };
 
   const remaining = getRemaining(leaveType);
-  const hasEnoughCredits = leaveType === "EL" || leaveType === "LWOP" || remaining >= totalDays;
+  const requiresCredits = CREDIT_LEAVE_TYPES.includes(leaveType);
+  const hasEnoughCredits = !requiresCredits || remaining >= totalDays;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,29 +123,20 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
         {creditsLoading ? (
           <span className="text-sm text-blue-600">Loading...</span>
         ) : (
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="bg-white rounded-md p-2 border border-blue-100">
-              <div className="text-xs text-gray-500 mb-1">Vacation Leave (VL)</div>
-              <div className="flex justify-between">
-                <span className="text-blue-700">
-                  {credits?.VL.total_credits || 0} total
-                </span>
-                <span className="font-semibold text-blue-900">
-                  {credits ? credits.VL.total_credits - credits.VL.used_credits : 0} left
-                </span>
-              </div>
-            </div>
-            <div className="bg-white rounded-md p-2 border border-blue-100">
-              <div className="text-xs text-gray-500 mb-1">Sick Leave (SL)</div>
-              <div className="flex justify-between">
-                <span className="text-blue-700">
-                  {credits?.SL.total_credits || 0} total
-                </span>
-                <span className="font-semibold text-blue-900">
-                  {credits ? credits.SL.total_credits - credits.SL.used_credits : 0} left
-                </span>
-              </div>
-            </div>
+          <div className="space-y-1.5 text-sm">
+            {CREDIT_LEAVE_TYPES.map((type) => {
+              const c = credits?.[type];
+              const total = c?.total_credits || 0;
+              const rem = c ? c.total_credits - c.used_credits : 0;
+              return (
+                <div key={type} className="flex items-center justify-between bg-white rounded-md px-3 py-1.5 border border-blue-100">
+                  <span className="text-gray-700 text-xs">{LEAVE_TYPE_LABELS[type as LeaveType]}</span>
+                  <span className={`text-xs font-semibold ${rem > 0 ? "text-blue-900" : "text-gray-400"}`}>
+                    {rem} / {total}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -170,7 +159,7 @@ export default function LeaveRequestForm({ onSuccess }: { onSuccess?: () => void
         </div>
 
         {/* Show remaining for selected type */}
-        {(leaveType === "VL" || leaveType === "SL") && !creditsLoading && (
+        {requiresCredits && !creditsLoading && (
           <div className="p-2 bg-gray-50 rounded-lg text-sm text-gray-600">
             Available {LEAVE_TYPE_LABELS[leaveType]} credits: <strong className="text-gray-900">{remaining}</strong> day(s)
           </div>

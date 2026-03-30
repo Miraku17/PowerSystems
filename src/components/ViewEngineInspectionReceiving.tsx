@@ -262,7 +262,7 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
             <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
               <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
               <p className="text-sm text-gray-600 mt-2">C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City</p>
-              <p className="text-sm text-gray-600 mt-1"><span className="font-bold">Tel No.:</span> 287.8916, 285.0923</p>
+              <p className="text-sm text-gray-600 mt-1"><span className="font-bold">Tel:</span> (+63-2) 8687-9275 | Fax: (+63-2) 8633-6678</p>
               <div className="mt-6">
                 <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
                   Engine Inspection / Receiving Report

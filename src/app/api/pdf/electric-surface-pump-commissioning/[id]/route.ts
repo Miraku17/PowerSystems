@@ -123,8 +123,8 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,", pageWidth / 2, yPos + 22, { align: "center" });
-    doc.text("Bagumbayan, Libis, Quezon City", pageWidth / 2, yPos + 27, { align: "center" });
-    doc.text("Tel: (+63-2) 687-9275 to 78  |  Fax: (+63-2) 687-9279", pageWidth / 2, yPos + 32, { align: "center" });
+    doc.text("Bagumbayan, Quezon City", pageWidth / 2, yPos + 27, { align: "center" });
+    doc.text("Tel: (+63-2) 8687-9275  |  Fax: (+63-2) 8633-6678", pageWidth / 2, yPos + 32, { align: "center" });
     doc.text("Email: sales@psi-deutz.com", pageWidth / 2, yPos + 37, { align: "center" });
 
     // Separator line

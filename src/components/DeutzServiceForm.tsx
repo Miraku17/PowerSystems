@@ -186,12 +186,12 @@ export default function DeutzServiceForm() {
         </h1>
         <p className="text-xs md:text-sm text-gray-600 mt-2">
           2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street,
-          Bagumbayan, Libis, Quezon City
+          Bagumbayan, Quezon City
         </p>
         <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275
-          to 78 <span className="mx-2">|</span>{" "}
-          <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275
+          <span className="mx-2">|</span>{" "}
+          <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
         </p>
         <p className="text-sm text-gray-600 mt-1">
           <span className="font-bold text-gray-700">Email:</span>{" "}

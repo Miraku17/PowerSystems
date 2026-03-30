@@ -206,9 +206,9 @@ export default function ViewElectricSurfacePumpService({ data, onClose, onExport
             {/* Company Header */}
             <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
               <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-              <p className="text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Libis, Quezon City</p>
+              <p className="text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
               <p className="text-sm text-gray-600 mt-1">
-                <span className="font-bold text-gray-700">Tel:</span> (+63-2) 687-9275 to 78 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 687-9279
+                <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
               </p>
               <p className="text-sm text-gray-600 mt-1">
                 <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com

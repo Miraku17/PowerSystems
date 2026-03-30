@@ -222,15 +222,25 @@ export type UpdateKBArticleData = {
 /**
  * Leave Types
  */
-export type LeaveType = 'VL' | 'SL' | 'EL' | 'LWOP';
+export type LeaveType = 'VL' | 'SL' | 'EL' | 'BL' | 'PL' | 'ML' | 'SPL' | 'LWOP';
 export type LeaveStatus = 'pending' | 'conditional' | 'approved' | 'rejected';
 
 export const LEAVE_TYPE_LABELS: Record<LeaveType, string> = {
   VL: 'Vacation Leave',
   SL: 'Sick Leave',
   EL: 'Emergency Leave',
+  BL: 'Bereavement Leave',
+  PL: 'Paternity Leave',
+  ML: 'Maternity Leave',
+  SPL: 'Solo Parent Leave',
   LWOP: 'Leave Without Pay',
 };
+
+/** Leave types that consume credits (editable by super admin) */
+export const CREDIT_LEAVE_TYPES: LeaveType[] = ['VL', 'SL', 'EL', 'BL', 'PL', 'ML', 'SPL'];
+
+/** Leave types that do NOT consume credits */
+export const NO_CREDIT_LEAVE_TYPES: LeaveType[] = ['LWOP'];
 
 export interface LeaveCredits {
   id: string;

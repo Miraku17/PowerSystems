@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { CREDIT_LEAVE_TYPES } from "@/types";
 
 // Admin: list all users with leave credits (per category)
 export const GET = withAuth(async (request, { user }) => {
@@ -53,13 +54,13 @@ export const GET = withAuth(async (request, { user }) => {
     }
 
     const defaultCredits = { total_credits: 0, used_credits: 0 };
-    const data = users?.map((u: any) => ({
-      user: u,
-      credits: {
-        VL: creditsMap.get(u.id)?.VL || { ...defaultCredits },
-        SL: creditsMap.get(u.id)?.SL || { ...defaultCredits },
-      },
-    }));
+    const data = users?.map((u: any) => {
+      const userCredits: Record<string, { total_credits: number; used_credits: number }> = {};
+      for (const type of CREDIT_LEAVE_TYPES) {
+        userCredits[type] = creditsMap.get(u.id)?.[type] || { ...defaultCredits };
+      }
+      return { user: u, credits: userCredits };
+    });
 
     return NextResponse.json({ success: true, data });
   } catch (error: any) {
@@ -94,9 +95,9 @@ export const PATCH = withAuth(async (request, { user }) => {
       );
     }
 
-    if (!["VL", "SL"].includes(leave_type)) {
+    if (!CREDIT_LEAVE_TYPES.includes(leave_type)) {
       return NextResponse.json(
-        { success: false, message: "leave_type must be VL or SL" },
+        { success: false, message: `leave_type must be one of: ${CREDIT_LEAVE_TYPES.join(", ")}` },
         { status: 400 }
       );
     }

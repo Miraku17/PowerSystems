@@ -5,6 +5,7 @@ import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { PencilIcon, MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+import { CREDIT_LEAVE_TYPES, LEAVE_TYPE_LABELS, LeaveType } from "@/types";
 
 interface CreditInfo {
   total_credits: number;
@@ -22,13 +23,10 @@ interface UserCredit {
       name: string;
     } | null;
   };
-  credits: {
-    VL: CreditInfo;
-    SL: CreditInfo;
-  };
+  credits: Record<string, CreditInfo>;
 }
 
-type LeaveCategory = "VL" | "SL";
+type LeaveCategory = typeof CREDIT_LEAVE_TYPES[number];
 
 export default function LeaveCredits() {
   const [userCredits, setUserCredits] = useState<UserCredit[]>([]);
@@ -75,7 +73,7 @@ export default function LeaveCredits() {
       return;
     }
 
-    const currentUsed = editModal.user.credits[editModal.leaveType].used_credits;
+    const currentUsed = editModal.user.credits[editModal.leaveType]?.used_credits || 0;
     if (credits < currentUsed) {
       toast.error(`Total credits cannot be less than used credits (${currentUsed})`);
       return;
@@ -122,7 +120,8 @@ export default function LeaveCredits() {
 
   const openEditModal = (user: UserCredit, leaveType: LeaveCategory) => {
     setEditModal({ open: true, user, leaveType });
-    setNewCredits(String(user.credits[leaveType].total_credits));
+    const credits = user.credits[leaveType];
+    setNewCredits(String(credits?.total_credits || 0));
   };
 
   return (
@@ -141,82 +140,63 @@ export default function LeaveCredits() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-600" rowSpan={2}>Employee</th>
-              <th className="text-center px-4 py-2 font-medium text-blue-700 border-b border-gray-200" colSpan={canEditCredits ? 4 : 3}>Vacation Leave (VL)</th>
-              <th className="text-center px-4 py-2 font-medium text-green-700 border-b border-gray-200" colSpan={canEditCredits ? 4 : 3}>Sick Leave (SL)</th>
-            </tr>
-            <tr>
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Total</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Used</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Remaining</th>
-              {canEditCredits && <th className="text-center px-4 py-2 font-medium text-gray-500 text-xs">Edit</th>}
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Total</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Used</th>
-              <th className="text-right px-4 py-2 font-medium text-gray-500 text-xs">Remaining</th>
-              {canEditCredits && <th className="text-center px-4 py-2 font-medium text-gray-500 text-xs">Edit</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filtered.map((uc) => {
-              const vlRemaining = uc.credits.VL.total_credits - uc.credits.VL.used_credits;
-              const slRemaining = uc.credits.SL.total_credits - uc.credits.SL.used_credits;
-              return (
-                <tr key={uc.user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">
-                      {uc.user.firstname} {uc.user.lastname}
-                    </div>
-                    {uc.user.position && (
-                      <div className="text-xs text-gray-500">{uc.user.position.name}</div>
-                    )}
-                  </td>
-                  {/* VL columns */}
-                  <td className="px-4 py-3 text-right text-gray-700">{uc.credits.VL.total_credits}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{uc.credits.VL.used_credits}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-semibold ${vlRemaining > 0 ? "text-blue-700" : "text-gray-500"}`}>
-                      {vlRemaining}
-                    </span>
-                  </td>
-                  {canEditCredits && (
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => openEditModal(uc, "VL")}
-                        className="p-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
-                        title="Edit VL credits"
-                      >
-                        <PencilIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  )}
-                  {/* SL columns */}
-                  <td className="px-4 py-3 text-right text-gray-700">{uc.credits.SL.total_credits}</td>
-                  <td className="px-4 py-3 text-right text-gray-700">{uc.credits.SL.used_credits}</td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`font-semibold ${slRemaining > 0 ? "text-green-700" : "text-gray-500"}`}>
-                      {slRemaining}
-                    </span>
-                  </td>
-                  {canEditCredits && (
-                    <td className="px-4 py-3 text-center">
-                      <button
-                        onClick={() => openEditModal(uc, "SL")}
-                        className="p-1.5 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors"
-                        title="Edit SL credits"
-                      >
-                        <PencilIcon className="h-3.5 w-3.5" />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="divide-y divide-gray-200">
+        {filtered.map((uc) => (
+          <div key={uc.user.id} className="px-6 py-4">
+            <div className="mb-3">
+              <div className="font-medium text-gray-900">
+                {uc.user.firstname} {uc.user.lastname}
+              </div>
+              {uc.user.position && (
+                <div className="text-xs text-gray-500">{uc.user.position.name}</div>
+              )}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="text-left px-3 py-2 font-medium text-gray-600 text-xs">Leave Type</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 text-xs">Total</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 text-xs">Used</th>
+                    <th className="text-right px-3 py-2 font-medium text-gray-500 text-xs">Remaining</th>
+                    {canEditCredits && <th className="text-center px-3 py-2 font-medium text-gray-500 text-xs w-16">Edit</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {CREDIT_LEAVE_TYPES.map((type) => {
+                    const c = uc.credits[type] || { total_credits: 0, used_credits: 0 };
+                    const rem = c.total_credits - c.used_credits;
+                    return (
+                      <tr key={type} className="hover:bg-gray-50/50">
+                        <td className="px-3 py-2 text-gray-700 text-xs">
+                          {LEAVE_TYPE_LABELS[type as LeaveType]} <span className="text-gray-400">({type})</span>
+                        </td>
+                        <td className="px-3 py-2 text-right text-gray-700">{c.total_credits}</td>
+                        <td className="px-3 py-2 text-right text-gray-700">{c.used_credits}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className={`font-semibold ${rem > 0 ? "text-blue-700" : "text-gray-500"}`}>
+                            {rem}
+                          </span>
+                        </td>
+                        {canEditCredits && (
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => openEditModal(uc, type)}
+                              className="p-1.5 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 transition-colors"
+                              title={`Edit ${type} credits`}
+                            >
+                              <PencilIcon className="h-3.5 w-3.5" />
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
       </div>
 
       {filtered.length === 0 && (
@@ -228,7 +208,7 @@ export default function LeaveCredits() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditModal({ open: false, user: null, leaveType: "VL" })}>
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              Edit {editModal.leaveType === "VL" ? "Vacation Leave" : "Sick Leave"} Credits
+              Edit {LEAVE_TYPE_LABELS[editModal.leaveType as LeaveType]} ({editModal.leaveType}) Credits
             </h3>
             <p className="text-sm text-gray-500 mb-4">
               {editModal.user.user.firstname} {editModal.user.user.lastname}

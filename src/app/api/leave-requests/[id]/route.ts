@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission, getPermissionScope } from "@/lib/permissions";
+import { CREDIT_LEAVE_TYPES } from "@/types";
 
 // PATCH: Change leave request status (conditional, approved, rejected, or revoke back to pending)
 export const PATCH = withAuth(async (request, { user, params }) => {
@@ -85,7 +86,7 @@ export const PATCH = withAuth(async (request, { user, params }) => {
       // If revoking from "approved" or "conditional", restore credits
       if (currentStatus === "approved" || currentStatus === "conditional") {
         const leaveType = leaveRequest.leave_type;
-        if (leaveType === "VL" || leaveType === "SL") {
+        if (CREDIT_LEAVE_TYPES.includes(leaveType)) {
           const { data: credits } = await supabase
             .from("leave_credits")
             .select("used_credits")
@@ -153,8 +154,8 @@ export const PATCH = withAuth(async (request, { user, params }) => {
     if (needsDeduction) {
       const leaveType = leaveRequest.leave_type;
 
-      // LWOP and EL don't consume credits
-      if (leaveType === "VL" || leaveType === "SL") {
+      // Only LWOP doesn't consume credits
+      if (CREDIT_LEAVE_TYPES.includes(leaveType)) {
         const { data: credits } = await supabase
           .from("leave_credits")
           .select("total_credits, used_credits")

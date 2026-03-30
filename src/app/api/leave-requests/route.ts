@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission, getPermissionScope } from "@/lib/permissions";
+import { CREDIT_LEAVE_TYPES } from "@/types";
 
 // GET: List leave requests
 // - Users with leave.access see their own requests
@@ -23,14 +24,15 @@ export const GET = withAuth(async (request, { user }) => {
 
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
+    const mineOnly = url.searchParams.get("mine") === "true";
 
     let query = supabase
       .from("leave_requests")
       .select("*, user:users!leave_requests_user_id_fkey(id, firstname, lastname, email, address), approver:users!leave_requests_approved_by_fkey(id, firstname, lastname)")
       .order("created_at", { ascending: false });
 
-    // If user doesn't have approval access, only show their own
-    if (!canAccessApproval) {
+    // If user doesn't have approval access, or explicitly requesting own requests only
+    if (!canAccessApproval || mineOnly) {
       query = query.eq("user_id", user.id);
     }
 
@@ -102,9 +104,10 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Validate leave_type
-    if (!["VL", "SL", "EL", "LWOP"].includes(leave_type)) {
+    const validTypes = ["VL", "SL", "EL", "BL", "PL", "ML", "SPL", "LWOP"];
+    if (!validTypes.includes(leave_type)) {
       return NextResponse.json(
-        { success: false, message: "Invalid leave type. Must be VL, SL, EL, or LWOP" },
+        { success: false, message: `Invalid leave type. Must be one of: ${validTypes.join(", ")}` },
         { status: 400 }
       );
     }
@@ -118,8 +121,8 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     // Check if user has enough credits remaining for the specific leave type
-    // LWOP and EL don't consume credits
-    if (leave_type === "VL" || leave_type === "SL") {
+    // Only LWOP doesn't consume credits
+    if (CREDIT_LEAVE_TYPES.includes(leave_type)) {
       const { data: credits } = await supabase
         .from("leave_credits")
         .select("total_credits, used_credits")

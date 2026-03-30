@@ -13,18 +13,23 @@ interface SignaturePadProps {
 const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, subtitle }) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
 
+  const lastLoadedValue = useRef<string | undefined>(undefined);
+
   useEffect(() => {
     if (sigCanvas.current) {
       if (value) {
-        if (sigCanvas.current.isEmpty()) {
+        // Only load if the value changed externally (not from our own handleEnd)
+        if (value !== lastLoadedValue.current) {
           try {
             sigCanvas.current.fromDataURL(value);
+            lastLoadedValue.current = value;
           } catch (error) {
             console.error('Error loading signature:', error);
           }
         }
       } else {
         sigCanvas.current.clear();
+        lastLoadedValue.current = undefined;
       }
     }
   }, [value]);
@@ -32,6 +37,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
   const handleClear = () => {
     if (sigCanvas.current) {
       sigCanvas.current.clear();
+      lastLoadedValue.current = undefined;
       onChange('');
     }
   };
@@ -57,6 +63,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange, sub
 
         // Convert to JPEG with white background for better compression
         const signature = tempCanvas.toDataURL('image/jpeg', 0.8);
+        lastLoadedValue.current = signature;
         onChange(signature);
       }
     }

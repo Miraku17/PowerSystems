@@ -613,6 +613,7 @@ export default function EditSubmersiblePumpService({
                     users={users}
                     showAllUsers
                     hideSignature
+                  allowTyping
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

@@ -490,6 +490,7 @@ export default function SubmersiblePumpServiceForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

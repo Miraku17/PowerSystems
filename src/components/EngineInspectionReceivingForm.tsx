@@ -489,6 +489,7 @@ export default function EngineInspectionReceivingForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

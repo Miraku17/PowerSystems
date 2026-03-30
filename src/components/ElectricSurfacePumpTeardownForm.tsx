@@ -695,6 +695,7 @@ export default function ElectricSurfacePumpTeardownForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

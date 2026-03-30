@@ -903,6 +903,7 @@ export default function EngineTeardownForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

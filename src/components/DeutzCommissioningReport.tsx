@@ -664,6 +664,7 @@ export default function DeutzCommissioningReport() {
                     users={users}
                     showAllUsers
                     hideSignature
+                allowTyping
                 />
                 <SignaturePad
                   label="Acknowledged By Signature"

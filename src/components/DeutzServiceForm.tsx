@@ -793,6 +793,7 @@ export default function DeutzServiceForm() {
                 users={users}
                 showAllUsers
                 hideSignature
+              allowTyping
               />
               <SignaturePad
                 label="Acknowledged By Signature"

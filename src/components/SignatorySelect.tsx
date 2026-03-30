@@ -16,6 +16,7 @@ interface SignatorySelectProps {
   subtitle?: string;
   showAllUsers?: boolean;
   hideSignature?: boolean;
+  allowTyping?: boolean;
 }
 
 export default function SignatorySelect({
@@ -29,8 +30,10 @@ export default function SignatorySelect({
   subtitle,
   showAllUsers = false,
   hideSignature = false,
+  allowTyping = false,
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const currentUser = useCurrentUser();
 
@@ -38,6 +41,7 @@ export default function SignatorySelect({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
+        setSearchTerm("");
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -47,21 +51,29 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  const dropdownUsers = (showAllUsers
+  const allDropdownUsers = (showAllUsers
     ? users
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
     : []).sort((a, b) => a.fullName.localeCompare(b.fullName));
 
+  const dropdownUsers = allowTyping && searchTerm
+    ? allDropdownUsers.filter((u) =>
+        u.fullName.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : allDropdownUsers;
+
   const handleSelectOption = (user: FormUser) => {
     onChange(name, user.fullName);
     onSignatureChange(user.signature_url || "");
+    setSearchTerm("");
     setShowDropdown(false);
   };
 
   const handleClear = () => {
     onChange(name, "");
     onSignatureChange("");
+    setSearchTerm("");
   };
 
   const displaySignature = signatureValue || selectedUser?.signature_url || "";
@@ -80,11 +92,27 @@ export default function SignatorySelect({
           <input
             type="text"
             name={name}
-            value={value}
-            readOnly
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 cursor-pointer"
-            placeholder="Select a name"
+            value={allowTyping ? (showDropdown ? searchTerm : value) : value}
+            readOnly={!allowTyping}
+            onClick={() => {
+              if (!allowTyping) setShowDropdown(!showDropdown);
+            }}
+            onFocus={() => {
+              if (allowTyping) {
+                setSearchTerm(value);
+                setShowDropdown(true);
+              }
+            }}
+            onChange={(e) => {
+              if (allowTyping) {
+                setSearchTerm(e.target.value);
+                onChange(name, e.target.value);
+                setShowDropdown(true);
+              }
+            }}
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 ${allowTyping ? "" : "cursor-pointer"}`}
+            placeholder={allowTyping ? "Type or select a name" : "Select a name"}
+            autoComplete="off"
           />
           {value && (
             <button

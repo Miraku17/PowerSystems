@@ -892,6 +892,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     users={users}
                     showAllUsers
                     hideSignature
+                  allowTyping
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

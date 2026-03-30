@@ -612,6 +612,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
                     users={users}
                     showAllUsers
                     hideSignature
+                  allowTyping
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

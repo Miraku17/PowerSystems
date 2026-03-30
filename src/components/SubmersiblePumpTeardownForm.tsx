@@ -821,6 +821,7 @@ export default function SubmersiblePumpTeardownForm() {
               users={users}
               showAllUsers
               hideSignature
+            allowTyping
             />
             <SignaturePad
               label="Acknowledged By Signature"

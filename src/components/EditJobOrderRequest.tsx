@@ -10,7 +10,6 @@ import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useCurrentUser } from "@/stores/authStore";
 
 interface EditJobOrderRequestProps {
   data: Record<string, any>;
@@ -102,19 +101,13 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
-  const currentUser = useCurrentUser();
   const [formData, setFormData] = useState<Record<string, any>>(data);
   const [isSaving, setIsSaving] = useState(false);
   const canEditJoNumber = hasPermission("job_order_number", "edit");
 
-  const currentUserPosition = React.useMemo(() => {
-    const found = users.find(u => u.id === currentUser?.id);
-    return (found?.position?.name || '').toLowerCase();
-  }, [users, currentUser?.id]);
-
-  const canApproveByDeptHead = ['admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
-  const canReceiveByServiceDept = ['user 1', 'admin 1', 'admin 2', 'super user', 'super admin'].includes(currentUserPosition);
-  const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
+  const canApproveByDeptHead = hasPermission("jo_dept_head_approval", "edit");
+  const canReceiveByServiceDept = hasPermission("jo_service_dept_approval", "edit");
+  const canReceiveByCreditCollection = hasPermission("jo_credit_collection_approval", "edit");
 
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);

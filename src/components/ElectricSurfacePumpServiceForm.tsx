@@ -12,6 +12,7 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
 export default function ElectricSurfacePumpServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,6 +25,8 @@ export default function ElectricSurfacePumpServiceForm() {
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
+
+  useAutoPopulateUser(setFormData, "performed_by_name", "performed_by_signature", formData.performed_by_name);
   const approvedByUsers = users
     .filter(user => {
       const posName = (user.position?.name || '').toLowerCase();
@@ -58,9 +61,7 @@ export default function ElectricSurfacePumpServiceForm() {
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({
-      reporting_person_name: customer.name || "",
       customer: customer.customer || "",
-      contact_person: customer.contactPerson || "",
       address: customer.address || "",
       email_or_contact: customer.email || customer.phone || "",
     });
@@ -200,14 +201,11 @@ export default function ElectricSurfacePumpServiceForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Basic Information</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <CustomerAutocomplete
+            <Input
               label="Name of Reporting Person"
               name="reporting_person_name"
               value={formData.reporting_person_name}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="name"
             />
             <Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} />
             <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
@@ -222,14 +220,11 @@ export default function ElectricSurfacePumpServiceForm() {
               searchKey="customer"
               disabled
             />
-            <CustomerAutocomplete
+            <Input
               label="Contact Person"
               name="contact_person"
               value={formData.contact_person}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="contactPerson"
             />
             <div className="lg:col-span-2">
               <CustomerAutocomplete
@@ -481,7 +476,6 @@ export default function ElectricSurfacePumpServiceForm() {
               onSignatureChange={(sig) => setFormData({ performed_by_signature: sig })}
               users={users}
               subtitle="Svc Engineer/Technician"
-              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -503,16 +497,11 @@ export default function ElectricSurfacePumpServiceForm() {
               users={notedByUsers}
               subtitle="Svc. Manager"
             />
-            <SignatorySelect
+            <Input
               label="Acknowledged By"
               name="acknowledged_by_name"
               value={formData.acknowledged_by_name}
-              onChange={handleSignatoryChange}
-              onSignatureChange={() => {}}
-              users={users}
-              showAllUsers
-              hideSignature
-            allowTyping
+              onChange={handleChange}
             />
             <SignaturePad
               label="Acknowledged By Signature"

@@ -14,6 +14,7 @@ import {
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
 export default function EngineInspectionReceivingForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +23,8 @@ export default function EngineInspectionReceivingForm() {
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { data: users = [] } = useUsers();
+
+  useAutoPopulateUser(setFormData, "service_technician_name", "service_technician_signature", formData.service_technician_name);
   const { data: customers = [] } = useCustomers();
 
   const approvedByUsers = users
@@ -458,7 +461,6 @@ export default function EngineInspectionReceivingForm() {
               onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
               users={users}
               subtitle="Signed by Technician"
-              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -480,16 +482,11 @@ export default function EngineInspectionReceivingForm() {
               users={notedByUsers}
               subtitle="Service Manager"
             />
-            <SignatorySelect
+            <Input
               label="Acknowledged By"
               name="acknowledged_by_name"
               value={formData.acknowledged_by_name}
-              onChange={handleSignatoryChange}
-              onSignatureChange={() => {}}
-              users={users}
-              showAllUsers
-              hideSignature
-            allowTyping
+              onChange={handleChange}
             />
             <SignaturePad
               label="Acknowledged By Signature"

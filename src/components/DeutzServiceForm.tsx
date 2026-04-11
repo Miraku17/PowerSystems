@@ -13,6 +13,7 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
 export default function DeutzServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +29,8 @@ export default function DeutzServiceForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
+
+  useAutoPopulateUser(setFormData, "service_technician", "service_technician_signature", formData.service_technician);
   const { data: engines = [] } = useEngines();
 
   const approvedByUsersList = useMemo(() =>
@@ -62,7 +65,6 @@ export default function DeutzServiceForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       customer_name: customer.customer || "",
-      contact_person: customer.contactPerson || "",
       address: customer.address || "",
       email_address: customer.email || "",
       phone_number: customer.phone || "",
@@ -266,14 +268,11 @@ export default function DeutzServiceForm() {
                 disabled
               />
             </div>
-            <CustomerAutocomplete
+            <Input
               label="Contact Person"
               name="contact_person"
               value={formData.contact_person}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="contactPerson"
             />
 
             <div className="lg:col-span-3">
@@ -752,7 +751,6 @@ export default function DeutzServiceForm() {
                 onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
                 users={users}
                 subtitle="Signed by Technician"
-                showAllUsers
               />
             </div>
             <div className="flex flex-col space-y-4">
@@ -780,16 +778,11 @@ export default function DeutzServiceForm() {
               />
             </div>
             <div className="flex flex-col space-y-4">
-              <SignatorySelect
+              <Input
                 label="Acknowledged By"
                 name="acknowledged_by"
                 value={formData.acknowledged_by}
-                onChange={handleSignatoryChange}
-                onSignatureChange={() => {}}
-                users={users}
-                showAllUsers
-                hideSignature
-              allowTyping
+                onChange={handleChange}
               />
               <SignaturePad
                 label="Acknowledged By Signature"

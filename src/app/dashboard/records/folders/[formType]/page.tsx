@@ -211,6 +211,14 @@ export default function FormRecordsPage() {
   const canChangeJOStatus = isJORequest;
   const canChangeDTSStatus = isDTS;
   const canApproveCreditCollection = isJORequest && hasPerm("jo_credit_collection_approval", "edit");
+  const creditCollectionScope = getScope("jo_credit_collection_approval", "edit");
+  const canApproveCreditCollectionForRecord = (record: FormRecord): boolean => {
+    if (!canApproveCreditCollection) return false;
+    if (creditCollectionScope === "branch") {
+      return !!currentUser?.address && record.created_by_address === currentUser.address;
+    }
+    return true;
+  };
 
   // Date range filter state
   const [startDate, setStartDate] = useState<string>("");
@@ -769,28 +777,30 @@ export default function FormRecordsPage() {
                       </td>
                       {canApproveCreditCollection && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {record.data?.received_by_credit_collection_name ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                              </svg>
-                              {record.data.received_by_credit_collection_name}
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => setConfirmCreditApprovalId(record.id)}
-                              disabled={approvingCreditCollection === record.id}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              {approvingCreditCollection === record.id ? (
-                                <>
-                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                                  Approving...
-                                </>
-                              ) : (
-                                "Approve"
-                              )}
-                            </button>
+                          {canApproveCreditCollectionForRecord(record) && (
+                            record.data?.received_by_credit_collection_name ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                </svg>
+                                {record.data.received_by_credit_collection_name}
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => setConfirmCreditApprovalId(record.id)}
+                                disabled={approvingCreditCollection === record.id}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                              >
+                                {approvingCreditCollection === record.id ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                                    Approving...
+                                  </>
+                                ) : (
+                                  "Approve"
+                                )}
+                              </button>
+                            )
                           )}
                         </td>
                       )}
@@ -914,7 +924,7 @@ export default function FormRecordsPage() {
                     )}
                   </div>
 
-                  {canApproveCreditCollection && (
+                  {canApproveCreditCollectionForRecord(record) && (
                     <div className="mb-4">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Credit & Collection</p>
                       {record.data?.received_by_credit_collection_name ? (

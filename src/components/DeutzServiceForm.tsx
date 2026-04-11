@@ -61,7 +61,6 @@ export default function DeutzServiceForm() {
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({
-      reporting_person_name: customer.name || "",
       customer_name: customer.customer || "",
       contact_person: customer.contactPerson || "",
       address: customer.address || "",
@@ -248,14 +247,11 @@ export default function DeutzServiceForm() {
             </h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <CustomerAutocomplete
+            <Input
               label="Reporting Person"
               name="reporting_person_name"
               value={formData.reporting_person_name}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="name"
             />
 
             <div className="lg:col-span-2">

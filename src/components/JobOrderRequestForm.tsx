@@ -63,7 +63,6 @@ export default function JobOrderRequestForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       full_customer_name: customer.customer || "",
-      contact_person: customer.contactPerson || "",
       address: customer.address || "",
       telephone_numbers: customer.phone || "",
     });
@@ -236,14 +235,11 @@ export default function JobOrderRequestForm() {
             <div className="md:col-span-2">
               <Input label="Location of Unit" name="location_of_unit" value={formData.location_of_unit} onChange={handleChange} />
             </div>
-            <CustomerAutocomplete
+            <Input
               label="Contact Person"
               name="contact_person"
               value={formData.contact_person}
               onChange={handleChange}
-              onSelect={handleCustomerSelect}
-              customers={customers}
-              searchKey="contactPerson"
             />
             <Input label="Tel No/s." name="telephone_numbers" value={formData.telephone_numbers} onChange={handleChange} />
           </div>

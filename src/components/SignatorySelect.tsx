@@ -178,7 +178,7 @@ export default function SignatorySelect({
       )}
       {!hideSignature && hasNoSignature && (
         <div className="border border-yellow-300 rounded-lg p-2 bg-yellow-50 text-yellow-700 text-xs text-center">
-          You have no saved signature
+          No saved Signature
         </div>
       )}
       {!hideSignature && subtitle && value && displaySignature && (

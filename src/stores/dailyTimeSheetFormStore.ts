@@ -67,9 +67,13 @@ interface DailyTimeSheetFormData {
   leave_hours: string;
   daily_average_utilization: string;
   checked_by: string;
+  checked_by_signature: string;
   service_coordinator: string;
+  service_coordinator_signature: string;
   approved_by_service: string;
+  approved_by_service_signature: string;
   service_manager: string;
+  service_manager_signature: string;
 
   // Status
   status: string;
@@ -138,9 +142,13 @@ const initialFormData: DailyTimeSheetFormData = {
   leave_hours: '',
   daily_average_utilization: '',
   checked_by: '',
+  checked_by_signature: '',
   service_coordinator: '',
+  service_coordinator_signature: '',
   approved_by_service: '',
+  approved_by_service_signature: '',
   service_manager: '',
+  service_manager_signature: '',
   status: 'Pending',
 };
 

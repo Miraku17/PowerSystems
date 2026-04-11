@@ -201,6 +201,10 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
 
   const resolvedPerformedBySig = resolveSignature(data.performed_by_signature, data.performed_by_name);
   const resolvedApprovedBySig = resolveSignature(data.approved_by_signature, data.approved_by_name);
+  const resolvedCheckedBySig = resolveSignature(data.checked_by_signature, data.checked_by);
+  const resolvedServiceCoordinatorSig = resolveSignature(data.service_coordinator_signature, data.service_coordinator);
+  const resolvedApprovedByServiceSig = resolveSignature(data.approved_by_service_signature, data.approved_by_service);
+  const resolvedServiceManagerSig = resolveSignature(data.service_manager_signature, data.service_manager);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
@@ -461,10 +465,22 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 <Field label="Total Regular Hours" value={formatNumber(data.actual_manhour)} />
                 <Field label="Total Travel Hours" value={formatNumber(data.performance)} />
                 <Field label="Total ManHours" value={formatNumber(data.total_service_manhours)} />
-                <Field label="CHK. BY" value={data.checked_by} />
-                <Field label="SVC. CO'RDNTR" value={data.service_coordinator} />
-                <Field label="APVD. BY" value={data.approved_by_service} />
-                <Field label="SVC. MANAGER" value={data.service_manager} />
+                <div>
+                  <Field label="CHK. BY" value={data.checked_by} />
+                  {resolvedCheckedBySig && <div className="mt-2"><img src={resolvedCheckedBySig} alt="CHK. BY Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                </div>
+                <div>
+                  <Field label="SVC. CO'RDNTR" value={data.service_coordinator} />
+                  {resolvedServiceCoordinatorSig && <div className="mt-2"><img src={resolvedServiceCoordinatorSig} alt="SVC. CO'RDNTR Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                </div>
+                <div>
+                  <Field label="APVD. BY" value={data.approved_by_service} />
+                  {resolvedApprovedByServiceSig && <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="APVD. BY Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                </div>
+                <div>
+                  <Field label="SVC. MANAGER" value={data.service_manager} />
+                  {resolvedServiceManagerSig && <div className="mt-2"><img src={resolvedServiceManagerSig} alt="SVC. MANAGER Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                </div>
                 <div className="md:col-span-4">
                   <Field label="Note" value={data.service_office_note} />
                 </div>

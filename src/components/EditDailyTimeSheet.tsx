@@ -805,10 +805,10 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                 <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} disabled />
                 <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
                 <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleFieldChange} disabled />
-                <Select label="CHK. BY" name="checked_by" value={formData.checked_by} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
-                <Select label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
-                <Select label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
-                <Select label="SVC. MANAGER" name="service_manager" value={formData.service_manager} options={users.map(u => u.fullName)} onChange={handleFieldChange} />
+                <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("checked_by_signature", sig)} users={users} showAllUsers />
+                <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_coordinator_signature", sig)} users={users} showAllUsers />
+                <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("approved_by_service_signature", sig)} users={users} showAllUsers />
+                <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_manager_signature", sig)} users={users} showAllUsers />
                 <div className="lg:col-span-4">
                   <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
                 </div>

@@ -94,9 +94,9 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Helper function to format currency
     const formatCurrency = (value: any) => {
-      if (!value) return "₱0.00";
+      if (!value) return "PHP 0.00";
       const num = parseFloat(value);
-      return `₱${num.toLocaleString("en-US", {
+      return `PHP ${num.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       })}`;

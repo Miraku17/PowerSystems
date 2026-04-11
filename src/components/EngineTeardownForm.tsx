@@ -11,6 +11,14 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
+
+const Input = ({ label, name, value, onChange, type = "text" }: { label: string; name: string; value: string | number; onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; type?: string; }) => (
+  <div className="flex flex-col w-full">
+    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+    <input type={type} name={name} value={value} onChange={onChange} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm" placeholder={`Enter ${label.toLowerCase()}`} />
+  </div>
+);
 
 export default function EngineTeardownForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +31,8 @@ export default function EngineTeardownForm() {
 
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
+
+  useAutoPopulateUser(setFormData, "service_technician_name", "service_technician_signature", formData.service_technician_name);
   const { data: customers = [] } = useCustomers();
 
   const approvedByUsers = users
@@ -872,7 +882,6 @@ export default function EngineTeardownForm() {
               onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
               users={users}
               subtitle="Signed by Technician"
-              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -894,16 +903,11 @@ export default function EngineTeardownForm() {
               users={notedByUsers}
               subtitle="Service Manager"
             />
-            <SignatorySelect
+            <Input
               label="Acknowledged By"
               name="acknowledged_by_name"
               value={formData.acknowledged_by_name}
-              onChange={handleSignatoryChange}
-              onSignatureChange={() => {}}
-              users={users}
-              showAllUsers
-              hideSignature
-            allowTyping
+              onChange={handleChange}
             />
             <SignaturePad
               label="Acknowledged By Signature"

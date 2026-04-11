@@ -11,6 +11,7 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, useEngines, FormUser } from "@/hooks/useSharedQueries";
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
 export default function DeutzCommissioningReport() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +26,8 @@ export default function DeutzCommissioningReport() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { data: engines = [] } = useEngines();
+
+  useAutoPopulateUser(setFormData, "attending_technician", "attending_technician_signature", formData.attending_technician);
 
   const approvedByUsers = useMemo(() =>
     users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase())),
@@ -53,13 +56,9 @@ export default function DeutzCommissioningReport() {
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({
-      reporting_person_name: customer.name || "",
       customer_name: customer.customer || "",
       contact_person: customer.contactPerson || "",
       address: customer.address || "",
-      email_address: customer.email || "",
-      phone_number: customer.phone || "",
-      equipment_name: customer.equipment || "",
     });
   };
 
@@ -67,8 +66,6 @@ export default function DeutzCommissioningReport() {
     setFormData({
       equipment_manufacturer: engine.company?.name || formData.equipment_manufacturer,
       equipment_type: engine.equipModel || "",
-      equipment_no: engine.equipSerialNo || "",
-      engine_model: engine.model || "",
       engine_serial_no: engine.serialNo || "",
       output: engine.rating || "",
       revolutions: engine.rpm || "",
@@ -182,24 +179,18 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">General Information</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <CustomerAutocomplete
+                <Input
                   label="Reporting Person"
                   name="reporting_person_name"
                   value={formData.reporting_person_name}
                   onChange={handleChange}
-                  onSelect={handleCustomerSelect}
-                  customers={customers}
-                  searchKey="name"
                 />
                 <Input label="Commissioning No." name="commissioning_no" value={formData.commissioning_no} onChange={handleChange} />
-                <CustomerAutocomplete
+                <Input
                   label="Equipment Name"
                   name="equipment_name"
                   value={formData.equipment_name}
                   onChange={handleChange}
-                  onSelect={handleCustomerSelect}
-                  customers={customers}
-                  searchKey="equipment"
                 />
                 
                 <div className="lg:col-span-2">
@@ -238,23 +229,17 @@ export default function DeutzCommissioningReport() {
                 <div className="lg:col-span-2">
                      <Input label="Commissioning Location" name="commissioning_location" value={formData.commissioning_location} onChange={handleChange} />
                 </div>
-                <CustomerAutocomplete
+                <Input
                   label="Email Address"
                   name="email_address"
                   value={formData.email_address}
                   onChange={handleChange}
-                  onSelect={handleCustomerSelect}
-                  customers={customers}
-                  searchKey="email"
                 />
-                <CustomerAutocomplete
+                <Input
                   label="Phone Number"
                   name="phone_number"
                   value={formData.phone_number}
                   onChange={handleChange}
-                  onSelect={handleCustomerSelect}
-                  customers={customers}
-                  searchKey="phone"
                 />
             </div>
         </div>
@@ -266,26 +251,20 @@ export default function DeutzCommissioningReport() {
                 <h3 className="text-lg font-bold text-gray-800 uppercase">Equipment & Engine Data</h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-                <EngineAutocomplete
+                <Input
                   label="Engine Model"
                   name="engine_model"
                   value={formData.engine_model}
                   onChange={handleChange}
-                  onSelect={handleEngineSelect}
-                  engines={engines}
-                  searchKey="model"
                 />
                 <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
                 <Input label="Equipment Type" name="equipment_type" value={formData.equipment_type} onChange={handleChange} />
                 
-                <EngineAutocomplete
+                <Input
                   label="Equipment No."
                   name="equipment_no"
                   value={formData.equipment_no}
                   onChange={handleChange}
-                  onSelect={handleEngineSelect}
-                  engines={engines}
-                  searchKey="equipSerialNo"
                 />
                 <EngineAutocomplete
                   label="Engine Serial No."
@@ -633,7 +612,6 @@ export default function DeutzCommissioningReport() {
                     onSignatureChange={(sig) => setFormData({ attending_technician_signature: sig })}
                     users={users}
                     subtitle="Technician"
-                    showAllUsers
                 />
                 <SignatorySelect
                     label="Approved By"
@@ -655,16 +633,11 @@ export default function DeutzCommissioningReport() {
                     users={notedByUsers}
                     subtitle="Service Manager"
                 />
-                <SignatorySelect
+                <Input
                     label="Acknowledged By"
                     name="acknowledged_by"
                     value={formData.acknowledged_by}
-                    onChange={handleSignatoryChange}
-                    onSignatureChange={() => {}}
-                    users={users}
-                    showAllUsers
-                    hideSignature
-                allowTyping
+                    onChange={handleChange}
                 />
                 <SignaturePad
                   label="Acknowledged By Signature"

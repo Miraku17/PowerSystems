@@ -12,6 +12,7 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
+import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
 export default function EngineSurfacePumpCommissioningForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,6 +26,8 @@ export default function EngineSurfacePumpCommissioningForm() {
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
+
+  useAutoPopulateUser(setFormData, "commissioned_by_name", "commissioned_by_signature", formData.commissioned_by_name);
 
   const approvedByUsers = users
     .filter(user => {
@@ -68,9 +71,7 @@ export default function EngineSurfacePumpCommissioningForm() {
 
   const handleCustomerSelect = (customer: any) => {
     setFormData({
-      reporting_person_name: customer.name || "",
       customer: customer.customer || "",
-      contact_person: customer.contactPerson || "",
       address: customer.address || "",
       email_or_contact: customer.email || customer.phone || "",
     });
@@ -197,12 +198,12 @@ export default function EngineSurfacePumpCommissioningForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Basic Information</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <CustomerAutocomplete label="Name of Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="name" />
+            <Input label="Name of Reporting Person" name="reporting_person_name" value={formData.reporting_person_name} onChange={handleChange} />
             <Input label="Contact Number" name="reporting_person_contact" value={formData.reporting_person_contact} onChange={handleChange} />
             <Input label="Equipment Manufacturer" name="equipment_manufacturer" value={formData.equipment_manufacturer} onChange={handleChange} />
             <Input label="Commissioning Date" name="commissioning_date" type="date" value={formData.commissioning_date} onChange={handleChange} />
             <CustomerAutocomplete label="Customer" name="customer" value={formData.customer} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="customer" disabled />
-            <CustomerAutocomplete label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="contactPerson" />
+            <Input label="Contact Person" name="contact_person" value={formData.contact_person} onChange={handleChange} />
             <div className="lg:col-span-2">
               <CustomerAutocomplete label="Address" name="address" value={formData.address} onChange={handleChange} onSelect={handleCustomerSelect} customers={customers} searchKey="address" />
             </div>
@@ -391,7 +392,6 @@ export default function EngineSurfacePumpCommissioningForm() {
               onSignatureChange={(sig) => setFormData({ commissioned_by_signature: sig })}
               users={users}
               subtitle="Svc Engineer/Technician"
-              showAllUsers
             />
             <SignatorySelect
               label="Approved By"
@@ -413,16 +413,11 @@ export default function EngineSurfacePumpCommissioningForm() {
               users={notedByUsers}
               subtitle="Svc. Manager"
             />
-            <SignatorySelect
+            <Input
               label="Acknowledged By"
               name="acknowledged_by_name"
               value={formData.acknowledged_by_name}
-              onChange={handleSignatoryChange}
-              onSignatureChange={() => {}}
-              users={users}
-              showAllUsers
-              hideSignature
-            allowTyping
+              onChange={handleChange}
             />
             <SignaturePad
               label="Acknowledged By Signature"

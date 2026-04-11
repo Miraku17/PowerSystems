@@ -13,6 +13,13 @@ import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
 
+const Input = ({ label, name, value, onChange, type = "text" }: { label: string; name: string; value: string | number; onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; type?: string; }) => (
+  <div className="flex flex-col w-full">
+    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+    <input type={type} name={name} value={value} onChange={onChange} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm" placeholder={`Enter ${label.toLowerCase()}`} />
+  </div>
+);
+
 export default function EngineTeardownForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { formData, setFormData, resetFormData } = useEngineTeardownFormStore();

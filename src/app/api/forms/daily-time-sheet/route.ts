@@ -159,6 +159,26 @@ export const POST = withAuth(async (request, { user }) => {
     const service_coordinator = getString('service_coordinator');
     const approved_by_service = getString('approved_by_service');
     const service_manager = getString('service_manager');
+
+    // Validate service office field-level permissions
+    const serviceOfficeFieldChecks = [
+      { value: checked_by, action: 'checked_by', label: 'checked by' },
+      { value: service_coordinator, action: 'service_coordinator', label: 'service coordinator' },
+      { value: approved_by_service, action: 'approved_by', label: 'approved by service' },
+      { value: service_manager, action: 'service_manager', label: 'service manager' },
+    ];
+
+    for (const { value, action, label } of serviceOfficeFieldChecks) {
+      if (value) {
+        const allowed = await hasPermission(supabase, user.id, 'dts_service_office', action);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: `You do not have permission to set the ${label} field` },
+            { status: 403 }
+          );
+        }
+      }
+    }
     const job_order_request_id = getString('job_order_request_id');
     const status = getString('status') || 'Pending';
     const entriesJson = isNewFormat ? (jsonBody.entries || '') : getString('entries');

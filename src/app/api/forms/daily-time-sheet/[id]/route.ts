@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
-import { checkRecordPermission, getReadScopeFilter } from "@/lib/permissions";
+import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -143,6 +143,29 @@ export const PATCH = withAuth(async (request, { params, user }) => {
         { error: "Permission denied" },
         { status: 403 }
       );
+    }
+
+    // Validate service office field-level permissions
+    const serviceOfficeFields = [
+      { field: 'checked_by', action: 'checked_by', sigField: 'checked_by_signature' },
+      { field: 'service_coordinator', action: 'service_coordinator', sigField: 'service_coordinator_signature' },
+      { field: 'approved_by_service', action: 'approved_by', sigField: 'approved_by_service_signature' },
+      { field: 'service_manager', action: 'service_manager', sigField: 'service_manager_signature' },
+    ];
+
+    for (const { field, action, sigField } of serviceOfficeFields) {
+      const newValue = body[field];
+      const newSigValue = body[sigField];
+      // Check if the user is trying to change a service office field
+      if (newValue !== undefined || newSigValue !== undefined) {
+        const allowed = await hasPermission(serviceSupabase, user.id, 'dts_service_office', action);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: `You do not have permission to edit the ${field.replace(/_/g, ' ')} field` },
+            { status: 403 }
+          );
+        }
+      }
     }
 
     // Extract form fields from JSON body

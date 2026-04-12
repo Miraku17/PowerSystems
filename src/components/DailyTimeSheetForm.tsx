@@ -13,6 +13,8 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, FormUser } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,6 +28,27 @@ export default function DailyTimeSheetForm() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
+
+  // Service office field permissions
+  const { hasPermission } = usePermissions();
+  const currentUser = useCurrentUser();
+  const canEditCheckedBy = hasPermission('dts_service_office', 'checked_by');
+  const canEditServiceCoordinator = hasPermission('dts_service_office', 'service_coordinator');
+  const canEditApprovedBy = hasPermission('dts_service_office', 'approved_by');
+  const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
+
+  // Auto-populate SVC. CO'RDNTR with logged-in user
+  useEffect(() => {
+    if (canEditServiceCoordinator && currentUser && users.length > 0 && !formData.service_coordinator) {
+      const matched = (users as FormUser[]).find(u => u.id === currentUser.id);
+      if (matched) {
+        setFormData({
+          service_coordinator: matched.fullName,
+          service_coordinator_signature: matched.signature_url || "",
+        });
+      }
+    }
+  }, [canEditServiceCoordinator, currentUser, users]);
 
   // Calculate regular and OT hours for an entry based on 8AM-5PM work schedule
   const calculateRegularAndOT = (startTime: string, stopTime: string) => {
@@ -644,10 +667,10 @@ export default function DailyTimeSheetForm() {
             <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
-            <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers />
-            <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers />
-            <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers />
-            <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers />
+            <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} />
+            <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} />
+            <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} />
+            <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} />
             <div className="lg:col-span-4">
               <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
             </div>

@@ -92,6 +92,7 @@ export const GET = withAuth(async (request, { user }) => {
           ? `${requester.firstname} ${requester.lastname}`
           : "Unknown",
         requester_address: requester?.address || "",
+        service_manager: record.service_manager || null,
       };
     });
 

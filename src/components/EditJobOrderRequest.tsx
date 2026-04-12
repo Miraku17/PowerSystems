@@ -105,9 +105,11 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   const [isSaving, setIsSaving] = useState(false);
   const canEditJoNumber = hasPermission("job_order_number", "edit");
 
-  const canApproveByDeptHead = hasPermission("jo_dept_head_approval", "edit");
-  const canReceiveByServiceDept = hasPermission("jo_service_dept_approval", "edit");
+  const canApproveByDeptHead = hasPermission("jo_signatory", "approved_by");
+  const canReceiveByServiceDept = hasPermission("jo_signatory", "service_dept");
   const canReceiveByCreditCollection = hasPermission("jo_credit_collection_approval", "edit");
+  const canEditRequestedBy = hasPermission("jo_signatory", "requested_by");
+  const canEditVerifiedBy = hasPermission("jo_signatory", "verified_by");
 
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -312,7 +314,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             {/* Request & Approval */}
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request & Approval</h3>
-              <div className={`grid grid-cols-1 ${canApproveByDeptHead ? 'md:grid-cols-2' : ''} gap-6`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <SignatorySelect
                   label="Requested By (Sales/Service Engineer)"
                   name="requested_by_name"
@@ -322,26 +324,20 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   onSignatureChange={(sig) => handleFieldChange("requested_by_signature", sig)}
                   users={users}
                   subtitle="Sales/Service Engineer"
+                  disabled={!canEditRequestedBy}
+                  lockedToCurrentUser={canEditRequestedBy}
                 />
-                {canApproveByDeptHead ? (
-                  <SignatorySelect
-                    label="Approved By (Department Head)"
-                    name="approved_by_name"
-                    value={formData.approved_by_name}
-                    signatureValue={formData.approved_by_signature}
-                    onChange={handleFieldChange}
-                    onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
-                    users={users}
-                    subtitle="Department Head"
-                  />
-                ) : (
-                  <ReadOnlySignatory
-                    label="Approved By (Department Head)"
-                    name={formData.approved_by_name}
-                    signature={formData.approved_by_signature}
-                    subtitle="Department Head"
-                  />
-                )}
+                <SignatorySelect
+                  label="Approved By (Department Head)"
+                  name="approved_by_name"
+                  value={formData.approved_by_name}
+                  signatureValue={formData.approved_by_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("approved_by_signature", sig)}
+                  users={users}
+                  subtitle="Department Head"
+                  disabled={!canApproveByDeptHead}
+                />
               </div>
             </div>
 
@@ -349,25 +345,18 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Request Received By</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {canReceiveByServiceDept ? (
-                  <SignatorySelect
-                    label="Service Dept."
-                    name="received_by_service_dept_name"
-                    value={formData.received_by_service_dept_name}
-                    signatureValue={formData.received_by_service_dept_signature}
-                    onChange={handleFieldChange}
-                    onSignatureChange={(sig) => handleFieldChange("received_by_service_dept_signature", sig)}
-                    users={users}
-                    subtitle="Service Department"
-                  />
-                ) : (
-                  <ReadOnlySignatory
-                    label="Service Dept."
-                    name={formData.received_by_service_dept_name}
-                    signature={formData.received_by_service_dept_signature}
-                    subtitle="Service Department"
-                  />
-                )}
+                <SignatorySelect
+                  label="Service Dept."
+                  name="received_by_service_dept_name"
+                  value={formData.received_by_service_dept_name}
+                  signatureValue={formData.received_by_service_dept_signature}
+                  onChange={handleFieldChange}
+                  onSignatureChange={(sig) => handleFieldChange("received_by_service_dept_signature", sig)}
+                  users={users}
+                  subtitle="Service Department"
+                  disabled={!canReceiveByServiceDept}
+                  lockedToCurrentUser={canReceiveByServiceDept}
+                />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect
                     label="Credit & Collection"
@@ -427,6 +416,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     users={users}
                     subtitle="Verified By"
                     showAllUsers
+                    disabled={!canEditVerifiedBy}
                   />
                 </div>
               </div>

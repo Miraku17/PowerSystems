@@ -17,6 +17,8 @@ interface SignatorySelectProps {
   showAllUsers?: boolean;
   hideSignature?: boolean;
   allowTyping?: boolean;
+  disabled?: boolean;
+  lockedToCurrentUser?: boolean;
 }
 
 export default function SignatorySelect({
@@ -31,7 +33,10 @@ export default function SignatorySelect({
   showAllUsers = false,
   hideSignature = false,
   allowTyping = false,
+  disabled = false,
+  lockedToCurrentUser = false,
 }: SignatorySelectProps) {
+  const isLocked = lockedToCurrentUser && !disabled;
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -93,28 +98,29 @@ export default function SignatorySelect({
             type="text"
             name={name}
             value={allowTyping ? (showDropdown ? searchTerm : value) : value}
-            readOnly={!allowTyping}
+            readOnly={!allowTyping || disabled || isLocked}
+            disabled={disabled}
             onClick={() => {
-              if (!allowTyping) setShowDropdown(!showDropdown);
+              if (!disabled && !isLocked && !allowTyping) setShowDropdown(!showDropdown);
             }}
             onFocus={() => {
-              if (allowTyping) {
+              if (!disabled && !isLocked && allowTyping) {
                 setSearchTerm(value);
                 setShowDropdown(true);
               }
             }}
             onChange={(e) => {
-              if (allowTyping) {
+              if (!disabled && !isLocked && allowTyping) {
                 setSearchTerm(e.target.value);
                 onChange(name, e.target.value);
                 setShowDropdown(true);
               }
             }}
-            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16 ${allowTyping ? "" : "cursor-pointer"}`}
+            className={`w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 transition-colors pr-16 ${disabled ? "bg-gray-100 cursor-not-allowed opacity-60" : isLocked ? "bg-gray-50 cursor-default" : `bg-white ${allowTyping ? "" : "cursor-pointer"}`}`}
             placeholder={allowTyping ? "Type or select a name" : "Select a name"}
             autoComplete="off"
           />
-          {value && (
+          {value && !disabled && !isLocked && (
             <button
               type="button"
               onClick={handleClear}
@@ -123,6 +129,7 @@ export default function SignatorySelect({
               <XMarkIcon className="h-4 w-4" />
             </button>
           )}
+          {!disabled && !isLocked && (
           <button
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
@@ -132,7 +139,8 @@ export default function SignatorySelect({
               className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`}
             />
           </button>
-          {showDropdown && dropdownUsers.length > 0 && (
+          )}
+          {!disabled && !isLocked && showDropdown && dropdownUsers.length > 0 && (
             <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
               {dropdownUsers.map((user) => (
                 <button

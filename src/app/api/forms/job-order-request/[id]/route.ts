@@ -164,6 +164,28 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
+    // Validate JO signatory field-level permissions
+    const joSignatoryFields = [
+      { field: 'requested_by_name', action: 'requested_by', sigField: 'requested_by_signature' },
+      { field: 'approved_by_name', action: 'approved_by', sigField: 'approved_by_signature' },
+      { field: 'received_by_service_dept_name', action: 'service_dept', sigField: 'received_by_service_dept_signature' },
+      { field: 'verified_by_name', action: 'verified_by', sigField: 'verified_by_signature' },
+    ];
+
+    for (const { field, action, sigField } of joSignatoryFields) {
+      const newValue = body[field];
+      const newSigValue = body[sigField];
+      if (newValue !== undefined || newSigValue !== undefined) {
+        const allowed = await hasPermission(supabase, user.id, 'jo_signatory', action);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: `You do not have permission to edit the ${field.replace(/_/g, ' ')} field` },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     const {
       shop_field_jo_number,
       date_prepared,

@@ -102,6 +102,7 @@ export const GET = withAuth(async (request, { user }) => {
           : "Unknown",
         requester_address: requester?.address || "",
         received_by_credit_collection_name: record.received_by_credit_collection_name || null,
+        approved_by_name: record.approved_by_name || null,
       };
     });
 

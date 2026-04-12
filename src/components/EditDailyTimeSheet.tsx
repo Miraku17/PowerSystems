@@ -11,6 +11,8 @@ import SignatorySelect from "./SignatorySelect";
 import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditDailyTimeSheetProps {
   data: Record<string, any>;
@@ -179,6 +181,14 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
   const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
+
+  // Service office field permissions
+  const { hasPermission } = usePermissions();
+  const currentUser = useCurrentUser();
+  const canEditCheckedBy = hasPermission('dts_service_office', 'checked_by');
+  const canEditServiceCoordinator = hasPermission('dts_service_office', 'service_coordinator');
+  const canEditApprovedBy = hasPermission('dts_service_office', 'approved_by');
+  const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -805,10 +815,10 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                 <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} disabled />
                 <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
                 <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleFieldChange} disabled />
-                <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("checked_by_signature", sig)} users={users} showAllUsers />
-                <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_coordinator_signature", sig)} users={users} showAllUsers />
-                <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("approved_by_service_signature", sig)} users={users} showAllUsers />
-                <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_manager_signature", sig)} users={users} showAllUsers />
+                <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("checked_by_signature", sig)} users={users} showAllUsers disabled={!canEditCheckedBy} />
+                <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_coordinator_signature", sig)} users={users} showAllUsers disabled={!canEditServiceCoordinator} lockedToCurrentUser={canEditServiceCoordinator} />
+                <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("approved_by_service_signature", sig)} users={users} showAllUsers disabled={!canEditApprovedBy} />
+                <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_manager_signature", sig)} users={users} showAllUsers disabled={!canEditServiceManager} />
                 <div className="lg:col-span-4">
                   <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
                 </div>

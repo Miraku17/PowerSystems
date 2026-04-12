@@ -193,6 +193,10 @@ export default function FormRecordsPage() {
   const [statusConfirmModal, setStatusConfirmModal] = useState<{ approvalId: string; newStatus: string; jobOrder: string; isJORequest?: boolean; isDTS?: boolean; recordId?: string } | null>(null);
   const [confirmCreditApprovalId, setConfirmCreditApprovalId] = useState<string | null>(null);
   const [approvingCreditCollection, setApprovingCreditCollection] = useState<string | null>(null);
+  const [confirmDeptHeadApprovalId, setConfirmDeptHeadApprovalId] = useState<string | null>(null);
+  const [approvingDeptHead, setApprovingDeptHead] = useState<string | null>(null);
+  const [confirmSvcManagerApprovalId, setConfirmSvcManagerApprovalId] = useState<string | null>(null);
+  const [approvingSvcManager, setApprovingSvcManager] = useState<string | null>(null);
 
   const { canEdit: canEditPermission, canDelete: canDeletePermission, canWrite: canWritePermission, getScope, hasPermission: hasPerm } = usePermissions();
   const currentUser = useAuthStore((state) => state.user);
@@ -215,6 +219,26 @@ export default function FormRecordsPage() {
   const canApproveCreditCollectionForRecord = (record: FormRecord): boolean => {
     if (!canApproveCreditCollection) return false;
     if (creditCollectionScope === "branch") {
+      return !!currentUser?.address && record.created_by_address === currentUser.address;
+    }
+    return true;
+  };
+
+  const canApproveDeptHead = isJORequest && hasPerm("jo_signatory", "approved_by");
+  const deptHeadScope = getScope("jo_signatory", "approved_by");
+  const canApproveDeptHeadForRecord = (record: FormRecord): boolean => {
+    if (!canApproveDeptHead) return false;
+    if (deptHeadScope === "branch") {
+      return !!currentUser?.address && record.created_by_address === currentUser.address;
+    }
+    return true;
+  };
+
+  const canApproveSvcManager = isDTS && hasPerm("dts_service_office", "service_manager");
+  const svcManagerScope = getScope("dts_service_office", "service_manager");
+  const canApproveSvcManagerForRecord = (record: FormRecord): boolean => {
+    if (!canApproveSvcManager) return false;
+    if (svcManagerScope === "branch") {
       return !!currentUser?.address && record.created_by_address === currentUser.address;
     }
     return true;
@@ -393,6 +417,42 @@ export default function FormRecordsPage() {
       toast.error(error.response?.data?.error || "Failed to approve");
     } finally {
       setApprovingCreditCollection(null);
+    }
+  };
+
+  const handleApproveDeptHead = async (id: string) => {
+    setConfirmDeptHeadApprovalId(null);
+    setApprovingDeptHead(id);
+    try {
+      const response = await apiClient.patch(`/forms/job-order-request/${id}/approve-dept-head`);
+      if (response.data.success) {
+        toast.success("Department Head approval recorded");
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to approve");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to approve");
+    } finally {
+      setApprovingDeptHead(null);
+    }
+  };
+
+  const handleApproveSvcManager = async (id: string) => {
+    setConfirmSvcManagerApprovalId(null);
+    setApprovingSvcManager(id);
+    try {
+      const response = await apiClient.patch(`/forms/daily-time-sheet/${id}/approve-svc-manager`);
+      if (response.data.success) {
+        toast.success("Service Manager approval recorded");
+        loadRecords();
+      } else {
+        toast.error(response.data.message || "Failed to approve");
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Failed to approve");
+    } finally {
+      setApprovingSvcManager(null);
     }
   };
 
@@ -710,8 +770,14 @@ export default function FormRecordsPage() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{serialNoLabel}</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Created</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
+                    {canApproveDeptHead && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dept. Head</th>
+                    )}
                     {canApproveCreditCollection && (
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Credit & Collection</th>
+                    )}
+                    {canApproveSvcManager && (
+                      <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Svc. Manager</th>
                     )}
                     <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
@@ -775,32 +841,84 @@ export default function FormRecordsPage() {
                           <ApprovalStatusBadge status={(isJORequest || isDTS) ? normalizeStatus(record.data?.status) : (record.approval?.approval_status ?? record.data?.approval_status)} />
                         )}
                       </td>
-                      {canApproveCreditCollection && (
+                      {canApproveDeptHeadForRecord(record) && (
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
-                          {canApproveCreditCollectionForRecord(record) && (
-                            record.data?.received_by_credit_collection_name ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                </svg>
-                                {record.data.received_by_credit_collection_name}
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => setConfirmCreditApprovalId(record.id)}
-                                disabled={approvingCreditCollection === record.id}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                              >
-                                {approvingCreditCollection === record.id ? (
-                                  <>
-                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
-                                    Approving...
-                                  </>
-                                ) : (
-                                  "Approve"
-                                )}
-                              </button>
-                            )
+                          {record.data?.approved_by_name ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                              {record.data.approved_by_name}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmDeptHeadApprovalId(record.id)}
+                              disabled={approvingDeptHead === record.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {approvingDeptHead === record.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                                  Approving...
+                                </>
+                              ) : (
+                                "Approve"
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      {canApproveCreditCollectionForRecord(record) && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {record.data?.received_by_credit_collection_name ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                              {record.data.received_by_credit_collection_name}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmCreditApprovalId(record.id)}
+                              disabled={approvingCreditCollection === record.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {approvingCreditCollection === record.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                                  Approving...
+                                </>
+                              ) : (
+                                "Approve"
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      )}
+                      {canApproveSvcManagerForRecord(record) && (
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          {record.data?.service_manager ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                              </svg>
+                              {record.data.service_manager}
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmSvcManagerApprovalId(record.id)}
+                              disabled={approvingSvcManager === record.id}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {approvingSvcManager === record.id ? (
+                                <>
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />
+                                  Approving...
+                                </>
+                              ) : (
+                                "Approve"
+                              )}
+                            </button>
                           )}
                         </td>
                       )}
@@ -924,6 +1042,28 @@ export default function FormRecordsPage() {
                     )}
                   </div>
 
+                  {canApproveDeptHeadForRecord(record) && (
+                    <div className="mb-4">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Dept. Head</p>
+                      {record.data?.approved_by_name ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          {record.data.approved_by_name}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeptHeadApprovalId(record.id)}
+                          disabled={approvingDeptHead === record.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {approvingDeptHead === record.id ? "Approving..." : "Approve"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   {canApproveCreditCollectionForRecord(record) && (
                     <div className="mb-4">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Credit & Collection</p>
@@ -941,6 +1081,28 @@ export default function FormRecordsPage() {
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           {approvingCreditCollection === record.id ? "Approving..." : "Approve"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {canApproveSvcManagerForRecord(record) && (
+                    <div className="mb-4">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Svc. Manager</p>
+                      {record.data?.service_manager ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                          {record.data.service_manager}
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmSvcManagerApprovalId(record.id)}
+                          disabled={approvingSvcManager === record.id}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {approvingSvcManager === record.id ? "Approving..." : "Approve"}
                         </button>
                       )}
                     </div>
@@ -1076,6 +1238,92 @@ export default function FormRecordsPage() {
               </button>
               <button
                 onClick={() => handleApproveCreditCollection(confirmCreditApprovalId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Confirm Approval
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Department Head Approval Confirmation Modal */}
+      {confirmDeptHeadApprovalId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+          onClick={() => setConfirmDeptHeadApprovalId(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Confirm Approval</h3>
+                <p className="text-sm text-gray-500">Department Head</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Your name and signature will be recorded as the Department Head approver for this Job Order Request. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmDeptHeadApprovalId(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleApproveDeptHead(confirmDeptHeadApprovalId)}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Confirm Approval
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Service Manager Approval Confirmation Modal */}
+      {confirmSvcManagerApprovalId && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0, 0, 0, 0.4)" }}
+          onClick={() => setConfirmSvcManagerApprovalId(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Confirm Approval</h3>
+                <p className="text-sm text-gray-500">Service Manager</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              Your name and signature will be recorded as the Service Manager approver for this Daily Time Sheet. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setConfirmSvcManagerApprovalId(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleApproveSvcManager(confirmSvcManagerApprovalId)}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Confirm Approval

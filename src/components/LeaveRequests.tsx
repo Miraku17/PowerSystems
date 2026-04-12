@@ -238,17 +238,19 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
                       <td className="px-4 py-3">
                         {canManage && (
                           <div className="flex gap-1 flex-wrap">
-                            {/* Pending: show conditional, approve (if full), reject */}
+                            {/* Pending: show conditional (Admin 2 only), approve (Admin 1/Super User), reject */}
                             {isPending && (
                               <>
-                                <ActionButton
-                                  onClick={() => setConditionalModal({ id: req.id, name: getRequestName(req), open: true })}
-                                  disabled={processingId === req.id}
-                                  className="p-1.5 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 transition-colors disabled:opacity-50"
-                                  tooltip="Set Conditional"
-                                >
-                                  <ExclamationTriangleIcon className="h-4 w-4" />
-                                </ActionButton>
+                                {!canFullApprove && (
+                                  <ActionButton
+                                    onClick={() => setConditionalModal({ id: req.id, name: getRequestName(req), open: true })}
+                                    disabled={processingId === req.id}
+                                    className="p-1.5 bg-orange-50 text-orange-700 rounded-md hover:bg-orange-100 transition-colors disabled:opacity-50"
+                                    tooltip="Set Conditional"
+                                  >
+                                    <ExclamationTriangleIcon className="h-4 w-4" />
+                                  </ActionButton>
+                                )}
                                 {canFullApprove && (
                                   <ActionButton
                                     onClick={() => setApproveModal({ id: req.id, name: getRequestName(req), open: true })}

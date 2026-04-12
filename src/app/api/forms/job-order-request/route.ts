@@ -167,6 +167,26 @@ export const POST = withAuth(async (request, { user }) => {
     const verified_by_name = getString('verified_by_name');
     const status = getString('status') || 'Pending';
 
+    // Validate JO signatory field-level permissions
+    const joSignatoryFieldChecks = [
+      { value: requested_by_name, action: 'requested_by', label: 'requested by' },
+      { value: approved_by_name, action: 'approved_by', label: 'approved by' },
+      { value: received_by_service_dept_name, action: 'service_dept', label: 'service dept' },
+      { value: verified_by_name, action: 'verified_by', label: 'verified by' },
+    ];
+
+    for (const { value, action, label } of joSignatoryFieldChecks) {
+      if (value) {
+        const allowed = await hasPermission(supabase, user.id, 'jo_signatory', action);
+        if (!allowed) {
+          return NextResponse.json(
+            { error: `You do not have permission to set the ${label} field` },
+            { status: 403 }
+          );
+        }
+      }
+    }
+
     // Signatures
     const rawRequestedBySignature = getString('requested_by_signature');
     const rawApprovedBySignature = getString('approved_by_signature');

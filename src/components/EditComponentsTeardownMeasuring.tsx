@@ -5,6 +5,7 @@ import { XMarkIcon, ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/o
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditComponentsTeardownMeasuringProps {
   data: any;
@@ -41,6 +42,9 @@ const DateInput = ({ label, value, onChange }: { label: string; value: any; onCh
 export default function EditComponentsTeardownMeasuring({ data, recordId, onClose, onSaved }: EditComponentsTeardownMeasuringProps) {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
+  const { hasPermission } = usePermissions();
+  const canEditTechnician = hasPermission('components_teardown_signatory', 'technician');
+  const canEditCheckedBy = hasPermission('components_teardown_signatory', 'checked_by');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fullData, setFullData] = useState<any>(null);
@@ -224,6 +228,34 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
     );
   };
 
+  const renderMetaFooter = (metaKey: string) => {
+    const meta = formState.measurementData?.[metaKey] || {};
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 bg-white p-4 rounded-lg border border-gray-200">
+        <div className="md:col-span-2">
+          <Input label="Remarks" value={meta.remarks || ''} onChange={(v) => handleMeasurementMetaChange(metaKey, 'remarks', v)} />
+        </div>
+        <UserAutocompleteEdit
+          label="Technician"
+          value={meta.technician || ''}
+          onChange={(v) => handleMeasurementMetaChange(metaKey, 'technician', v)}
+          onSelect={(user) => handleMeasurementMetaChange(metaKey, 'technician', user.fullName)}
+          users={users}
+          disabled={!canEditTechnician}
+        />
+        <Input label="Tool No." value={meta.tool_no || ''} onChange={(v) => handleMeasurementMetaChange(metaKey, 'tool_no', v)} />
+        <UserAutocompleteEdit
+          label="Checked By"
+          value={meta.checked_by || ''}
+          onChange={(v) => handleMeasurementMetaChange(metaKey, 'checked_by', v)}
+          onSelect={(user) => handleMeasurementMetaChange(metaKey, 'checked_by', user.fullName)}
+          users={users}
+          disabled={!canEditCheckedBy}
+        />
+      </div>
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -275,6 +307,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('cylinderBoreData', ['measurement_1', 'measurement_2', 'measurement_3'],
                 (row) => `${row.bank}-${row.cylinder_no}-${row.data_point}`)}
+              {renderMetaFooter('cylinderBoreMeta')}
             </div>
           )}
 
@@ -284,6 +317,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('cylinderLinerData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
                 (row) => `${row.section}-${row.cylinder_no}`)}
+              {renderMetaFooter('cylinderLinerMeta')}
             </div>
           )}
 
@@ -293,6 +327,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('mainBearingBoreData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Bore ${row.bore_no} - ${row.axis}`)}
+              {renderMetaFooter('mainBearingBoreMeta')}
             </div>
           )}
 
@@ -302,6 +337,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('camshaftBushingData', ['measurement_a', 'measurement_b'],
                 (row) => `Bush ${row.bush_no} - MP ${row.measuring_point}`)}
+              {renderMetaFooter('camshaftBushingMeta')}
             </div>
           )}
 
@@ -311,6 +347,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('mainJournalData', ['measurement_a', 'measurement_b'],
                 (row) => `Journal ${row.journal_no} - MP ${row.measuring_point}`)}
+              {renderMetaFooter('mainJournalMeta')}
             </div>
           )}
 
@@ -320,6 +357,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('mainJournalWidthData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
                 (row) => `Journal ${row.journal_no}`)}
+              {renderMetaFooter('mainJournalWidthMeta')}
             </div>
           )}
 
@@ -329,6 +367,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('conRodJournalData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Journal ${row.journal_no} - ${row.axis}`)}
+              {renderMetaFooter('conRodJournalMeta')}
             </div>
           )}
 
@@ -338,6 +377,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('crankshaftTrueRunningData', ['measured_value'],
                 (row) => `Journal ${row.journal_no}`)}
+              {renderMetaFooter('crankshaftTrueRunningMeta')}
             </div>
           )}
 
@@ -347,6 +387,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('smallEndBushData', ['measurement_a', 'measurement_b'],
                 (row) => `Arm ${row.con_rod_arm_no} - Datum ${row.datum}`)}
+              {renderMetaFooter('smallEndBushMeta')}
             </div>
           )}
 
@@ -356,6 +397,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('bigEndBearingData', ['measurement_a', 'measurement_b'],
                 (row) => `Arm ${row.con_rod_arm_no} - MP ${row.measuring_point}`)}
+              {renderMetaFooter('bigEndBearingMeta')}
             </div>
           )}
 
@@ -365,6 +407,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('connectingRodArmData', ['measurement'],
                 (row) => `Arm ${row.arm_no} - Bank ${row.bank}`)}
+              {renderMetaFooter('connectingRodArmMeta')}
             </div>
           )}
 
@@ -374,6 +417,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('pistonPinBushClearanceData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Arm ${row.conrod_arm_no} - ${row.measuring_point}`)}
+              {renderMetaFooter('pistonPinBushClearanceMeta')}
             </div>
           )}
 
@@ -383,6 +427,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('camshaftJournalDiameterData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderMetaFooter('camshaftJournalDiameterMeta')}
             </div>
           )}
 
@@ -392,6 +437,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('camshaftBushClearanceData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderMetaFooter('camshaftBushClearanceMeta')}
             </div>
           )}
 
@@ -401,6 +447,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('camlobeHeightData', ['measurement_a', 'measurement_b', 'measurement_c'],
                 (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderMetaFooter('camlobeHeightMeta')}
             </div>
           )}
 
@@ -410,6 +457,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('cylinderLinerBoreData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
                 (row) => `Cyl ${row.cylinder_no} - ${row.measuring_point}`)}
+              {renderMetaFooter('cylinderLinerBoreMeta')}
             </div>
           )}
 
@@ -419,6 +467,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('pistonRingGapData', ['ring_1_value', 'ring_2_value', 'ring_3_value'],
                 (row) => `Piston ${row.piston_no}`)}
+              {renderMetaFooter('pistonRingGapMeta')}
             </div>
           )}
 
@@ -428,6 +477,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('pistonRingAxialClearanceData', ['ring_1_value', 'ring_2_value', 'ring_3_value'],
                 (row) => `Piston ${row.piston_no}`)}
+              {renderMetaFooter('pistonRingAxialClearanceMeta')}
             </div>
           )}
 
@@ -437,6 +487,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('valveUnloadedLengthData', ['intake_value', 'exhaust_value'],
                 (row) => `Cylinder ${row.cylinder_no}`)}
+              {renderMetaFooter('valveUnloadedLengthMeta')}
             </div>
           )}
 
@@ -446,6 +497,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
               {renderMeasurementTable('valveRecessData', ['intake_value', 'exhaust_value'],
                 (row) => `Cylinder ${row.cylinder_no}`)}
+              {renderMetaFooter('valveRecessMeta')}
             </div>
           )}
 
@@ -463,6 +515,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
                   <h5 className="font-semibold text-gray-700">Piston Cylinder Head Distance</h5>
                   {renderMeasurementTable('pistonCylinderHeadDistanceData', ['measurement_a', 'measurement_b'],
                     (row) => `Cylinder ${row.cylinder_no}`)}
+                  {renderMetaFooter('pistonCylinderHeadDistanceMeta')}
                 </>
               )}
             </div>
@@ -548,6 +601,78 @@ const CustomerAutocomplete = ({ label, value, onChange, onSelect, customers, sea
                 {customer.customer && customer.customer !== customer.name && (
                   <div className="text-xs text-gray-500">{customer.customer}</div>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// UserAutocomplete component for Technician / Checked By fields
+interface UserAutocompleteEditProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  onSelect: (user: { id: string; fullName: string }) => void;
+  users: Array<{ id: string; fullName: string }>;
+  disabled?: boolean;
+}
+
+const UserAutocompleteEdit = ({ label, value, onChange, onSelect, users, disabled = false }: UserAutocompleteEditProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredUsers = users.filter((u) =>
+    (u.fullName || "").toLowerCase().includes((value || "").toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1 uppercase">{label}</label>
+      <div className="relative">
+        <input
+          ref={inputRef}
+          type="text"
+          value={value || ''}
+          onChange={(e) => { if (!disabled) { onChange(e.target.value); setShowDropdown(true); } }}
+          onFocus={() => { if (!disabled) setShowDropdown(true); }}
+          disabled={disabled}
+          className={`w-full border text-sm rounded-md p-2 pr-8 ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {!disabled && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onMouseDown={(e) => { e.preventDefault(); setShowDropdown(!showDropdown); inputRef.current?.focus(); }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <ChevronDownIcon className={`h-4 w-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
+          </button>
+        )}
+        {!disabled && showDropdown && filteredUsers.length > 0 && (
+          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
+            {filteredUsers.map((user) => (
+              <div
+                key={user.id}
+                onMouseDown={(e) => { e.preventDefault(); onSelect(user); setShowDropdown(false); }}
+                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                {user.fullName}
               </div>
             ))}
           </div>

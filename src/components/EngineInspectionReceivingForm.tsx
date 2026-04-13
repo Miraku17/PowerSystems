@@ -14,7 +14,7 @@ import {
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
-import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
+import { usePermissions } from '@/hooks/usePermissions';
 
 const Input = ({ label, name, value, onChange, type = "text" }: { label: string; name: string; value: string | number; onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void; type?: string; }) => (
   <div className="flex flex-col w-full">
@@ -31,19 +31,12 @@ export default function EngineInspectionReceivingForm() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { data: users = [] } = useUsers();
 
-  useAutoPopulateUser(setFormData, "service_technician_name", "service_technician_signature", formData.service_technician_name);
   const { data: customers = [] } = useCustomers();
 
-  const approvedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
-    });
-  const notedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1';
-    });
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -468,6 +461,7 @@ export default function EngineInspectionReceivingForm() {
               onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
               users={users}
               subtitle="Signed by Technician"
+              disabled={!canEditServiceTechnician}
             />
             <SignatorySelect
               label="Approved By"
@@ -476,8 +470,9 @@ export default function EngineInspectionReceivingForm() {
               signatureValue={formData.approved_by_signature}
               onChange={handleSignatoryChange}
               onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
-              users={approvedByUsers}
+              users={users}
               subtitle="Authorized Signature"
+              disabled={!canEditApprovedBy}
             />
             <SignatorySelect
               label="Noted By"
@@ -486,8 +481,9 @@ export default function EngineInspectionReceivingForm() {
               signatureValue={formData.noted_by_signature}
               onChange={handleSignatoryChange}
               onSignatureChange={(sig) => setFormData({ noted_by_signature: sig })}
-              users={notedByUsers}
+              users={users}
               subtitle="Service Manager"
+              disabled={!canEditNotedBy}
             />
             <Input
               label="Acknowledged By"

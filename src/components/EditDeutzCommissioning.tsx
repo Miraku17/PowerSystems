@@ -13,6 +13,7 @@ import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditDeutzCommissioningProps {
   data: Record<string, any>;
@@ -114,6 +115,10 @@ export default function EditDeutzCommissioning({
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
   }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
   const { data: users = [] } = useUsers();
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
   const { data: customers = [] } = useCustomers();
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -1070,6 +1075,7 @@ export default function EditDeutzCommissioning({
                     onSignatureChange={(sig) => handleChange("attending_technician_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    disabled={!canEditServiceTechnician}
                   />
                 </div>
 
@@ -1083,6 +1089,7 @@ export default function EditDeutzCommissioning({
                     onSignatureChange={(sig) => handleChange("approved_by_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    disabled={!canEditApprovedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
@@ -1106,6 +1113,7 @@ export default function EditDeutzCommissioning({
                     onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
                     users={users}
                     subtitle="Sign above"
+                    disabled={!canEditNotedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input

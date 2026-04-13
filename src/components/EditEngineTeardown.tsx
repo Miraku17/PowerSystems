@@ -10,6 +10,7 @@ import SignaturePad from "./SignaturePad";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditEngineTeardownProps {
   data: any;
@@ -100,6 +101,10 @@ const CylinderServiceable = ({ bank, prefix, formData, onChange }: { bank: strin
 export default function EditEngineTeardown({ data, recordId, onClose, onSaved, onSignatoryChange }: EditEngineTeardownProps) {
   const currentUser = useCurrentUser();
   const { data: users = [] } = useUsers();
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
   const {
     notedByChecked,
     approvedByChecked,
@@ -848,6 +853,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     users={users}
                     subtitle="Signed by Technician"
                     showAllUsers
+                    disabled={!canEditServiceTechnician}
                   />
                 </div>
                 <div className="flex flex-col space-y-4">
@@ -860,6 +866,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     onSignatureChange={(sig) => handleChange("approved_by_signature", sig)}
                     users={users}
                     subtitle="Authorized Signature"
+                    disabled={!canEditApprovedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
@@ -876,6 +883,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
                     users={users}
                     subtitle="Service Manager"
+                    disabled={!canEditNotedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />

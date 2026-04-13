@@ -13,6 +13,7 @@ import { useCurrentUser } from "@/stores/authStore";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface EditElectricSurfacePumpServiceProps {
   data: Record<string, any>;
@@ -157,6 +158,10 @@ export default function EditElectricSurfacePumpService({
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
   }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
   const { data: users = [] } = useUsers();
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
   const { data: customers = [] } = useCustomers();
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -586,6 +591,7 @@ export default function EditElectricSurfacePumpService({
                     users={users}
                     subtitle="Svc Engineer/Technician"
                     showAllUsers
+                    disabled={!canEditServiceTechnician}
                   />
                 </div>
 
@@ -600,6 +606,7 @@ export default function EditElectricSurfacePumpService({
                     onSignatureChange={(sig) => handleChange("checked_approved_by_signature", sig)}
                     users={users}
                     subtitle="Svc. Supvr. / Supt."
+                    disabled={!canEditApprovedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
@@ -618,6 +625,7 @@ export default function EditElectricSurfacePumpService({
                     onSignatureChange={(sig) => handleChange("noted_by_signature", sig)}
                     users={users}
                     subtitle="Svc. Manager"
+                    disabled={!canEditNotedBy}
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />

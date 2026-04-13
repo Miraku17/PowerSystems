@@ -12,7 +12,7 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
-import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function ElectricSurfacePumpCommissioningForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,18 +27,10 @@ export default function ElectricSurfacePumpCommissioningForm() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
 
-  useAutoPopulateUser(setFormData, "commissioned_by_name", "commissioned_by_signature", formData.commissioned_by_name);
-
-  const approvedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1' || posName === 'admin 2';
-    });
-  const notedByUsers = users
-    .filter(user => {
-      const posName = (user.position?.name || '').toLowerCase();
-      return posName === 'super admin' || posName === 'admin 1';
-    });
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -447,6 +439,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
               onSignatureChange={(sig) => setFormData({ commissioned_by_signature: sig })}
               users={users}
               subtitle="Svc Engineer/Technician"
+              disabled={!canEditServiceTechnician}
             />
             <SignatorySelect
               label="Approved By"
@@ -455,8 +448,9 @@ export default function ElectricSurfacePumpCommissioningForm() {
               signatureValue={formData.checked_approved_by_signature}
               onChange={handleSignatoryChange}
               onSignatureChange={(sig) => setFormData({ checked_approved_by_signature: sig })}
-              users={approvedByUsers}
+              users={users}
               subtitle="Svc. Supvr. / Supt."
+              disabled={!canEditApprovedBy}
             />
             <SignatorySelect
               label="Noted By"
@@ -465,8 +459,9 @@ export default function ElectricSurfacePumpCommissioningForm() {
               signatureValue={formData.noted_by_signature}
               onChange={handleSignatoryChange}
               onSignatureChange={(sig) => setFormData({ noted_by_signature: sig })}
-              users={notedByUsers}
+              users={users}
               subtitle="Svc. Manager"
+              disabled={!canEditNotedBy}
             />
             <Input
               label="Acknowledged By"

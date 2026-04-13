@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import toast from "react-hot-toast";
 import SignatorySelect from "./SignatorySelect";
 import SignaturePad from "./SignaturePad";
@@ -13,7 +13,7 @@ import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
-import { useAutoPopulateUser } from '@/hooks/useAutoPopulateUser';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function DeutzServiceForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,17 +30,12 @@ export default function DeutzServiceForm() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
 
-  useAutoPopulateUser(setFormData, "service_technician", "service_technician_signature", formData.service_technician);
   const { data: engines = [] } = useEngines();
 
-  const approvedByUsersList = useMemo(() =>
-    users.filter(u => ['super admin','admin 1','admin 2'].includes((u.position?.name||'').toLowerCase())),
-    [users]
-  );
-  const notedByUsersList = useMemo(() =>
-    users.filter(u => ['super admin','admin 1'].includes((u.position?.name||'').toLowerCase())),
-    [users]
-  );
+  const { hasPermission } = usePermissions();
+  const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
+  const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
+  const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -751,6 +746,7 @@ export default function DeutzServiceForm() {
                 onSignatureChange={(sig) => setFormData({ service_technician_signature: sig })}
                 users={users}
                 subtitle="Signed by Technician"
+                disabled={!canEditServiceTechnician}
               />
             </div>
             <div className="flex flex-col space-y-4">
@@ -761,8 +757,9 @@ export default function DeutzServiceForm() {
                 signatureValue={formData.approved_by_signature}
                 onChange={handleSignatoryChange}
                 onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
-                users={approvedByUsersList}
+                users={users}
                 subtitle="Authorized Signature"
+                disabled={!canEditApprovedBy}
               />
             </div>
             <div className="flex flex-col space-y-4">
@@ -773,8 +770,9 @@ export default function DeutzServiceForm() {
                 signatureValue={formData.noted_by_signature}
                 onChange={handleSignatoryChange}
                 onSignatureChange={(sig) => setFormData({ noted_by_signature: sig })}
-                users={notedByUsersList}
+                users={users}
                 subtitle="Service Manager"
+                disabled={!canEditNotedBy}
               />
             </div>
             <div className="flex flex-col space-y-4">

@@ -438,25 +438,6 @@ export const PATCH = withAuth(async (request, { user }) => {
       return permission.error ?? NextResponse.json({ error: "Permission denied" }, { status: 403 });
     }
 
-    // Check for duplicate Job Order
-    if (body.job_order) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('electric_surface_pump_teardown_report')
-        .select('id')
-        .eq('job_order', body.job_order)
-        .neq('id', id)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error checking for duplicate job order:', searchError);
-        return NextResponse.json({ error: 'Failed to validate Job Order uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json({ error: `Job Order '${body.job_order}' already exists.` }, { status: 400 });
-      }
-    }
 
     // Extract signature fields before building update object
     const rawTeardownedBySignature = body.teardowned_by_signature || "";

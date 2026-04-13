@@ -104,27 +104,6 @@ export const POST = withAuth(async (request, { user }) => {
       console.error("Error parsing measurementData JSON:", e);
     }
 
-    // Check for duplicate Job Order No
-    if (job_order_no) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('components_teardown_measuring_report')
-        .select('id')
-        .eq('job_order_no', job_order_no)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error checking for duplicate Job Order No:', searchError);
-        return NextResponse.json({ error: 'Failed to validate Job Order No uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `Job Order No '${job_order_no}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
 
     // Insert main record
     const { data: mainData, error: mainError } = await supabase
@@ -566,28 +545,6 @@ export const PATCH = withAuth(async (request, { user }) => {
       measurementData,
     } = body;
 
-    // Check for duplicate Job Order No
-    if (job_order_no) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('components_teardown_measuring_report')
-        .select('id')
-        .eq('job_order_no', job_order_no)
-        .neq('id', id)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') {
-        console.error('Error checking for duplicate Job Order No:', searchError);
-        return NextResponse.json({ error: 'Failed to validate Job Order No uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `Job Order No '${job_order_no}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
 
     // Update main record
     const updateData: any = {

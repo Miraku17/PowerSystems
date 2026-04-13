@@ -523,28 +523,6 @@ export const PATCH = withAuth(async (request, { user }) => {
       recommendations,
     } = body;
 
-    // Check for duplicate Job Order if it's being updated
-    if (job_order) {
-      const { data: existingRecord, error: searchError } = await supabase
-        .from('deutz_service_report')
-        .select('id')
-        .eq('job_order', job_order)
-        .neq('id', id)
-        .is('deleted_at', null)
-        .single();
-
-      if (searchError && searchError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        console.error('Error checking for duplicate job order:', searchError);
-        return NextResponse.json({ error: 'Failed to validate Job Order uniqueness.' }, { status: 500 });
-      }
-
-      if (existingRecord) {
-        return NextResponse.json(
-          { error: `Job Order '${job_order}' already exists.` },
-          { status: 400 }
-        );
-      }
-    }
 
     // Handle signature field name discrepancy (use nullish coalescing to preserve empty strings)
     const signatureToProcess = rawServiceTechSignature !== undefined ? rawServiceTechSignature : rawServiceTechSignatureAlt;

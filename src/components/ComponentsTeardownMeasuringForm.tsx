@@ -18,6 +18,7 @@ import {
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface Customer {
   id: string;
@@ -33,6 +34,9 @@ export default function ComponentsTeardownMeasuringForm() {
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
+  const { hasPermission } = usePermissions();
+  const canEditTechnician = hasPermission('components_teardown_signatory', 'technician');
+  const canEditCheckedBy = hasPermission('components_teardown_signatory', 'checked_by');
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -276,6 +280,7 @@ export default function ComponentsTeardownMeasuringForm() {
         onChange={(value) => updateMeta(metaKey, 'technician', value)}
         onSelect={(user) => updateMeta(metaKey, 'technician', user.fullName)}
         users={users}
+        disabled={!canEditTechnician}
       />
       <div>
         <label className="block text-xs font-semibold text-gray-600 mb-1">Tool No.</label>
@@ -292,6 +297,7 @@ export default function ComponentsTeardownMeasuringForm() {
         onChange={(value) => updateMeta(metaKey, 'checked_by', value)}
         onSelect={(user) => updateMeta(metaKey, 'checked_by', user.fullName)}
         users={users}
+        disabled={!canEditCheckedBy}
       />
     </div>
   );
@@ -1049,6 +1055,7 @@ export default function ComponentsTeardownMeasuringForm() {
             onChange={(value) => handleChange('technician', value)}
             onSelect={(user) => handleChange('technician', user.fullName)}
             users={users}
+            disabled={!canEditTechnician}
           />
           <UserAutocomplete
             label="Checked By"
@@ -1056,6 +1063,7 @@ export default function ComponentsTeardownMeasuringForm() {
             onChange={(value) => handleChange('checked_by', value)}
             onSelect={(user) => handleChange('checked_by', user.fullName)}
             users={users}
+            disabled={!canEditCheckedBy}
           />
         </div>
       </div>
@@ -2024,9 +2032,10 @@ interface UserAutocompleteProps {
   onChange: (value: string) => void;
   onSelect: (user: { id: string; fullName: string }) => void;
   users: Array<{ id: string; fullName: string }>;
+  disabled?: boolean;
 }
 
-const UserAutocomplete = ({ label, value, onChange, onSelect, users }: UserAutocompleteProps) => {
+const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = false }: UserAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
@@ -2043,6 +2052,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users }: UserAutoc
   }, []);
 
   const handleSelectUser = (user: { id: string; fullName: string }, e: React.MouseEvent) => {
+    if (disabled) return;
     e.preventDefault();
     e.stopPropagation();
     const scrollY = window.scrollY;
@@ -2054,6 +2064,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users }: UserAutoc
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
     const scrollY = window.scrollY;
     onChange(e.target.value);
     setShowDropdown(true);
@@ -2095,12 +2106,14 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users }: UserAutoc
           type="text"
           value={value || ''}
           onChange={handleInputChange}
-          onFocus={handleFocus}
+          onFocus={() => { if (!disabled) handleFocus(); }}
           onBlur={handleBlur}
-          className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          disabled={disabled}
+          className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"}`}
           placeholder={`Enter ${label.toLowerCase()}`}
           autoComplete="off"
         />
+        {!disabled && (
         <button
           type="button"
           tabIndex={-1}
@@ -2109,7 +2122,8 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users }: UserAutoc
         >
           <ChevronDownIcon className={`h-4 w-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
         </button>
-        {showDropdown && filteredUsers.length > 0 && (
+        )}
+        {!disabled && showDropdown && filteredUsers.length > 0 && (
           <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
             {filteredUsers.map((user) => (
               <div

@@ -325,7 +325,6 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   users={users}
                   subtitle="Sales/Service Engineer"
                   disabled={!canEditRequestedBy}
-                  lockedToCurrentUser={canEditRequestedBy}
                 />
                 <SignatorySelect
                   label="Approved By (Department Head)"
@@ -355,7 +354,6 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   users={users}
                   subtitle="Service Department"
                   disabled={!canReceiveByServiceDept}
-                  lockedToCurrentUser={canReceiveByServiceDept}
                 />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect

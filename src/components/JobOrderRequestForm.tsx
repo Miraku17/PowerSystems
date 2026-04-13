@@ -88,31 +88,7 @@ export default function JobOrderRequestForm() {
   const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
   const canEditVerifiedBy = hasPermission('jo_signatory', 'verified_by');
 
-  // Auto-populate Requested By with logged-in user
-  useEffect(() => {
-    if (canEditRequestedBy && currentUser && users.length > 0 && !formData.requested_by_name) {
-      const matched = users.find(u => u.id === currentUser.id);
-      if (matched) {
-        setFormData({
-          requested_by_name: matched.fullName,
-          requested_by_signature: matched.signature_url || "",
-        });
-      }
-    }
-  }, [canEditRequestedBy, currentUser, users]);
-
-  // Auto-populate Service Dept. with logged-in user
-  useEffect(() => {
-    if (canReceiveByServiceDept && currentUser && users.length > 0 && !formData.received_by_service_dept_name) {
-      const matched = users.find(u => u.id === currentUser.id);
-      if (matched) {
-        setFormData({
-          received_by_service_dept_name: matched.fullName,
-          received_by_service_dept_signature: matched.signature_url || "",
-        });
-      }
-    }
-  }, [canReceiveByServiceDept, currentUser, users]);
+  // Requested By / Service Dept: no auto-populate — logged-in user can choose from dropdown
 
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
@@ -348,7 +324,6 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Sales/Service Engineer"
               disabled={!canEditRequestedBy}
-              lockedToCurrentUser={canEditRequestedBy}
             />
             <SignatorySelect
               label="Approved By (Department Head)"
@@ -381,7 +356,6 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Service Department"
               disabled={!canReceiveByServiceDept}
-              lockedToCurrentUser={canReceiveByServiceDept}
             />
             {canReceiveByCreditCollection && (
               <SignatorySelect

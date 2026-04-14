@@ -168,7 +168,6 @@ export default function DailyTimeSheetForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       customer: customer.customer || "",
-      address: customer.address || "",
     });
   };
 
@@ -345,14 +344,11 @@ export default function DailyTimeSheetForm() {
               />
             </div>
             <div className="md:col-span-2">
-              <CustomerAutocomplete
+              <Input
                 label="Address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                onSelect={handleCustomerSelect}
-                customers={customers}
-                searchKey="address"
               />
             </div>
           </div>
@@ -621,7 +617,7 @@ export default function DailyTimeSheetForm() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <SignatorySelect
-              label="Print Name"
+              label="Service Technician/Engineer"
               name="performed_by_name"
               value={formData.performed_by_name}
               signatureValue={formData.performed_by_signature}
@@ -639,6 +635,7 @@ export default function DailyTimeSheetForm() {
               onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
               users={users as FormUser[]}
               subtitle="Approved By (Supervisor)"
+              hideSignature
             />
           </div>
         </div>
@@ -654,10 +651,10 @@ export default function DailyTimeSheetForm() {
             <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
-            <SignatorySelect label="CHK. BY" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} />
-            <SignatorySelect label="SVC. CO'RDNTR" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} />
-            <SignatorySelect label="APVD. BY" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} />
-            <SignatorySelect label="SVC. MANAGER" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} />
+            <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} />
+            <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} />
+            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} />
+            <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} />
             <div className="lg:col-span-4">
               <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
             </div>
@@ -988,8 +985,8 @@ const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customer
                 onClick={() => handleSelectCustomer(customer)}
                 className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
               >
-                <div className="font-medium">{customer.name}</div>
-                <div className="text-xs text-gray-500">{customer.customer}</div>
+                <div className="text-base font-semibold text-gray-900">{customer.name}</div>
+                <div className="text-sm text-gray-600">{customer.customer}</div>
               </div>
             ))}
           </div>

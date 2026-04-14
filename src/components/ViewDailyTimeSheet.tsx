@@ -439,7 +439,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Performed By</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Field label="Print Name" value={data.performed_by_name} />
+                  <Field label="Service Technician/Engineer" value={data.performed_by_name} />
                   {resolvedPerformedBySig && (
                     <div className="mt-2">
                       <img src={resolvedPerformedBySig} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
@@ -448,11 +448,13 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 </div>
                 <div>
                   <Field label="Supervisor" value={data.approved_by_name} />
+                  {/* Signature box commented out for now
                   {resolvedApprovedBySig && (
                     <div className="mt-2">
                       <img src={resolvedApprovedBySig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
                     </div>
                   )}
+                  */}
                 </div>
               </div>
             </div>
@@ -466,20 +468,20 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 <Field label="Total Travel Hours" value={formatNumber(data.performance)} />
                 <Field label="Total ManHours" value={formatNumber(data.total_service_manhours)} />
                 <div>
-                  <Field label="CHK. BY" value={data.checked_by} />
-                  {resolvedCheckedBySig && <div className="mt-2"><img src={resolvedCheckedBySig} alt="CHK. BY Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                  <Field label="Checked By" value={data.checked_by} />
+                  {resolvedCheckedBySig && <div className="mt-2"><img src={resolvedCheckedBySig} alt="Checked By Signature" className="h-16 border border-gray-300 rounded" /></div>}
                 </div>
                 <div>
-                  <Field label="SVC. CO'RDNTR" value={data.service_coordinator} />
-                  {resolvedServiceCoordinatorSig && <div className="mt-2"><img src={resolvedServiceCoordinatorSig} alt="SVC. CO'RDNTR Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                  <Field label="Service Coordinator" value={data.service_coordinator} />
+                  {resolvedServiceCoordinatorSig && <div className="mt-2"><img src={resolvedServiceCoordinatorSig} alt="Service Coordinator Signature" className="h-16 border border-gray-300 rounded" /></div>}
                 </div>
                 <div>
-                  <Field label="APVD. BY" value={data.approved_by_service} />
-                  {resolvedApprovedByServiceSig && <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="APVD. BY Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                  <Field label="Approved By" value={data.approved_by_service} />
+                  {resolvedApprovedByServiceSig && <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" /></div>}
                 </div>
                 <div>
-                  <Field label="SVC. MANAGER" value={data.service_manager} />
-                  {resolvedServiceManagerSig && <div className="mt-2"><img src={resolvedServiceManagerSig} alt="SVC. MANAGER Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                  <Field label="Service Manager" value={data.service_manager} />
+                  {resolvedServiceManagerSig && <div className="mt-2"><img src={resolvedServiceManagerSig} alt="Service Manager Signature" className="h-16 border border-gray-300 rounded" /></div>}
                 </div>
                 <div className="md:col-span-4">
                   <Field label="Note" value={data.service_office_note} />

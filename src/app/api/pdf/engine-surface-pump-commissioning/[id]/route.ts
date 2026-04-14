@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
-import { createGridHelpers } from "@/lib/pdf-grid-helpers";
+import { createGridHelpers, installTextSanitizer } from "@/lib/pdf-grid-helpers";
 
 export const GET = withAuth(async (request, { user, params }) => {
   try {
@@ -57,6 +57,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     const formatDate = (dateString: any) => { if (!dateString) return "-"; try { return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }); } catch { return "-"; } };
 
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    installTextSanitizer(doc);
 
     let yPos = 0;
     const leftMargin = 15;

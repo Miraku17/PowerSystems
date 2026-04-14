@@ -6,6 +6,45 @@ export interface GridField {
   span?: number;
 }
 
+// jsPDF's built-in fonts (helvetica, times, courier) only support WinAnsi/Latin1.
+// Any char > 0xFF forces UTF-16 on the whole string, which viewers render as
+// null-byte-separated garbage (appears as "&" between every character).
+// Decompose diacritics and map known non-Latin1 letters (e.g. Turkish İ/ı) to ASCII.
+// Monkey-patch a jsPDF instance so every `doc.text(...)` call auto-sanitizes.
+// Call once, immediately after `new jsPDF(...)`. Idempotent.
+export function installTextSanitizer(doc: jsPDF): void {
+  if ((doc as any).__textSanitized) return;
+  const original = doc.text.bind(doc) as (...args: any[]) => jsPDF;
+  (doc as any).text = function patchedText(text: any, ...rest: any[]) {
+    const clean = Array.isArray(text)
+      ? text.map((t) => (typeof t === "string" ? sanitizeLatin1(t) : t))
+      : typeof text === "string"
+      ? sanitizeLatin1(text)
+      : text;
+    return original(clean, ...rest);
+  };
+  (doc as any).__textSanitized = true;
+}
+
+export function sanitizeLatin1(input: string): string {
+  const decomposed = input
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return decomposed
+    .replace(/İ/g, "I")
+    .replace(/ı/g, "i")
+    .replace(/Ł/g, "L")
+    .replace(/ł/g, "l")
+    .replace(/Ø/g, "O")
+    .replace(/ø/g, "o")
+    .replace(/Æ/g, "AE")
+    .replace(/æ/g, "ae")
+    .replace(/Œ/g, "OE")
+    .replace(/œ/g, "oe")
+    .replace(/ß/g, "ss")
+    .replace(/[^\x00-\xFF]/g, "?");
+}
+
 export interface GridHelpersConfig {
   leftMargin: number;
   contentWidth: number;
@@ -33,6 +72,7 @@ export function createGridHelpers(doc: jsPDF, config: GridHelpersConfig) {
 
   const minRowHeight = 14;
   const valueFontLineHeight = 3.5; // line height for font size 9 in mm
+  const safeValue = (v: any) => sanitizeLatin1(getValue(v));
 
   // Calculate the height needed for a layout row based on its text content
   const calcRowHeight = (rowFields: GridField[], cols: number = 2) => {
@@ -42,7 +82,7 @@ export function createGridHelpers(doc: jsPDF, config: GridHelpersConfig) {
       const span = f.span || 1;
       const maxW = span >= cols ? contentWidth - 6 : colWidth * span - 3;
       doc.setFontSize(9);
-      const lines = doc.splitTextToSize(getValue(f.value), maxW);
+      const lines = doc.splitTextToSize(safeValue(f.value), maxW);
       maxLines = Math.max(maxLines, lines.length);
     });
     return Math.max(minRowHeight, 7 + maxLines * valueFontLineHeight + 2);
@@ -137,14 +177,14 @@ export function createGridHelpers(doc: jsPDF, config: GridHelpersConfig) {
         doc.setFontSize(7);
         doc.setFont("helvetica", "bold");
         doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-        doc.text(field.label, xOffset, yOffset + 3);
+        doc.text(sanitizeLatin1(field.label), xOffset, yOffset + 3);
 
         doc.setFontSize(9);
         doc.setFont("helvetica", "normal");
         doc.setTextColor(0, 0, 0);
         const maxWidth =
           span >= cols ? contentWidth - 6 : colWidth * span - 3;
-        const lines = doc.splitTextToSize(getValue(field.value), maxWidth);
+        const lines = doc.splitTextToSize(safeValue(field.value), maxWidth);
         doc.text(lines, xOffset, yOffset + 7);
 
         // Advance to next column position
@@ -218,7 +258,7 @@ export function createGridHelpers(doc: jsPDF, config: GridHelpersConfig) {
   // Add a text area field with automatic text wrapping and pagination
   const addTextAreaField = (label: string, value: any): void => {
     let yPos = getYPos();
-    const valueText = getValue(value);
+    const valueText = safeValue(value);
     doc.setFontSize(9);
     const lines = doc.splitTextToSize(valueText, contentWidth - 6);
     const boxHeight = Math.max(lines.length * 4 + 8, 16);
@@ -236,7 +276,7 @@ export function createGridHelpers(doc: jsPDF, config: GridHelpersConfig) {
     doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(textGray[0], textGray[1], textGray[2]);
-    doc.text(label, leftMargin + 3, yPos + 4);
+    doc.text(sanitizeLatin1(label), leftMargin + 3, yPos + 4);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");

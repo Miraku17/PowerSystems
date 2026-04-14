@@ -19,6 +19,7 @@ interface SignatorySelectProps {
   allowTyping?: boolean;
   disabled?: boolean;
   lockedToCurrentUser?: boolean;
+  filterPositions?: string[];
 }
 
 export default function SignatorySelect({
@@ -35,6 +36,7 @@ export default function SignatorySelect({
   allowTyping = false,
   disabled = false,
   lockedToCurrentUser = false,
+  filterPositions,
 }: SignatorySelectProps) {
   const isLocked = lockedToCurrentUser && !disabled;
   const [showDropdown, setShowDropdown] = useState(false);
@@ -56,11 +58,21 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  const allDropdownUsers = (showAllUsers
+  const baseUsers = showAllUsers
     ? users
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
-    : []).sort((a, b) => a.fullName.localeCompare(b.fullName));
+    : [];
+  const allDropdownUsers = (
+    filterPositions && filterPositions.length > 0
+      ? baseUsers.filter((u) =>
+          !!u.position?.name &&
+          filterPositions.some(
+            (p) => p.toLowerCase() === u.position!.name.toLowerCase()
+          )
+        )
+      : baseUsers
+  ).sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const dropdownUsers = allowTyping && searchTerm
     ? allDropdownUsers.filter((u) =>

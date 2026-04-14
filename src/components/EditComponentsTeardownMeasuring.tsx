@@ -553,59 +553,21 @@ interface CustomerAutocompleteProps {
   searchKey?: string;
 }
 
-const CustomerAutocomplete = ({ label, value, onChange, onSelect, customers, searchKey = "name" }: CustomerAutocompleteProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectCustomer = (customer: any) => {
-    onSelect(customer);
-    setShowDropdown(false);
-  };
-
-  const filteredCustomers = customers.filter((c) =>
-    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
-
+const CustomerAutocomplete = (props: CustomerAutocompleteProps) => {
+  const { label, value, onChange } = props;
   return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1 uppercase">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          value={value || ''}
-          onChange={(e) => { onChange(e.target.value); setShowDropdown(true); }}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full border border-gray-300 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-          placeholder={`Enter ${label.toLowerCase()}`}
-          autoComplete="off"
-        />
-        {showDropdown && filteredCustomers.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                onClick={() => handleSelectCustomer(customer)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="font-medium">{customer.name}</div>
-                {customer.customer && customer.customer !== customer.name && (
-                  <div className="text-xs text-gray-500">{customer.customer}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col w-full">
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <input
+        type="text"
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"
+        placeholder={`Enter ${label.toLowerCase()}`}
+        autoComplete="off"
+      />
     </div>
   );
 };

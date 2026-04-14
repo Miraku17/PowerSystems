@@ -1927,100 +1927,23 @@ interface CustomerAutocompleteProps {
   disabled?: boolean;
 }
 
-const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "name", disabled = false }: CustomerAutocompleteProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectCustomer = (customer: any, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const scrollY = window.scrollY;
-    onSelect(customer);
-    setShowDropdown(false);
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (disabled) return;
-    const scrollY = window.scrollY;
-    onChange(e);
-    setShowDropdown(true);
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
-  };
-
-  const handleToggleDropdown = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const scrollY = window.scrollY;
-    setShowDropdown(!showDropdown);
-    inputRef.current?.focus();
-    requestAnimationFrame(() => {
-      window.scrollTo(0, scrollY);
-    });
-  };
-
-  const filteredCustomers = customers.filter((c) =>
-    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
-
+const CustomerAutocomplete = (props: any) => {
+  const { label, name, value, onChange, onSelect, customers, searchKey, disabled } = props;
   return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
-      <div className="relative">
-        <input
-          ref={inputRef}
-          type="text"
-          name={name}
-          value={value}
-          disabled={disabled}
-          onChange={handleInputChange}
-          onFocus={() => { if (!disabled) setShowDropdown(true); }}
-          className={`w-full px-4 py-2.5 pr-10 border rounded-lg transition ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"}`}
-          placeholder={`Enter ${label.toLowerCase()}`}
-          autoComplete="off"
-        />
-        {!disabled && (
-          <button
-            type="button"
-            tabIndex={-1}
-            onMouseDown={handleToggleDropdown}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-          >
-            <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
-          </button>
-        )}
-        {!disabled && showDropdown && filteredCustomers.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                onMouseDown={(e) => handleSelectCustomer(customer, e)}
-                className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="font-medium">{customer.name}</div>
-                {customer.customer && customer.customer !== customer.name && (
-                  <div className="text-xs text-gray-500">{customer.customer}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="flex flex-col w-full">
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
+        {label}
+      </label>
+      <input
+        type="text"
+        name={name}
+        value={value || ""}
+        disabled={disabled}
+        onChange={(e) => { if (!disabled) onChange(e); }}
+        className={`w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"}`}
+        placeholder={`Enter ${label.toLowerCase()}`}
+        autoComplete="off"
+      />
     </div>
   );
 };

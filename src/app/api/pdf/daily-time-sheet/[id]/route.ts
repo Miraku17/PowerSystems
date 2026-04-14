@@ -3,6 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
 
+import { installTextSanitizer } from "@/lib/pdf-grid-helpers";
 export const GET = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
@@ -102,6 +103,7 @@ export const GET = withAuth(async (request, { user, params }) => {
       unit: "mm",
       format: "a4",
     });
+    installTextSanitizer(doc);
 
     let yPos = 0;
     const leftMargin = 15;

@@ -349,7 +349,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("CHK. BY:", col2X, serviceY);
+    doc.text("CHECKED BY:", col2X, serviceY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(getValue(record.checked_by), col2X + col2LabelWidth, serviceY);
@@ -366,7 +366,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("SVC. CO'RDNTR:", col2X, serviceY);
+    doc.text("SERVICE COORDINATOR:", col2X, serviceY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(getValue(record.service_coordinator), col2X + col2LabelWidth, serviceY);
@@ -383,7 +383,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("APVD. BY:", col2X, serviceY);
+    doc.text("APPROVED BY:", col2X, serviceY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(getValue(record.approved_by_service), col2X + col2LabelWidth, serviceY);
@@ -400,7 +400,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
-    doc.text("SVC. MANAGER:", col2X, serviceY);
+    doc.text("SERVICE MANAGER:", col2X, serviceY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.text(getValue(record.service_manager), col2X + col2LabelWidth, serviceY);
@@ -520,7 +520,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     const labelY = yPos + sigBoxHeight + 3;
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
-    doc.text("PRINT NAME / SIGNATURE", sig1X + sigBoxWidth / 2, labelY, { align: "center" });
+    doc.text("SERVICE TECHNICIAN/ENGINEER", sig1X + sigBoxWidth / 2, labelY, { align: "center" });
 
     // Name
     doc.setFontSize(8);
@@ -533,6 +533,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.setFont("helvetica", "bold");
     doc.text("APPROVED BY", sig2X + sigBoxWidth / 2, sig2YStart, { align: "center" });
 
+    /* Supervisor signature box — commented out for now
     doc.rect(sig2X, yPos, sigBoxWidth, sigBoxHeight);
 
     // Add approved by signature if available
@@ -546,7 +547,6 @@ export const GET = withAuth(async (request, { user, params }) => {
         const buffer = Buffer.from(arrayBuffer);
         const imgBase64 = buffer.toString('base64');
 
-        // Detect image format from URL extension (ignore query params)
         const urlPath2 = approvedBySigUrl.split('?')[0].toLowerCase();
         let imageFormat2: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
         if (urlPath2.endsWith('.jpg') || urlPath2.endsWith('.jpeg')) {
@@ -568,7 +568,6 @@ export const GET = withAuth(async (request, { user, params }) => {
         } else if (contentType2.includes('gif')) {
           imageFormat2 = 'GIF';
         } else {
-          // Default to PNG for signatures
           contentType2 = 'image/png';
           imageFormat2 = 'PNG';
         }
@@ -578,6 +577,7 @@ export const GET = withAuth(async (request, { user, params }) => {
         console.error("Error loading approved by signature:", error);
       }
     }
+    */
 
     // Supervisor label
     doc.setFontSize(7);

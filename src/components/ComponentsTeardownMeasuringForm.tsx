@@ -19,6 +19,7 @@ import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCurrentUser } from '@/stores/authStore';
 
 interface Customer {
   id: string;
@@ -35,8 +36,15 @@ export default function ComponentsTeardownMeasuringForm() {
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
+  const currentUser = useCurrentUser();
   const canEditTechnician = hasPermission('components_teardown_signatory', 'technician');
   const canEditCheckedBy = hasPermission('components_teardown_signatory', 'checked_by');
+
+  // Technician dropdown: show only the logged-in user
+  const technicianUsers = React.useMemo(
+    () => users.filter((u) => u.id === currentUser?.id),
+    [users, currentUser?.id]
+  );
 
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -279,7 +287,7 @@ export default function ComponentsTeardownMeasuringForm() {
         value={meta.technician}
         onChange={(value) => updateMeta(metaKey, 'technician', value)}
         onSelect={(user) => updateMeta(metaKey, 'technician', user.fullName)}
-        users={users}
+        users={technicianUsers}
         disabled={!canEditTechnician}
       />
       <div>
@@ -1054,7 +1062,7 @@ export default function ComponentsTeardownMeasuringForm() {
             value={data.technician}
             onChange={(value) => handleChange('technician', value)}
             onSelect={(user) => handleChange('technician', user.fullName)}
-            users={users}
+            users={technicianUsers}
             disabled={!canEditTechnician}
           />
           <UserAutocomplete

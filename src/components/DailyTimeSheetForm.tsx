@@ -626,7 +626,7 @@ export default function DailyTimeSheetForm() {
               users={users as FormUser[]}
               subtitle="Performed By"
             />
-            <SignatorySelect
+            {/* <SignatorySelect
               label="Supervisor"
               name="approved_by_name"
               value={formData.approved_by_name}
@@ -636,7 +636,7 @@ export default function DailyTimeSheetForm() {
               users={users as FormUser[]}
               subtitle="Approved By (Supervisor)"
               hideSignature
-            />
+            /> */}
           </div>
         </div>
 

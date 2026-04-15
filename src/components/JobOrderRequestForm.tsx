@@ -64,8 +64,6 @@ export default function JobOrderRequestForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       full_customer_name: customer.customer || "",
-      address: customer.address || "",
-      telephone_numbers: customer.phone || "",
     });
   };
 
@@ -699,24 +697,58 @@ interface CustomerAutocompleteProps {
   searchKey?: string;
 }
 
-const CustomerAutocomplete = (props: any) => {
-  const { label, name, value, onChange, onSelect, customers, searchKey } = props;
-  const disabled = false;
+const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer" }: CustomerAutocompleteProps) => {
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const dropdownRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectCustomer = (customer: any) => {
+    onSelect(customer);
+    setShowDropdown(false);
+  };
+
+  const filteredCustomers = customers
+    .filter((c) => (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase()))
+    .sort((a, b) => (a.customer || "").localeCompare(b.customer || ""));
+
   return (
-    <div className="flex flex-col w-full">
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label}
-      </label>
-      <input
-        type="text"
-        name={name}
-        value={value || ""}
-        disabled={disabled}
-        onChange={(e) => { if (!disabled) onChange(e); }}
-        className={`w-full border text-sm rounded-md block p-2.5 transition-colors duration-200 ease-in-out shadow-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "bg-white border-gray-300 text-gray-900 focus:ring-blue-500 focus:border-blue-500"}`}
-        placeholder={`Enter ${label.toLowerCase()}`}
-        autoComplete="off"
-      />
+    <div className="flex flex-col w-full" ref={dropdownRef}>
+      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="relative">
+        <input
+          type="text"
+          name={name}
+          value={value || ""}
+          onChange={(e) => { onChange(e); setShowDropdown(true); }}
+          onFocus={() => setShowDropdown(true)}
+          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
+          placeholder={`Enter ${label.toLowerCase()}`}
+          autoComplete="off"
+        />
+        {showDropdown && filteredCustomers.length > 0 && (
+          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+            {filteredCustomers.map((customer) => (
+              <div
+                key={customer.id}
+                onClick={() => handleSelectCustomer(customer)}
+                className="px-4 py-3 hover:bg-blue-50 cursor-pointer text-gray-900 border-b last:border-b-0 border-gray-100"
+              >
+                <div className="text-base font-semibold">{customer.customer}</div>
+                <div className="text-sm text-gray-500">{customer.name}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

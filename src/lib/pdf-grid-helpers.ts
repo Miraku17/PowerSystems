@@ -26,8 +26,9 @@ export function installTextSanitizer(doc: jsPDF): void {
   (doc as any).__textSanitized = true;
 }
 
-export function sanitizeLatin1(input: string): string {
-  const decomposed = input
+export function sanitizeLatin1(input: unknown): string {
+  const str = typeof input === "string" ? input : input == null ? "" : String(input);
+  const decomposed = str
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "");
   return decomposed

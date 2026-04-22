@@ -234,6 +234,15 @@ export const POST = withAuth(async (request, { user }) => {
       'main_bearing_bore_id'
     );
 
+    // Page 3b: Main Bearing Radial Clearance
+    await insertMeasurementSection(
+      'ctmr_main_bearing_radial_clearance',
+      'ctmr_main_bearing_radial_clearance_data',
+      measurementData.mainBearingRadialClearanceMeta,
+      measurementData.mainBearingRadialClearanceData,
+      'main_bearing_radial_clearance_id'
+    );
+
     // Page 4: Camshaft Bushing
     await insertMeasurementSection(
       'ctmr_camshaft_bushing',
@@ -252,6 +261,15 @@ export const POST = withAuth(async (request, { user }) => {
       'main_journal_id'
     );
 
+    // Page 5b: Crankshaft Main Journal Diameter
+    await insertMeasurementSection(
+      'ctmr_crankshaft_main_journal_diameter',
+      'ctmr_crankshaft_main_journal_diameter_data',
+      measurementData.crankshaftMainJournalDiameterMeta,
+      measurementData.crankshaftMainJournalDiameterData,
+      'crankshaft_main_journal_diameter_id'
+    );
+
     // Page 6: Main Journal Width
     await insertMeasurementSection(
       'ctmr_main_journal_width',
@@ -268,6 +286,15 @@ export const POST = withAuth(async (request, { user }) => {
       measurementData.conRodJournalMeta,
       measurementData.conRodJournalData,
       'con_rod_journal_id'
+    );
+
+    // Page 7b: Connecting Rod Bearing Bore
+    await insertMeasurementSection(
+      'ctmr_connecting_rod_bearing_bore',
+      'ctmr_connecting_rod_bearing_bore_data',
+      measurementData.connectingRodBearingBoreMeta,
+      measurementData.connectingRodBearingBoreData,
+      'connecting_rod_bearing_bore_id'
     );
 
     // Page 8: Crankshaft True Running
@@ -576,10 +603,13 @@ export const PATCH = withAuth(async (request, { user }) => {
         'ctmr_cylinder_bore',
         'ctmr_cylinder_liner',
         'ctmr_main_bearing_bore',
+        'ctmr_main_bearing_radial_clearance',
         'ctmr_camshaft_bushing',
         'ctmr_main_journal',
+        'ctmr_crankshaft_main_journal_diameter',
         'ctmr_main_journal_width',
         'ctmr_con_rod_journal',
+        'ctmr_connecting_rod_bearing_bore',
         'ctmr_crankshaft_true_running',
         'ctmr_small_end_bush',
         'ctmr_big_end_bearing',
@@ -685,10 +715,13 @@ export const PATCH = withAuth(async (request, { user }) => {
       await insertMeasurementSection('ctmr_cylinder_bore', 'ctmr_cylinder_bore_data', measurementData.cylinderBoreMeta, measurementData.cylinderBoreData, 'cylinder_bore_id');
       await insertMeasurementSection('ctmr_cylinder_liner', 'ctmr_cylinder_liner_data', measurementData.cylinderLinerMeta, measurementData.cylinderLinerData, 'cylinder_liner_id');
       await insertMeasurementSection('ctmr_main_bearing_bore', 'ctmr_main_bearing_bore_data', measurementData.mainBearingBoreMeta, measurementData.mainBearingBoreData, 'main_bearing_bore_id');
+      await insertMeasurementSection('ctmr_main_bearing_radial_clearance', 'ctmr_main_bearing_radial_clearance_data', measurementData.mainBearingRadialClearanceMeta, measurementData.mainBearingRadialClearanceData, 'main_bearing_radial_clearance_id');
       await insertMeasurementSection('ctmr_camshaft_bushing', 'ctmr_camshaft_bushing_data', measurementData.camshaftBushingMeta, measurementData.camshaftBushingData, 'camshaft_bushing_id');
       await insertMeasurementSection('ctmr_main_journal', 'ctmr_main_journal_data', measurementData.mainJournalMeta, measurementData.mainJournalData, 'main_journal_id');
+      await insertMeasurementSection('ctmr_crankshaft_main_journal_diameter', 'ctmr_crankshaft_main_journal_diameter_data', measurementData.crankshaftMainJournalDiameterMeta, measurementData.crankshaftMainJournalDiameterData, 'crankshaft_main_journal_diameter_id');
       await insertMeasurementSection('ctmr_main_journal_width', 'ctmr_main_journal_width_data', measurementData.mainJournalWidthMeta, measurementData.mainJournalWidthData, 'main_journal_width_id');
       await insertMeasurementSection('ctmr_con_rod_journal', 'ctmr_con_rod_journal_data', measurementData.conRodJournalMeta, measurementData.conRodJournalData, 'con_rod_journal_id');
+      await insertMeasurementSection('ctmr_connecting_rod_bearing_bore', 'ctmr_connecting_rod_bearing_bore_data', measurementData.connectingRodBearingBoreMeta, measurementData.connectingRodBearingBoreData, 'connecting_rod_bearing_bore_id');
       await insertMeasurementSection('ctmr_crankshaft_true_running', 'ctmr_crankshaft_true_running_data', measurementData.crankshaftTrueRunningMeta, measurementData.crankshaftTrueRunningData, 'crankshaft_true_running_id');
       await insertMeasurementSection('ctmr_small_end_bush', 'ctmr_small_end_bush_data', measurementData.smallEndBushMeta, measurementData.smallEndBushData, 'small_end_bush_id');
       await insertMeasurementSection('ctmr_big_end_bearing', 'ctmr_big_end_bearing_data', measurementData.bigEndBearingMeta, measurementData.bigEndBearingData, 'big_end_bearing_id');

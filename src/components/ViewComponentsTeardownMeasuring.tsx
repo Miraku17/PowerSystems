@@ -18,10 +18,13 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
     cylinderBore: true,
     cylinderLiner: false,
     mainBearingBore: false,
+    mainBearingRadialClearance: false,
     camshaftBushing: false,
     mainJournal: false,
+    crankshaftMainJournalDiameter: false,
     mainJournalWidth: false,
     conRodJournal: false,
+    connectingRodBearingBore: false,
     crankshaftTrueRunning: false,
     smallEndBush: false,
     bigEndBearing: false,
@@ -35,6 +38,8 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
     pistonRingAxialClearance: false,
     valveUnloadedLength: false,
     valveRecess: false,
+    crankshaftEndClearance: false,
+    lubeOilPumpBacklash: false,
     miscellaneous: false,
   });
 
@@ -64,7 +69,20 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
   }, [error]);
 
   const handlePrint = () => {
-    window.print();
+    const previous = expandedSections;
+    const allExpanded = Object.keys(previous).reduce<Record<string, boolean>>((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {});
+    setExpandedSections(allExpanded);
+
+    // Wait for React to render the expanded sections, then print, then restore.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        setExpandedSections(previous);
+      });
+    });
   };
 
   const SectionHeader = ({ title, sectionKey, pageNum }: { title: string; sectionKey: string; pageNum?: string }) => (
@@ -231,6 +249,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
             </div>
           )}
 
+          {/* Main Bearing Radial Clearance */}
+          <SectionHeader title="Main Bearing Radial Clearance" sectionKey="mainBearingRadialClearance" pageNum="Page 3b" />
+          {expandedSections.mainBearingRadialClearance && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('mainBearingRadialClearanceMeta')}
+              {renderMeasurementTable('mainBearingRadialClearanceData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.data_point}`)}
+            </div>
+          )}
+
           {/* Camshaft Bushing */}
           <SectionHeader title="Camshaft Bushing" sectionKey="camshaftBushing" pageNum="Page 4" />
           {expandedSections.camshaftBushing && fullData?.measurementData && (
@@ -253,6 +282,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
             </div>
           )}
 
+          {/* Crankshaft Main Journal Diameter */}
+          <SectionHeader title="Crankshaft Main Journal Diameter" sectionKey="crankshaftMainJournalDiameter" pageNum="Page 5b" />
+          {expandedSections.crankshaftMainJournalDiameter && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('crankshaftMainJournalDiameterMeta')}
+              {renderMeasurementTable('crankshaftMainJournalDiameterData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
+            </div>
+          )}
+
           {/* Main Journal Width */}
           <SectionHeader title="Main Journal Width" sectionKey="mainJournalWidth" pageNum="Page 6" />
           {expandedSections.mainJournalWidth && fullData?.measurementData && (
@@ -272,6 +312,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
               {renderMeasurementTable('conRodJournalData',
                 [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
                 (row) => `Journal ${row.journal_no} - ${row.axis}`)}
+            </div>
+          )}
+
+          {/* Connecting Rod Bearing Bore */}
+          <SectionHeader title="Connecting Rod Bearing Bore" sectionKey="connectingRodBearingBore" pageNum="Page 7b" />
+          {expandedSections.connectingRodBearingBore && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('connectingRodBearingBoreMeta')}
+              {renderMeasurementTable('connectingRodBearingBoreData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
             </div>
           )}
 
@@ -337,7 +388,7 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
               {renderSpecsMeta('camshaftJournalDiameterMeta')}
               {renderMeasurementTable('camshaftJournalDiameterData',
                 [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
-                (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+                (row) => `Journal ${row.journal_no} - Datum ${row.measuring_point}`)}
             </div>
           )}
 
@@ -418,8 +469,40 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
             </div>
           )}
 
+          {/* Crankshaft End Clearance */}
+          <SectionHeader title="Crankshaft End Clearance" sectionKey="crankshaftEndClearance" pageNum="Page 21" />
+          {expandedSections.crankshaftEndClearance && fullData?.measurementData?.crankshaftEndClearance && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <DataField label="Spec Min" value={fullData.measurementData.crankshaftEndClearance.spec_min} />
+                <DataField label="Spec Max" value={fullData.measurementData.crankshaftEndClearance.spec_max} />
+                <DataField label="Reading Taken" value={fullData.measurementData.crankshaftEndClearance.reading_taken} />
+                <DataField label="Remarks" value={fullData.measurementData.crankshaftEndClearance.remarks} />
+                <DataField label="Technician" value={fullData.measurementData.crankshaftEndClearance.technician} />
+                <DataField label="Tool No" value={fullData.measurementData.crankshaftEndClearance.tool_no} />
+                <DataField label="Checked By" value={fullData.measurementData.crankshaftEndClearance.checked_by} />
+              </div>
+            </div>
+          )}
+
+          {/* Lube Oil Pump Gear Backlash */}
+          <SectionHeader title="Lube Oil Pump Gear Backlash" sectionKey="lubeOilPumpBacklash" pageNum="Page 21" />
+          {expandedSections.lubeOilPumpBacklash && fullData?.measurementData?.lubeOilPumpBacklash && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <DataField label="Spec Min" value={fullData.measurementData.lubeOilPumpBacklash.spec_min} />
+                <DataField label="Spec Max" value={fullData.measurementData.lubeOilPumpBacklash.spec_max} />
+                <DataField label="Reading Taken" value={fullData.measurementData.lubeOilPumpBacklash.reading_taken} />
+                <DataField label="Remarks" value={fullData.measurementData.lubeOilPumpBacklash.remarks} />
+                <DataField label="Technician" value={fullData.measurementData.lubeOilPumpBacklash.technician} />
+                <DataField label="Tool No" value={fullData.measurementData.lubeOilPumpBacklash.tool_no} />
+                <DataField label="Checked By" value={fullData.measurementData.lubeOilPumpBacklash.checked_by} />
+              </div>
+            </div>
+          )}
+
           {/* Miscellaneous */}
-          <SectionHeader title="Miscellaneous (Pages 21-24)" sectionKey="miscellaneous" />
+          <SectionHeader title="Miscellaneous (Pages 22-24)" sectionKey="miscellaneous" />
           {expandedSections.miscellaneous && fullData?.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border space-y-4">
               {/* Crankshaft End Clearance */}

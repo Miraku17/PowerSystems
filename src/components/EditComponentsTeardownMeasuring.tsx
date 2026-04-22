@@ -6,6 +6,11 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import {
+  buildMainBearingRadialClearanceData,
+  buildCrankshaftMainJournalDiameterData,
+  buildConnectingRodBearingBoreData,
+} from "@/stores/componentsTeardownMeasuringFormStore";
 
 interface EditComponentsTeardownMeasuringProps {
   data: any;
@@ -74,6 +79,8 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
     pistonRingAxialClearance: false,
     valveUnloadedLength: false,
     valveRecess: false,
+    crankshaftEndClearance: false,
+    lubeOilPumpBacklash: false,
     miscellaneous: false,
   });
 
@@ -98,13 +105,26 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
         if (response.data.success) {
           const record = response.data.data;
           setFullData(record);
+
+          // Backfill sections added after the record was created
+          const md = record.measurementData || {};
+          if (!md.mainBearingRadialClearanceData || md.mainBearingRadialClearanceData.length === 0) {
+            md.mainBearingRadialClearanceData = buildMainBearingRadialClearanceData();
+          }
+          if (!md.crankshaftMainJournalDiameterData || md.crankshaftMainJournalDiameterData.length === 0) {
+            md.crankshaftMainJournalDiameterData = buildCrankshaftMainJournalDiameterData();
+          }
+          if (!md.connectingRodBearingBoreData || md.connectingRodBearingBoreData.length === 0) {
+            md.connectingRodBearingBoreData = buildConnectingRodBearingBoreData();
+          }
+
           setFormState({
             customer: record.customer || '',
             report_date: record.report_date || '',
             engine_model: record.engine_model || '',
             serial_no: record.serial_no || '',
             job_order_no: record.job_order_no || '',
-            measurementData: record.measurementData || null,
+            measurementData: md,
           });
         }
       } catch (error) {
@@ -148,6 +168,117 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
         },
       };
     });
+  };
+
+  const handleAddJournal = (sectionKey: string, pairField: string, pairValues: [string, string]) => {
+    setFormState((prev) => {
+      const rows = prev.measurementData?.[sectionKey] || [];
+      const maxJournal = rows.reduce((max: number, r: any) => Math.max(max, r.journal_no || 0), 0);
+      const nextJournal = maxJournal + 1;
+      const newRows = [
+        ...rows,
+        { journal_no: nextJournal, [pairField]: pairValues[0], measurement_a: '', measurement_b: '', measurement_c: '' },
+        { journal_no: nextJournal, [pairField]: pairValues[1], measurement_a: '', measurement_b: '', measurement_c: '' },
+      ];
+      return { ...prev, measurementData: { ...prev.measurementData, [sectionKey]: newRows } };
+    });
+  };
+
+  const handleRemoveJournal = (sectionKey: string, journalNo: number) => {
+    setFormState((prev) => {
+      const rows = prev.measurementData?.[sectionKey] || [];
+      return {
+        ...prev,
+        measurementData: {
+          ...prev.measurementData,
+          [sectionKey]: rows.filter((r: any) => r.journal_no !== journalNo),
+        },
+      };
+    });
+  };
+
+  const renderDynamicJournalTable = (
+    sectionKey: string,
+    pairField: string,
+    pairLabel: string,
+    pairValues: [string, string]
+  ) => {
+    const rows = (formState.measurementData?.[sectionKey] || []) as any[];
+    const journalNumbers = Array.from(new Set(rows.map((r: any) => r.journal_no))).sort((a: any, b: any) => a - b);
+
+    return (
+      <>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1 text-left">Journal</th>
+                <th className="border px-2 py-1 text-left">{pairLabel}</th>
+                <th className="border px-2 py-1 text-center">A</th>
+                <th className="border px-2 py-1 text-center">B</th>
+                <th className="border px-2 py-1 text-center">C</th>
+                <th className="border px-2 py-1 text-center w-16">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {journalNumbers.map((journalNo: any) => {
+                const journalRows = rows
+                  .map((r: any, i: number) => ({ row: r, index: i }))
+                  .filter(({ row }) => row.journal_no === journalNo);
+
+                return journalRows.map(({ row, index }, rowIdx) => (
+                  <tr key={`${journalNo}-${row[pairField]}-${index}`} className="hover:bg-gray-50">
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border px-2 py-1 text-center font-medium align-middle"
+                      >
+                        {journalNo}
+                      </td>
+                    )}
+                    <td className="border px-2 py-1 font-medium">{row[pairField]}</td>
+                    {['measurement_a', 'measurement_b', 'measurement_c'].map((col) => (
+                      <td key={col} className="border px-1 py-1">
+                        <input
+                          type="text"
+                          value={row[col] || ''}
+                          onChange={(e) => handleMeasurementDataChange(sectionKey, index, col, e.target.value)}
+                          className="w-full px-1 py-0.5 border rounded text-xs"
+                        />
+                      </td>
+                    ))}
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border px-1 py-1 text-center align-middle"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveJournal(sectionKey, journalNo)}
+                          disabled={journalNumbers.length <= 1}
+                          className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ));
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => handleAddJournal(sectionKey, pairField, pairValues)}
+            className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+          >
+            + Add Journal
+          </button>
+        </div>
+      </>
+    );
   };
 
   const handleSave = async () => {
@@ -261,7 +392,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center"
+        style={{ backgroundColor: "rgba(0, 0, 0, 0.3)", backdropFilter: "blur(4px)" }}
+      >
         <div className="bg-white rounded-lg p-8">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading record data...</p>
@@ -271,7 +405,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.3)", backdropFilter: "blur(4px)" }}
+    >
       <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
@@ -338,8 +475,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Main Bearing Radial Clearance" sectionKey="mainBearingRadialClearance" pageNum="Page 3b" />
           {expandedSections.mainBearingRadialClearance && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('mainBearingRadialClearanceData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.data_point}`)}
+              {renderDynamicJournalTable('mainBearingRadialClearanceData', 'data_point', 'Data', ['X', 'Y'])}
               {renderMetaFooter('mainBearingRadialClearanceMeta')}
             </div>
           )}
@@ -368,8 +504,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Crankshaft Main Journal Diameter" sectionKey="crankshaftMainJournalDiameter" pageNum="Page 5b" />
           {expandedSections.crankshaftMainJournalDiameter && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('crankshaftMainJournalDiameterData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
+              {renderDynamicJournalTable('crankshaftMainJournalDiameterData', 'datum', 'Datum', ['X', 'y'])}
               {renderMetaFooter('crankshaftMainJournalDiameterMeta')}
             </div>
           )}
@@ -398,8 +533,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Connecting Rod Bearing Bore" sectionKey="connectingRodBearingBore" pageNum="Page 7b" />
           {expandedSections.connectingRodBearingBore && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('connectingRodBearingBoreData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
+              {renderDynamicJournalTable('connectingRodBearingBoreData', 'datum', 'Datum', ['X', 'y'])}
               {renderMetaFooter('connectingRodBearingBoreMeta')}
             </div>
           )}
@@ -458,8 +592,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Camshaft Journal Diameter" sectionKey="camshaftJournalDiameter" pageNum="Page 13" />
           {expandedSections.camshaftJournalDiameter && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('camshaftJournalDiameterData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderDynamicJournalTable('camshaftJournalDiameterData', 'measuring_point', 'Datum', ['X', 'Y'])}
               {renderMetaFooter('camshaftJournalDiameterMeta')}
             </div>
           )}
@@ -535,7 +668,33 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           )}
 
           {/* Miscellaneous */}
-          <SectionHeader title="Miscellaneous (Pages 21-24)" sectionKey="miscellaneous" />
+          {/* Crankshaft End Clearance */}
+          <SectionHeader title="Crankshaft End Clearance" sectionKey="crankshaftEndClearance" pageNum="Page 21" />
+          {expandedSections.crankshaftEndClearance && formState.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <Input label="Spec Min" value={formState.measurementData?.crankshaftEndClearance?.spec_min} onChange={(v) => handleMeasurementMetaChange('crankshaftEndClearance', 'spec_min', v)} />
+                <Input label="Spec Max" value={formState.measurementData?.crankshaftEndClearance?.spec_max} onChange={(v) => handleMeasurementMetaChange('crankshaftEndClearance', 'spec_max', v)} />
+                <Input label="Reading Taken" value={formState.measurementData?.crankshaftEndClearance?.reading_taken} onChange={(v) => handleMeasurementMetaChange('crankshaftEndClearance', 'reading_taken', v)} />
+              </div>
+              {renderMetaFooter('crankshaftEndClearance')}
+            </div>
+          )}
+
+          {/* Lube Oil Pump Gear Backlash */}
+          <SectionHeader title="Lube Oil Pump Gear Backlash" sectionKey="lubeOilPumpBacklash" pageNum="Page 21" />
+          {expandedSections.lubeOilPumpBacklash && formState.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+                <Input label="Spec Min" value={formState.measurementData?.lubeOilPumpBacklash?.spec_min} onChange={(v) => handleMeasurementMetaChange('lubeOilPumpBacklash', 'spec_min', v)} />
+                <Input label="Spec Max" value={formState.measurementData?.lubeOilPumpBacklash?.spec_max} onChange={(v) => handleMeasurementMetaChange('lubeOilPumpBacklash', 'spec_max', v)} />
+                <Input label="Reading Taken" value={formState.measurementData?.lubeOilPumpBacklash?.reading_taken} onChange={(v) => handleMeasurementMetaChange('lubeOilPumpBacklash', 'reading_taken', v)} />
+              </div>
+              {renderMetaFooter('lubeOilPumpBacklash')}
+            </div>
+          )}
+
+          <SectionHeader title="Miscellaneous (Pages 22-24)" sectionKey="miscellaneous" />
           {expandedSections.miscellaneous && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4 space-y-4">
               <p className="text-sm text-gray-600">

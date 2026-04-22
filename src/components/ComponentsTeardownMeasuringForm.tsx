@@ -72,6 +72,8 @@ export default function ComponentsTeardownMeasuringForm() {
     pistonRingAxialClearance: false,
     valveUnloadedLength: false,
     valveRecess: false,
+    crankshaftEndClearance: false,
+    lubeOilPumpBacklash: false,
     miscellaneous: false,
   });
 
@@ -543,8 +545,8 @@ export default function ComponentsTeardownMeasuringForm() {
 
   // Dynamic Journal rows helper (shared by Main Bearing Radial Clearance and Crankshaft Main Journal Diameter)
   const renderDynamicJournalTable = (
-    dataKey: 'mainBearingRadialClearanceData' | 'crankshaftMainJournalDiameterData' | 'connectingRodBearingBoreData',
-    pairField: 'data_point' | 'datum',
+    dataKey: 'mainBearingRadialClearanceData' | 'crankshaftMainJournalDiameterData' | 'connectingRodBearingBoreData' | 'camshaftJournalDiameterData',
+    pairField: 'data_point' | 'datum' | 'measuring_point',
     pairLabel: string,
     pairValues: [string, string]
   ) => {
@@ -1695,7 +1697,7 @@ export default function ComponentsTeardownMeasuringForm() {
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 {renderSpecsRow(formData.camshaftJournalDiameterMeta, "camshaftJournalDiameterMeta")}
-                {renderXYTable3Col('camshaftJournalDiameterData', 'journal_no', 'Journal')}
+                {renderDynamicJournalTable('camshaftJournalDiameterData', 'measuring_point', 'Datum', ['X', 'Y'])}
                 {renderFooterRow(formData.camshaftJournalDiameterMeta, "camshaftJournalDiameterMeta")}
               </div>
               <div className="lg:w-80 flex-shrink-0">
@@ -1905,26 +1907,38 @@ export default function ComponentsTeardownMeasuringForm() {
           )}
         </div>
 
-        {/* Pages 21-24: Miscellaneous */}
+        {/* Page 21: Crankshaft End Clearance */}
         <div className="border border-gray-200 rounded-lg p-4">
-          <SectionHeader title="Miscellaneous Measurements (Pages 21-24)" sectionKey="miscellaneous" />
-          {expandedSections.miscellaneous && (
-            <>
-              {/* Page 21: Crankshaft End Clearance */}
-              <div className="flex flex-col lg:flex-row gap-4 mb-4">
-                <div className="flex-1">
-                  {renderSingleReadingSection('Crankshaft End Clearance', formData.crankshaftEndClearance, 'crankshaftEndClearance')}
-                </div>
-                <div className="lg:w-64 flex-shrink-0">
-                  <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-                    <Image src="/images/teardown_measuring_report/CRANKSHAFT END CLEARANCE.png" alt="Crankshaft End Clearance Diagram" width={250} height={150} className="w-full h-auto object-contain" />
-                  </div>
+          <SectionHeader title="Crankshaft End Clearance" sectionKey="crankshaftEndClearance" pageNum="Page 21" />
+          {expandedSections.crankshaftEndClearance && (
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                {renderSingleReadingSection('Crankshaft End Clearance', formData.crankshaftEndClearance, 'crankshaftEndClearance')}
+              </div>
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                  <Image src="/images/teardown_measuring_report/CRANKSHAFT END CLEARANCE.png" alt="Crankshaft End Clearance Diagram" width={300} height={200} className="w-full h-auto object-contain" />
                 </div>
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Page 21: Lube Oil Pump Backlash */}
+        {/* Page 21: Lube Oil Pump Gear Backlash */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionHeader title="Lube Oil Pump Gear Backlash" sectionKey="lubeOilPumpBacklash" pageNum="Page 21" />
+          {expandedSections.lubeOilPumpBacklash && (
+            <div className="flex-1">
               {renderSingleReadingSection('Lube Oil Pump Gear Backlash', formData.lubeOilPumpBacklash, 'lubeOilPumpBacklash')}
+            </div>
+          )}
+        </div>
 
+        {/* Pages 22-24: Miscellaneous */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionHeader title="Miscellaneous Measurements (Pages 22-24)" sectionKey="miscellaneous" />
+          {expandedSections.miscellaneous && (
+            <>
               {/* Page 22: Camshaft End Clearance */}
               <div className="flex flex-col lg:flex-row gap-4 mb-4">
                 <div className="flex-1">

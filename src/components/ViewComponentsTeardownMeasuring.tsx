@@ -69,7 +69,20 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
   }, [error]);
 
   const handlePrint = () => {
-    window.print();
+    const previous = expandedSections;
+    const allExpanded = Object.keys(previous).reduce<Record<string, boolean>>((acc, key) => {
+      acc[key] = true;
+      return acc;
+    }, {});
+    setExpandedSections(allExpanded);
+
+    // Wait for React to render the expanded sections, then print, then restore.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.print();
+        setExpandedSections(previous);
+      });
+    });
   };
 
   const SectionHeader = ({ title, sectionKey, pageNum }: { title: string; sectionKey: string; pageNum?: string }) => (

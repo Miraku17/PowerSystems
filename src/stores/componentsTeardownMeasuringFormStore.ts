@@ -58,6 +58,33 @@ export interface MainBearingBoreRow {
   measurement_c: string;
 }
 
+// Page 3b: Main Bearing Radial Clearance Data (dynamic journal rows)
+export interface MainBearingRadialClearanceRow {
+  journal_no: number;
+  data_point: 'X' | 'Y';
+  measurement_a: string;
+  measurement_b: string;
+  measurement_c: string;
+}
+
+// Page 5b: Crankshaft Main Journal Diameter Data (dynamic journal rows, Datum X/y)
+export interface CrankshaftMainJournalDiameterRow {
+  journal_no: number;
+  datum: 'X' | 'y';
+  measurement_a: string;
+  measurement_b: string;
+  measurement_c: string;
+}
+
+// Page 7b: Connecting Rod Bearing Bore Data (dynamic journal rows, Datum X/y)
+export interface ConnectingRodBearingBoreRow {
+  journal_no: number;
+  datum: 'X' | 'y';
+  measurement_a: string;
+  measurement_b: string;
+  measurement_c: string;
+}
+
 // Page 4: Camshaft Bushing Data
 export interface CamshaftBushingRow {
   bush_no: number;
@@ -377,6 +404,10 @@ export interface ComponentsTeardownMeasuringFormData {
   mainBearingBoreMeta: MeasurementSectionMeta;
   mainBearingBoreData: MainBearingBoreRow[];
 
+  // Page 3b: Main Bearing Radial Clearance
+  mainBearingRadialClearanceMeta: MeasurementSectionMeta;
+  mainBearingRadialClearanceData: MainBearingRadialClearanceRow[];
+
   // Page 4: Camshaft Bushing
   camshaftBushingMeta: MeasurementSectionMeta;
   camshaftBushingData: CamshaftBushingRow[];
@@ -385,6 +416,10 @@ export interface ComponentsTeardownMeasuringFormData {
   mainJournalMeta: MeasurementSectionMeta;
   mainJournalData: MainJournalRow[];
 
+  // Page 5b: Crankshaft Main Journal Diameter
+  crankshaftMainJournalDiameterMeta: MeasurementSectionMeta;
+  crankshaftMainJournalDiameterData: CrankshaftMainJournalDiameterRow[];
+
   // Page 6: Main Journal Width
   mainJournalWidthMeta: MeasurementSectionMeta;
   mainJournalWidthData: MainJournalWidthRow[];
@@ -392,6 +427,10 @@ export interface ComponentsTeardownMeasuringFormData {
   // Page 7: Con Rod Journal
   conRodJournalMeta: MeasurementSectionMeta;
   conRodJournalData: ConRodJournalRow[];
+
+  // Page 7b: Connecting Rod Bearing Bore
+  connectingRodBearingBoreMeta: MeasurementSectionMeta;
+  connectingRodBearingBoreData: ConnectingRodBearingBoreRow[];
 
   // Page 8: Crankshaft True Running
   crankshaftTrueRunningMeta: CrankshaftTrueRunningMeta;
@@ -559,6 +598,63 @@ const buildMainBearingBoreData = (): MainBearingBoreRow[] => {
       rows.push({
         bore_no: bore,
         axis,
+        measurement_a: '',
+        measurement_b: '',
+        measurement_c: '',
+      });
+    }
+  }
+  return rows;
+};
+
+// Page 3b: Build Main Bearing Radial Clearance rows (Journal 1-7, Data X/Y)
+const buildMainBearingRadialClearanceData = (): MainBearingRadialClearanceRow[] => {
+  const rows: MainBearingRadialClearanceRow[] = [];
+  const dataPoints: Array<'X' | 'Y'> = ['X', 'Y'];
+
+  for (let journal = 1; journal <= 7; journal++) {
+    for (const dp of dataPoints) {
+      rows.push({
+        journal_no: journal,
+        data_point: dp,
+        measurement_a: '',
+        measurement_b: '',
+        measurement_c: '',
+      });
+    }
+  }
+  return rows;
+};
+
+// Page 5b: Build Crankshaft Main Journal Diameter rows (Journal 1-7, Datum X/y)
+const buildCrankshaftMainJournalDiameterData = (): CrankshaftMainJournalDiameterRow[] => {
+  const rows: CrankshaftMainJournalDiameterRow[] = [];
+  const datums: Array<'X' | 'y'> = ['X', 'y'];
+
+  for (let journal = 1; journal <= 7; journal++) {
+    for (const d of datums) {
+      rows.push({
+        journal_no: journal,
+        datum: d,
+        measurement_a: '',
+        measurement_b: '',
+        measurement_c: '',
+      });
+    }
+  }
+  return rows;
+};
+
+// Page 7b: Build Connecting Rod Bearing Bore rows (Journal 1-8, Datum X/y)
+const buildConnectingRodBearingBoreData = (): ConnectingRodBearingBoreRow[] => {
+  const rows: ConnectingRodBearingBoreRow[] = [];
+  const datums: Array<'X' | 'y'> = ['X', 'y'];
+
+  for (let journal = 1; journal <= 8; journal++) {
+    for (const d of datums) {
+      rows.push({
+        journal_no: journal,
+        datum: d,
         measurement_a: '',
         measurement_b: '',
         measurement_c: '',
@@ -918,6 +1014,10 @@ const initialFormData: ComponentsTeardownMeasuringFormData = {
   mainBearingBoreMeta: createEmptyMeta(),
   mainBearingBoreData: buildMainBearingBoreData(),
 
+  // Page 3b: Main Bearing Radial Clearance
+  mainBearingRadialClearanceMeta: createEmptyMeta(),
+  mainBearingRadialClearanceData: buildMainBearingRadialClearanceData(),
+
   // Page 4: Camshaft Bushing
   camshaftBushingMeta: createEmptyMeta(),
   camshaftBushingData: buildCamshaftBushingData(),
@@ -926,6 +1026,10 @@ const initialFormData: ComponentsTeardownMeasuringFormData = {
   mainJournalMeta: createMetaWithMaxOvality(),
   mainJournalData: buildMainJournalData(),
 
+  // Page 5b: Crankshaft Main Journal Diameter
+  crankshaftMainJournalDiameterMeta: createEmptyMeta(),
+  crankshaftMainJournalDiameterData: buildCrankshaftMainJournalDiameterData(),
+
   // Page 6: Main Journal Width (uses spec_oversize_limit, NOT spec_wear_limit)
   mainJournalWidthMeta: createMetaWithOversizeLimit(),
   mainJournalWidthData: buildMainJournalWidthData(),
@@ -933,6 +1037,10 @@ const initialFormData: ComponentsTeardownMeasuringFormData = {
   // Page 7: Con Rod Journal (uses spec_oversize_limit, NOT spec_wear_limit)
   conRodJournalMeta: createMetaWithOversizeLimit(),
   conRodJournalData: buildConRodJournalData(),
+
+  // Page 7b: Connecting Rod Bearing Bore
+  connectingRodBearingBoreMeta: createEmptyMeta(),
+  connectingRodBearingBoreData: buildConnectingRodBearingBoreData(),
 
   // Page 8: Crankshaft True Running
   crankshaftTrueRunningMeta: {
@@ -1168,10 +1276,13 @@ export const useComponentsTeardownMeasuringFormStore = create<ComponentsTeardown
             cylinderBoreData: buildCylinderBoreData(),
             cylinderLinerData: buildCylinderLinerData(),
             mainBearingBoreData: buildMainBearingBoreData(),
+            mainBearingRadialClearanceData: buildMainBearingRadialClearanceData(),
             camshaftBushingData: buildCamshaftBushingData(),
             mainJournalData: buildMainJournalData(),
+            crankshaftMainJournalDiameterData: buildCrankshaftMainJournalDiameterData(),
             mainJournalWidthData: buildMainJournalWidthData(),
             conRodJournalData: buildConRodJournalData(),
+            connectingRodBearingBoreData: buildConnectingRodBearingBoreData(),
             crankshaftTrueRunningData: buildCrankshaftTrueRunningData(),
             smallEndBushData: buildSmallEndBushData(),
             bigEndBearingData: buildBigEndBearingData(),
@@ -1203,10 +1314,13 @@ export {
   buildCylinderBoreData,
   buildCylinderLinerData,
   buildMainBearingBoreData,
+  buildMainBearingRadialClearanceData,
   buildCamshaftBushingData,
   buildMainJournalData,
+  buildCrankshaftMainJournalDiameterData,
   buildMainJournalWidthData,
   buildConRodJournalData,
+  buildConnectingRodBearingBoreData,
   buildCrankshaftTrueRunningData,
   buildSmallEndBushData,
   buildBigEndBearingData,

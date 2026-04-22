@@ -52,10 +52,13 @@ export default function ComponentsTeardownMeasuringForm() {
     cylinderBore: true,
     cylinderLiner: false,
     mainBearingBore: false,
+    mainBearingRadialClearance: false,
     camshaftBushing: false,
     mainJournal: false,
+    crankshaftMainJournalDiameter: false,
     mainJournalWidth: false,
     conRodJournal: false,
+    connectingRodBearingBore: false,
     crankshaftTrueRunning: false,
     smallEndBush: false,
     bigEndBearing: false,
@@ -117,14 +120,20 @@ export default function ComponentsTeardownMeasuringForm() {
         cylinderLinerData: formData.cylinderLinerData,
         mainBearingBoreMeta: formData.mainBearingBoreMeta,
         mainBearingBoreData: formData.mainBearingBoreData,
+        mainBearingRadialClearanceMeta: formData.mainBearingRadialClearanceMeta,
+        mainBearingRadialClearanceData: formData.mainBearingRadialClearanceData,
         camshaftBushingMeta: formData.camshaftBushingMeta,
         camshaftBushingData: formData.camshaftBushingData,
         mainJournalMeta: formData.mainJournalMeta,
         mainJournalData: formData.mainJournalData,
+        crankshaftMainJournalDiameterMeta: formData.crankshaftMainJournalDiameterMeta,
+        crankshaftMainJournalDiameterData: formData.crankshaftMainJournalDiameterData,
         mainJournalWidthMeta: formData.mainJournalWidthMeta,
         mainJournalWidthData: formData.mainJournalWidthData,
         conRodJournalMeta: formData.conRodJournalMeta,
         conRodJournalData: formData.conRodJournalData,
+        connectingRodBearingBoreMeta: formData.connectingRodBearingBoreMeta,
+        connectingRodBearingBoreData: formData.connectingRodBearingBoreData,
         crankshaftTrueRunningMeta: formData.crankshaftTrueRunningMeta,
         crankshaftTrueRunningData: formData.crankshaftTrueRunningData,
         smallEndBushMeta: formData.smallEndBushMeta,
@@ -531,6 +540,240 @@ export default function ComponentsTeardownMeasuringForm() {
       </table>
     </div>
   );
+
+  // Dynamic Journal rows helper (shared by Main Bearing Radial Clearance and Crankshaft Main Journal Diameter)
+  const renderDynamicJournalTable = (
+    dataKey: 'mainBearingRadialClearanceData' | 'crankshaftMainJournalDiameterData' | 'connectingRodBearingBoreData',
+    pairField: 'data_point' | 'datum',
+    pairLabel: string,
+    pairValues: [string, string]
+  ) => {
+    const rows = formData[dataKey] as any[];
+
+    const addJournal = () => {
+      const maxJournal = rows.reduce((max, r) => Math.max(max, r.journal_no), 0);
+      const nextJournal = maxJournal + 1;
+      setFormData({
+        [dataKey]: [
+          ...rows,
+          { journal_no: nextJournal, [pairField]: pairValues[0], measurement_a: '', measurement_b: '', measurement_c: '' },
+          { journal_no: nextJournal, [pairField]: pairValues[1], measurement_a: '', measurement_b: '', measurement_c: '' },
+        ],
+      } as any);
+    };
+
+    const removeJournal = (journalNo: number) => {
+      setFormData({
+        [dataKey]: rows.filter(r => r.journal_no !== journalNo),
+      } as any);
+    };
+
+    const journalNumbers = Array.from(new Set(rows.map(r => r.journal_no))).sort((a, b) => a - b);
+
+    return (
+      <>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 px-2 py-2 text-left">Journal</th>
+                <th className="border border-gray-300 px-2 py-2 text-left">{pairLabel}</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">A</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">B</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">C</th>
+                <th className="border border-gray-300 px-2 py-2 text-center w-16">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {journalNumbers.map(journalNo => {
+                const journalRows = rows
+                  .map((r, i) => ({ row: r, index: i }))
+                  .filter(({ row }) => row.journal_no === journalNo);
+
+                return journalRows.map(({ row, index }, rowIdx) => (
+                  <tr key={`${journalNo}-${row[pairField]}`} className="hover:bg-gray-50">
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border border-gray-300 px-2 py-1 text-center font-medium align-middle"
+                      >
+                        {journalNo}
+                      </td>
+                    )}
+                    <td className="border border-gray-300 px-2 py-1 font-medium">{row[pairField]}</td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_a}
+                        onChange={(e) => updateMeasurementRow(dataKey, index, { measurement_a: e.target.value } as any)}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_b}
+                        onChange={(e) => updateMeasurementRow(dataKey, index, { measurement_b: e.target.value } as any)}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_c}
+                        onChange={(e) => updateMeasurementRow(dataKey, index, { measurement_c: e.target.value } as any)}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border border-gray-300 px-1 py-1 text-center align-middle"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => removeJournal(journalNo)}
+                          disabled={journalNumbers.length <= 1}
+                          className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Remove journal"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ));
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={addJournal}
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+          >
+            + Add Journal
+          </button>
+        </div>
+      </>
+    );
+  };
+
+  // Main Bearing Radial Clearance: dynamic Journal rows, each with X/Y + A/B/C
+  const renderMainBearingRadialClearanceTable = () => {
+    const rows = formData.mainBearingRadialClearanceData;
+
+    const addJournal = () => {
+      const maxJournal = rows.reduce((max, r) => Math.max(max, r.journal_no), 0);
+      const nextJournal = maxJournal + 1;
+      setFormData({
+        mainBearingRadialClearanceData: [
+          ...rows,
+          { journal_no: nextJournal, data_point: 'X', measurement_a: '', measurement_b: '', measurement_c: '' },
+          { journal_no: nextJournal, data_point: 'Y', measurement_a: '', measurement_b: '', measurement_c: '' },
+        ],
+      });
+    };
+
+    const removeJournal = (journalNo: number) => {
+      setFormData({
+        mainBearingRadialClearanceData: rows.filter(r => r.journal_no !== journalNo),
+      });
+    };
+
+    // Group rows by journal_no for rendering
+    const journalNumbers = Array.from(new Set(rows.map(r => r.journal_no))).sort((a, b) => a - b);
+
+    return (
+      <>
+        <div className="overflow-x-auto mb-4">
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border border-gray-300 px-2 py-2 text-left">Journal</th>
+                <th className="border border-gray-300 px-2 py-2 text-left">Data</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">A</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">B</th>
+                <th className="border border-gray-300 px-2 py-2 text-center">C</th>
+                <th className="border border-gray-300 px-2 py-2 text-center w-16">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {journalNumbers.map(journalNo => {
+                const journalRows = rows
+                  .map((r, i) => ({ row: r, index: i }))
+                  .filter(({ row }) => row.journal_no === journalNo);
+
+                return journalRows.map(({ row, index }, rowIdx) => (
+                  <tr key={`${journalNo}-${row.data_point}`} className="hover:bg-gray-50">
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border border-gray-300 px-2 py-1 text-center font-medium align-middle"
+                      >
+                        {journalNo}
+                      </td>
+                    )}
+                    <td className="border border-gray-300 px-2 py-1 font-medium">{row.data_point}</td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_a}
+                        onChange={(e) => updateMeasurementRow('mainBearingRadialClearanceData', index, { measurement_a: e.target.value })}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_b}
+                        onChange={(e) => updateMeasurementRow('mainBearingRadialClearanceData', index, { measurement_b: e.target.value })}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    <td className="border border-gray-300 px-1 py-1">
+                      <input
+                        type="text"
+                        value={row.measurement_c}
+                        onChange={(e) => updateMeasurementRow('mainBearingRadialClearanceData', index, { measurement_c: e.target.value })}
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      />
+                    </td>
+                    {rowIdx === 0 && (
+                      <td
+                        rowSpan={journalRows.length}
+                        className="border border-gray-300 px-1 py-1 text-center align-middle"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => removeJournal(journalNo)}
+                          disabled={journalNumbers.length <= 1}
+                          className="text-red-600 hover:text-red-800 text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                          title="Remove journal"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ));
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mb-4">
+          <button
+            type="button"
+            onClick={addJournal}
+            className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700"
+          >
+            + Add Journal
+          </button>
+        </div>
+      </>
+    );
+  };
 
   // Generic table with Measuring Point 1/2 and 2 columns (A, B)
   const renderMeasuringPointTable2Col = (
@@ -1218,6 +1461,25 @@ export default function ComponentsTeardownMeasuringForm() {
           )}
         </div>
 
+        {/* Page 3b: Main Bearing Radial Clearance */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionHeader title="Main Bearing Radial Clearance" sectionKey="mainBearingRadialClearance" pageNum="Page 3b" />
+          {expandedSections.mainBearingRadialClearance && (
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                {renderSpecsRow(formData.mainBearingRadialClearanceMeta, "mainBearingRadialClearanceMeta")}
+                {renderMainBearingRadialClearanceTable()}
+                {renderFooterRow(formData.mainBearingRadialClearanceMeta, "mainBearingRadialClearanceMeta")}
+              </div>
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                  <Image src="/images/teardown_measuring_report/main_bearing_bore.png" alt="Main Bearing Radial Clearance Diagram" width={300} height={200} className="w-full h-auto object-contain" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Page 4: Camshaft Bushing */}
         <div className="border border-gray-200 rounded-lg p-4">
           <SectionHeader title="Camshaft Bushing" sectionKey="camshaftBushing" pageNum="Page 4" />
@@ -1256,6 +1518,25 @@ export default function ComponentsTeardownMeasuringForm() {
           )}
         </div>
 
+        {/* Page 5b: Crankshaft Main Journal Diameter */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionHeader title="Crankshaft Main Journal Diameter" sectionKey="crankshaftMainJournalDiameter" pageNum="Page 5b" />
+          {expandedSections.crankshaftMainJournalDiameter && (
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                {renderSpecsRow(formData.crankshaftMainJournalDiameterMeta, "crankshaftMainJournalDiameterMeta")}
+                {renderDynamicJournalTable('crankshaftMainJournalDiameterData', 'datum', 'Datum', ['X', 'y'])}
+                {renderFooterRow(formData.crankshaftMainJournalDiameterMeta, "crankshaftMainJournalDiameterMeta")}
+              </div>
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                  <Image src="/images/teardown_measuring_report/main_journal.png" alt="Crankshaft Main Journal Diameter Diagram" width={300} height={200} className="w-full h-auto object-contain" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Page 6: Main Journal Width */}
         <div className="border border-gray-200 rounded-lg p-4">
           <SectionHeader title="Main Journal Width (Thrust Bearing)" sectionKey="mainJournalWidth" pageNum="Page 6" />
@@ -1288,6 +1569,25 @@ export default function ComponentsTeardownMeasuringForm() {
               <div className="lg:w-80 flex-shrink-0">
                 <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
                   <Image src="/images/teardown_measuring_report/con_rod_journal.png" alt="Con Rod Journal Diagram" width={300} height={200} className="w-full h-auto object-contain" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Page 7b: Connecting Rod Bearing Bore */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <SectionHeader title="Connecting Rod Bearing Bore" sectionKey="connectingRodBearingBore" pageNum="Page 7b" />
+          {expandedSections.connectingRodBearingBore && (
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                {renderSpecsRow(formData.connectingRodBearingBoreMeta, "connectingRodBearingBoreMeta")}
+                {renderDynamicJournalTable('connectingRodBearingBoreData', 'datum', 'Datum', ['X', 'y'])}
+                {renderFooterRow(formData.connectingRodBearingBoreMeta, "connectingRodBearingBoreMeta")}
+              </div>
+              <div className="lg:w-80 flex-shrink-0">
+                <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                  <Image src="/images/teardown_measuring_report/connecting_rod_2.png" alt="Connecting Rod Bearing Bore Diagram" width={300} height={200} className="w-full h-auto object-contain" />
                 </div>
               </div>
             </div>

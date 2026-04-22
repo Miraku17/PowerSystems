@@ -18,10 +18,13 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
     cylinderBore: true,
     cylinderLiner: false,
     mainBearingBore: false,
+    mainBearingRadialClearance: false,
     camshaftBushing: false,
     mainJournal: false,
+    crankshaftMainJournalDiameter: false,
     mainJournalWidth: false,
     conRodJournal: false,
+    connectingRodBearingBore: false,
     crankshaftTrueRunning: false,
     smallEndBush: false,
     bigEndBearing: false,
@@ -231,6 +234,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
             </div>
           )}
 
+          {/* Main Bearing Radial Clearance */}
+          <SectionHeader title="Main Bearing Radial Clearance" sectionKey="mainBearingRadialClearance" pageNum="Page 3b" />
+          {expandedSections.mainBearingRadialClearance && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('mainBearingRadialClearanceMeta')}
+              {renderMeasurementTable('mainBearingRadialClearanceData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.data_point}`)}
+            </div>
+          )}
+
           {/* Camshaft Bushing */}
           <SectionHeader title="Camshaft Bushing" sectionKey="camshaftBushing" pageNum="Page 4" />
           {expandedSections.camshaftBushing && fullData?.measurementData && (
@@ -253,6 +267,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
             </div>
           )}
 
+          {/* Crankshaft Main Journal Diameter */}
+          <SectionHeader title="Crankshaft Main Journal Diameter" sectionKey="crankshaftMainJournalDiameter" pageNum="Page 5b" />
+          {expandedSections.crankshaftMainJournalDiameter && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('crankshaftMainJournalDiameterMeta')}
+              {renderMeasurementTable('crankshaftMainJournalDiameterData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
+            </div>
+          )}
+
           {/* Main Journal Width */}
           <SectionHeader title="Main Journal Width" sectionKey="mainJournalWidth" pageNum="Page 6" />
           {expandedSections.mainJournalWidth && fullData?.measurementData && (
@@ -272,6 +297,17 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
               {renderMeasurementTable('conRodJournalData',
                 [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
                 (row) => `Journal ${row.journal_no} - ${row.axis}`)}
+            </div>
+          )}
+
+          {/* Connecting Rod Bearing Bore */}
+          <SectionHeader title="Connecting Rod Bearing Bore" sectionKey="connectingRodBearingBore" pageNum="Page 7b" />
+          {expandedSections.connectingRodBearingBore && fullData?.measurementData && (
+            <div className="bg-gray-50 p-4 rounded-lg mb-4 print:bg-white print:border">
+              {renderSpecsMeta('connectingRodBearingBoreMeta')}
+              {renderMeasurementTable('connectingRodBearingBoreData',
+                [{ key: 'measurement_a', label: 'A' }, { key: 'measurement_b', label: 'B' }, { key: 'measurement_c', label: 'C' }],
+                (row) => `Journal ${row.journal_no} - ${row.datum}`)}
             </div>
           )}
 

@@ -31,11 +31,11 @@ export function SaveDialog({ open, changes, positions, permissions, onCancel, on
 
         <div className="mt-3 max-h-48 overflow-y-auto rounded border border-gray-200 text-xs">
           <ul className="divide-y divide-gray-100">
-            {changes.map((c, i) => {
+            {changes.map((c) => {
               const pos = posById.get(c.position_id);
               const perm = permById.get(c.permission_id);
               return (
-                <li key={i} className="px-3 py-1.5 font-mono">
+                <li key={`${c.position_id}:${c.permission_id}`} className="px-3 py-1.5 font-mono">
                   <span className="text-gray-700">{pos?.name ?? c.position_id}</span>
                   {' · '}
                   <span className="text-[#2B4C7E]">

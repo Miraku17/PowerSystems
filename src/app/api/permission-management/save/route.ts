@@ -30,6 +30,13 @@ export const POST = withAuth(async (request, { user }) => {
     );
   }
 
+  if (body.changes.length === 0) {
+    return NextResponse.json(
+      { success: false, message: 'No changes to save' },
+      { status: 400 },
+    );
+  }
+
   const { data: permissions, error: permError } = await supabase
     .from('permissions')
     .select('id, module, action, description, is_scoped')
@@ -68,6 +75,13 @@ export const POST = withAuth(async (request, { user }) => {
       .order('module'),
     supabase.from('position_permissions').select('position_id, permission_id, scope').order('position_id'),
   ]);
+
+  if (positions.error || perms.error || assignments.error) {
+    return NextResponse.json(
+      { success: false, message: 'Save succeeded but failed to reload matrix; refresh the page' },
+      { status: 500 },
+    );
+  }
 
   return NextResponse.json({
     success: true,

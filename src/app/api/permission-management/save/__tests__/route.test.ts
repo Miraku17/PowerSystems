@@ -61,6 +61,18 @@ describe('POST /api/permission-management/save', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects empty changes array', async () => {
+    (requireSuperAdmin as jest.Mock).mockResolvedValue({ ok: true, superAdminPositionId: 'p-super' });
+    (getServiceSupabase as jest.Mock).mockReturnValue(buildSupabase({ permissions: PERMS }));
+    const res = await POST(
+      new Request('http://x/save', { method: 'POST', body: JSON.stringify({ reason: '', changes: [] }) }),
+      {} as any,
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.message).toMatch(/No changes/);
+  });
+
   it('rejects when validateChanges fails (e.g., super admin position)', async () => {
     (requireSuperAdmin as jest.Mock).mockResolvedValue({ ok: true, superAdminPositionId: 'p-super' });
     (getServiceSupabase as jest.Mock).mockReturnValue(buildSupabase({ permissions: PERMS }));

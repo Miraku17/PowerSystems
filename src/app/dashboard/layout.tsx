@@ -253,6 +253,13 @@ function DashboardLayoutInner({
       section: "System",
     },
     {
+      name: "Permission Management",
+      icon: ShieldCheckIcon,
+      href: "/dashboard/permission-management",
+      section: "System",
+      superAdminOnly: true,
+    },
+    {
       name: "Deleted Records",
       icon: TrashIcon,
       href: "/dashboard/trash",
@@ -267,6 +274,9 @@ function DashboardLayoutInner({
   ];
 
   const navigation = allNavigation.filter((item: any) => {
+    if (item.superAdminOnly) {
+      return userPosition === "Super Admin";
+    }
     // Permission-gated items: only show if user has the required permission
     if (item.permission) {
       if (item.permission.action) {
@@ -303,6 +313,10 @@ function DashboardLayoutInner({
         return;
       }
       if (pathname.startsWith("/dashboard/daily-time-sheet") && !canAccess("dts")) {
+        router.push("/dashboard/overview");
+        return;
+      }
+      if (pathname.startsWith("/dashboard/permission-management") && userPosition !== "Super Admin") {
         router.push("/dashboard/overview");
         return;
       }

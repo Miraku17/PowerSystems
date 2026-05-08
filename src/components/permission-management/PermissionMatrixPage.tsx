@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Position } from '@/lib/permission-management/types';
+import { MatrixData, Position } from '@/lib/permission-management/types';
 import { usePermissionMatrix } from './usePermissionMatrix';
 import { MatrixToolbar } from './MatrixToolbar';
 import { ModuleSection } from './ModuleSection';
@@ -41,8 +41,8 @@ export function PermissionMatrixPage() {
   );
 
   const groupedByModule = useMemo(() => {
-    if (!matrix) return [] as Array<{ module: string; permissions: typeof matrix.permissions }>;
-    const groups = new Map<string, typeof matrix.permissions>();
+    if (!matrix) return [] as Array<{ module: string; permissions: MatrixData['permissions'] }>;
+    const groups = new Map<string, MatrixData['permissions']>();
     for (const p of matrix.permissions) {
       if (search && !p.module.toLowerCase().includes(search.toLowerCase())) continue;
       const list = groups.get(p.module) ?? [];

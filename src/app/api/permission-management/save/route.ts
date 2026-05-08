@@ -3,6 +3,7 @@ import { getServiceSupabase } from '@/lib/supabase';
 import { withAuth } from '@/lib/auth-middleware';
 import { requireSuperAdmin } from '@/lib/permission-management/guard';
 import { validateChanges } from '@/lib/permission-management/validate';
+import { isKnownPermission } from '@/lib/permission-management/known-permissions';
 import type { SaveRequestBody } from '@/lib/permission-management/types';
 
 export const POST = withAuth(async (request, { user }) => {
@@ -49,7 +50,11 @@ export const POST = withAuth(async (request, { user }) => {
     );
   }
 
-  const validation = validateChanges(body.changes, permissions, guard.superAdminPositionId);
+  const knownPermissions = permissions.filter((p: { module: string; action: string }) =>
+    isKnownPermission(p.module, p.action),
+  );
+
+  const validation = validateChanges(body.changes, knownPermissions, guard.superAdminPositionId);
   if (!validation.ok) {
     return NextResponse.json({ success: false, message: validation.message }, { status: 400 });
   }
@@ -83,13 +88,21 @@ export const POST = withAuth(async (request, { user }) => {
     );
   }
 
+  const visiblePerms = (perms.data ?? []).filter((p: { module: string; action: string }) =>
+    isKnownPermission(p.module, p.action),
+  );
+  const visiblePermIds = new Set(visiblePerms.map((p: { id: string }) => p.id));
+  const visibleAssignments = (assignments.data ?? []).filter((a: { permission_id: string }) =>
+    visiblePermIds.has(a.permission_id),
+  );
+
   return NextResponse.json({
     success: true,
     batch_id: batchId,
     data: {
       positions: positions.data ?? [],
-      permissions: perms.data ?? [],
-      assignments: assignments.data ?? [],
+      permissions: visiblePerms,
+      assignments: visibleAssignments,
     },
   });
 });

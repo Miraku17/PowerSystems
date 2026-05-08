@@ -14,7 +14,7 @@ export function PermissionTooltip({ description, children }: Props) {
       {children}
       <span
         role="tooltip"
-        className="pointer-events-none absolute left-0 top-full z-10 mt-1 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow group-hover:block"
+        className="pointer-events-none absolute left-0 top-full z-50 mt-1 hidden whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-xs text-white shadow group-hover:block"
       >
         {description}
       </span>

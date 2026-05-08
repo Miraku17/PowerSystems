@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServiceSupabase } from '@/lib/supabase';
 import { withAuth } from '@/lib/auth-middleware';
 import { requireSuperAdmin } from '@/lib/permission-management/guard';
+import { isKnownPermission } from '@/lib/permission-management/known-permissions';
 
 export const GET = withAuth(async (_req, { user }) => {
   const supabase = getServiceSupabase();
@@ -30,12 +31,20 @@ export const GET = withAuth(async (_req, { user }) => {
     );
   }
 
+  const visiblePermissions = (permissions.data ?? []).filter((p: { module: string; action: string }) =>
+    isKnownPermission(p.module, p.action),
+  );
+  const visiblePermissionIds = new Set(visiblePermissions.map((p: { id: string }) => p.id));
+  const visibleAssignments = (assignments.data ?? []).filter((a: { permission_id: string }) =>
+    visiblePermissionIds.has(a.permission_id),
+  );
+
   return NextResponse.json({
     success: true,
     data: {
       positions: positions.data ?? [],
-      permissions: permissions.data ?? [],
-      assignments: assignments.data ?? [],
+      permissions: visiblePermissions,
+      assignments: visibleAssignments,
     },
   });
 });

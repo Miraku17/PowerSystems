@@ -3,23 +3,26 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter } from "@/lib/permissions";
 
-// Map form types to their database table names
-const formTypeTables: Record<string, string> = {
-  "job-order-request": "job_order_request_form",
-  "daily-time-sheet": "daily_time_sheet",
-  "deutz-service": "deutz_service_report",
-  "deutz-commissioning": "deutz_commissioning_report",
-  "submersible-pump-commissioning": "submersible_pump_commissioning_report",
-  "submersible-pump-service": "submersible_pump_service_report",
-  "submersible-pump-teardown": "submersible_pump_teardown_report",
-  "electric-surface-pump-commissioning": "electric_surface_pump_commissioning_report",
-  "electric-surface-pump-service": "electric_surface_pump_service_report",
-  "engine-surface-pump-service": "engine_surface_pump_service_report",
-  "engine-surface-pump-commissioning": "engine_surface_pump_commissioning_report",
-  "engine-teardown": "engine_teardown_reports",
-  "electric-surface-pump-teardown": "electric_surface_pump_teardown_report",
-  "engine-inspection-receiving": "engine_inspection_receiving_report",
-  "components-teardown-measuring": "components_teardown_measuring_report",
+// Map form types to their database table names (and optional report_kind filter)
+type FormTypeFilter = { table: string; kindFilter?: 'teardown' | 'buildup' };
+
+const formTypeTables: Record<string, FormTypeFilter> = {
+  "job-order-request": { table: "job_order_request_form" },
+  "daily-time-sheet": { table: "daily_time_sheet" },
+  "deutz-service": { table: "deutz_service_report" },
+  "deutz-commissioning": { table: "deutz_commissioning_report" },
+  "submersible-pump-commissioning": { table: "submersible_pump_commissioning_report" },
+  "submersible-pump-service": { table: "submersible_pump_service_report" },
+  "submersible-pump-teardown": { table: "submersible_pump_teardown_report" },
+  "electric-surface-pump-commissioning": { table: "electric_surface_pump_commissioning_report" },
+  "electric-surface-pump-service": { table: "electric_surface_pump_service_report" },
+  "engine-surface-pump-service": { table: "engine_surface_pump_service_report" },
+  "engine-surface-pump-commissioning": { table: "engine_surface_pump_commissioning_report" },
+  "engine-teardown": { table: "engine_teardown_reports" },
+  "electric-surface-pump-teardown": { table: "electric_surface_pump_teardown_report" },
+  "engine-inspection-receiving": { table: "engine_inspection_receiving_report" },
+  "components-teardown-measuring": { table: "components_teardown_measuring_report", kindFilter: "teardown" },
+  "components-buildup-report": { table: "components_teardown_measuring_report", kindFilter: "buildup" },
 };
 
 export const GET = withAuth(async (request, { user }) => {
@@ -40,7 +43,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     // Fetch count for each form type
     await Promise.all(
-      Object.entries(formTypeTables).map(async ([formType, tableName]) => {
+      Object.entries(formTypeTables).map(async ([formType, { table: tableName, kindFilter }]) => {
         try {
           let query = supabase
             .from(tableName)
@@ -49,6 +52,10 @@ export const GET = withAuth(async (request, { user }) => {
 
           if (allowedUserIds !== null) {
             query = query.in("created_by", allowedUserIds);
+          }
+
+          if (kindFilter) {
+            query = query.eq("report_kind", kindFilter);
           }
 
           const { count, error } = await query;

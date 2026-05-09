@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
-import { getUserAddresses } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 
 // --- GET: Fetch all components teardown measuring reports ---
 export const GET = withAuth(async (request, { user }) => {
@@ -15,6 +15,11 @@ export const GET = withAuth(async (request, { user }) => {
       return NextResponse.json({ success: true, data: [] });
     }
 
+    const { searchParams } = new URL(request.url);
+    const kindParam = searchParams.get("kind");
+    const kindFilter =
+      kindParam === "teardown" || kindParam === "buildup" ? kindParam : null;
+
     let query = supabase
       .from("components_teardown_measuring_report")
       .select("*")
@@ -23,6 +28,10 @@ export const GET = withAuth(async (request, { user }) => {
 
     if (allowedUserIds !== null) {
       query = query.in("created_by", allowedUserIds);
+    }
+
+    if (kindFilter) {
+      query = query.eq("report_kind", kindFilter);
     }
 
     const { data, error } = await query;
@@ -40,8 +49,11 @@ export const GET = withAuth(async (request, { user }) => {
     const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
     const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
 
+    const updaterIds = [...new Set(data.map((r: any) => r.updated_by).filter(Boolean))];
+    const nameMap = await getUserDisplayNames(supabase, [...new Set([...creatorIds, ...updaterIds])] as string[]);
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
+      const isBuildup = record.report_kind === "buildup";
       return {
         id: record.id,
         companyFormId: null,
@@ -51,11 +63,14 @@ export const GET = withAuth(async (request, { user }) => {
         dateUpdated: record.updated_at,
         created_by: record.created_by,
         created_by_address: addressMap[record.created_by] || null,
+updated_by_name: record.updated_by ? (nameMap[record.updated_by] || "") : "",
         approval,
         companyForm: {
-          id: "components-teardown-measuring",
-          name: "Components Teardown Measuring Report",
-          formType: "components-teardown-measuring",
+          id: isBuildup ? "components-buildup-report" : "components-teardown-measuring",
+          name: isBuildup
+            ? "Components Build-up Report"
+            : "Components Teardown Measuring Report",
+          formType: isBuildup ? "components-buildup-report" : "components-teardown-measuring",
         },
       };
     });
@@ -93,6 +108,16 @@ export const POST = withAuth(async (request, { user }) => {
     const serial_no = getString('serial_no');
     const job_order_no = getString('job_order_no');
 
+    // Report kind: 'teardown' (default) or 'buildup'
+    const rawKind = getString('report_kind') || 'teardown';
+    if (rawKind !== 'teardown' && rawKind !== 'buildup') {
+      return NextResponse.json(
+        { error: "Invalid report_kind. Must be 'teardown' or 'buildup'." },
+        { status: 400 }
+      );
+    }
+    const report_kind: 'teardown' | 'buildup' = rawKind;
+
     // Parse measurement data JSON
     const measurementDataJson = getString('measurementData');
     let measurementData: any = {};
@@ -114,6 +139,7 @@ export const POST = withAuth(async (request, { user }) => {
         engine_model,
         serial_no,
         job_order_no,
+        report_kind,
         created_by: user.id,
       }])
       .select();

@@ -189,6 +189,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     const {
       shop_field_jo_number,
       date_prepared,
+      reporting_branch,
       full_customer_name,
       address,
       location_of_unit,
@@ -304,6 +305,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
           shop_field_jo_number,
         }),
       date_prepared: date_prepared || null,
+      reporting_branch: reporting_branch || null,
       full_customer_name,
       address,
       location_of_unit,

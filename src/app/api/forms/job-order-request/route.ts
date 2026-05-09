@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
-import { getUserAddresses } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -47,6 +47,8 @@ export const GET = withAuth(async (request, { user }) => {
     const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
     const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
 
+    const updaterIds = [...new Set(data.map((r: any) => r.updated_by).filter(Boolean))];
+    const nameMap = await getUserDisplayNames(supabase, [...new Set([...creatorIds, ...updaterIds])] as string[]);
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       const rawStatus = (record.status || "").trim();
@@ -60,6 +62,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateUpdated: record.updated_at,
         created_by: record.created_by,
         created_by_address: addressMap[record.created_by] || null,
+updated_by_name: record.updated_by ? (nameMap[record.updated_by] || "") : "",
         approval,
         companyForm: {
           id: "job-order-request",
@@ -131,6 +134,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Extract all fields (shop_field_jo_number is now auto-generated from jo_number)
     const date_prepared = getString('date_prepared');
+    const reporting_branch = getString('reporting_branch');
     const full_customer_name = getString('full_customer_name');
     const address = getString('address');
     const location_of_unit = getString('location_of_unit');
@@ -232,6 +236,7 @@ export const POST = withAuth(async (request, { user }) => {
       .insert([
         {
           date_prepared: date_prepared || null,
+          reporting_branch: reporting_branch || null,
           full_customer_name,
           address,
           location_of_unit,

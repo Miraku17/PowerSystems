@@ -67,6 +67,8 @@ interface FormRecord {
   dateUpdated: string;
   created_by?: string;
   created_by_address?: string | null;
+  updated_by?: string;
+  updated_by_name?: string;
   approval?: {
     approval_id: string | null;
     approval_status: string;
@@ -84,8 +86,22 @@ const SERVICE_REPORT_FORM_TYPES = [
   "submersible-pump-service", "submersible-pump-commissioning", "submersible-pump-teardown",
   "engine-surface-pump-service", "engine-surface-pump-commissioning",
   "electric-surface-pump-service", "electric-surface-pump-commissioning", "electric-surface-pump-teardown",
-  "engine-inspection-receiving", "engine-teardown", "components-teardown-measuring",
+  "engine-inspection-receiving", "engine-teardown", "components-teardown-measuring", "components-buildup-report",
 ];
+
+// Format a record's last-modified info as "DD-MMM-YY by <username>".
+// Falls back to creator name when the record has never been edited.
+export function formatLastModified(record: FormRecord): string {
+  const ts = record.dateUpdated || record.dateCreated;
+  if (!ts) return "";
+  const d = new Date(ts);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = d.toLocaleString("en-US", { month: "short" }).toUpperCase();
+  const year = String(d.getFullYear()).slice(-2);
+  const datePart = `${day}-${month}-${year}`;
+  const name = record.updated_by_name || "";
+  return name ? `${datePart} by ${name}` : datePart;
+}
 
 function ApprovalStatusBadge({ status }: { status?: string }) {
   const config: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
@@ -279,7 +295,8 @@ export default function FormRecordsPage() {
     "engine-teardown": { endpoint: "/forms/engine-teardown", name: "Engine Teardown Report" },
     "electric-surface-pump-teardown": { endpoint: "/forms/electric-surface-pump-teardown", name: "Electric Driven Surface Pump Teardown Report" },
     "engine-inspection-receiving": { endpoint: "/forms/engine-inspection-receiving", name: "Engine Inspection / Receiving Report" },
-    "components-teardown-measuring": { endpoint: "/forms/components-teardown-measuring", name: "Components Teardown Measuring Report" },
+    "components-teardown-measuring": { endpoint: "/forms/components-teardown-measuring?kind=teardown", name: "Components Teardown Measuring Report" },
+    "components-buildup-report": { endpoint: "/forms/components-teardown-measuring?kind=buildup", name: "Components Build-up Report" },
     "daily-time-sheet": { endpoint: "/forms/daily-time-sheet", name: "Daily Time Sheet" },
     "commission": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
     "commissioning": { endpoint: "/forms/deutz-commissioning", name: "Deutz Commissioning Report" },
@@ -527,6 +544,7 @@ export default function FormRecordsPage() {
         "electric-surface-pump-teardown": "electric-surface-pump-teardown",
         "engine-inspection-receiving": "engine-inspection-receiving",
         "components-teardown-measuring": "components-teardown-measuring",
+        "components-buildup-report": "components-teardown-measuring",
         "daily-time-sheet": "daily-time-sheet",
       };
 
@@ -768,7 +786,7 @@ export default function FormRecordsPage() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Order</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{serialNoLabel}</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date Created</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Modified</th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     {canApproveDeptHead && (
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dept. Head</th>
@@ -791,7 +809,7 @@ export default function FormRecordsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex items-center">
                           <CalendarIcon className="h-4 w-4 mr-1.5 text-gray-400" />
-                          {new Date(record.dateCreated).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                          {formatLastModified(record)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -974,10 +992,10 @@ export default function FormRecordsPage() {
                       <p className="text-lg font-bold text-gray-900">{getJobOrder(record)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Date</p>
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Last Modified</p>
                       <p className="text-sm font-medium text-gray-700 flex items-center justify-end">
                          <CalendarIcon className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                         {new Date(record.dateCreated).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                         {formatLastModified(record)}
                       </p>
                     </div>
                   </div>
@@ -1620,7 +1638,7 @@ export default function FormRecordsPage() {
         />
       )}
 
-      {selectedRecord && normalizedFormType === "components-teardown-measuring" && (
+      {selectedRecord && ["components-teardown-measuring", "components-buildup-report"].includes(normalizedFormType) && (
         <ViewComponentsTeardownMeasuring
           data={selectedRecord.data}
           recordId={selectedRecord.id}
@@ -1628,7 +1646,7 @@ export default function FormRecordsPage() {
         />
       )}
 
-      {editingRecord && normalizedFormType === "components-teardown-measuring" && (
+      {editingRecord && ["components-teardown-measuring", "components-buildup-report"].includes(normalizedFormType) && (
         <EditComponentsTeardownMeasuring
           data={editingRecord.data}
           recordId={editingRecord.id}

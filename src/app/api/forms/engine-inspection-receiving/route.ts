@@ -4,7 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { SECTION_DEFINITIONS } from "@/stores/engineInspectionReceivingFormStore";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
-import { getUserAddresses } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -110,6 +110,8 @@ export const GET = withAuth(async (request, { user }) => {
     const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
     const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
 
+    const updaterIds = [...new Set(data.map((r: any) => r.updated_by).filter(Boolean))];
+    const nameMap = await getUserDisplayNames(supabase, [...new Set([...creatorIds, ...updaterIds])] as string[]);
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       return {
@@ -121,6 +123,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateUpdated: record.updated_at,
         created_by: record.created_by,
         created_by_address: addressMap[record.created_by] || null,
+updated_by_name: record.updated_by ? (nameMap[record.updated_by] || "") : "",
         approval,
         companyForm: {
           id: "engine-inspection-receiving",

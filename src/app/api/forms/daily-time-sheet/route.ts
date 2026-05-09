@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
-import { getUserAddresses } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -46,6 +46,8 @@ export const GET = withAuth(async (request, { user }) => {
     const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
     const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
 
+    const updaterIds = [...new Set(data.map((r: any) => r.updated_by).filter(Boolean))];
+    const nameMap = await getUserDisplayNames(supabase, [...new Set([...creatorIds, ...updaterIds])] as string[]);
     const formRecords = data.map((record: any) => ({
       id: record.id,
       companyFormId: null,
@@ -55,6 +57,7 @@ export const GET = withAuth(async (request, { user }) => {
       dateUpdated: record.updated_at,
       created_by: record.created_by,
       created_by_address: addressMap[record.created_by] || null,
+updated_by_name: record.updated_by ? (nameMap[record.updated_by] || "") : "",
       companyForm: {
         id: "daily-time-sheet",
         name: "Daily Time Sheet",

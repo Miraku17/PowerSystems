@@ -103,6 +103,12 @@ export default function RecordsFoldersPage() {
       formType: "components-teardown-measuring",
       description: "Comprehensive component measurement reports for teardown analysis and quality control.",
     },
+    {
+      id: "components-buildup-report",
+      name: "Components Build-up Report",
+      formType: "components-buildup-report",
+      description: "Comprehensive component measurement reports for build-up assembly and quality control.",
+    },
   ];
 
   // Fetch record counts using TanStack Query

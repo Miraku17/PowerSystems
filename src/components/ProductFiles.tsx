@@ -6,9 +6,11 @@ import {
   ArrowUpTrayIcon,
   DocumentArrowDownIcon,
   DocumentTextIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 import { usePermissions } from "@/hooks/usePermissions";
+import ConfirmationModal from "./ConfirmationModal";
 
 const BUCKET = "products";
 
@@ -30,6 +32,8 @@ export default function ProductFiles() {
   const [files, setFiles] = useState<ProductFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = useCallback(async () => {
@@ -85,6 +89,21 @@ export default function ProductFiles() {
     toast.dismiss(loadingToast);
     if (successes > 0) toast.success(`Uploaded ${successes} file(s)`);
     if (inputRef.current) inputRef.current.value = "";
+    await loadFiles();
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
+    setIsDeleting(true);
+    const target = pendingDelete;
+    const { error } = await supabase.storage.from(BUCKET).remove([target]);
+    setIsDeleting(false);
+    setPendingDelete(null);
+    if (error) {
+      toast.error(`Failed to delete: ${error.message}`);
+      return;
+    }
+    toast.success("File deleted");
     await loadFiles();
   };
 
@@ -159,11 +178,32 @@ export default function ProductFiles() {
                 >
                   <DocumentArrowDownIcon className="h-4 w-4" />
                 </button>
+                {canWrite("products") && (
+                  <button
+                    onClick={() => setPendingDelete(file.name)}
+                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    title="Delete"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
         )}
       </div>
+
+      <ConfirmationModal
+        isOpen={pendingDelete !== null}
+        onClose={() => {
+          if (!isDeleting) setPendingDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete file"
+        message={`Delete "${pendingDelete ?? ""}"? This cannot be undone.`}
+        confirmText={isDeleting ? "Deleting…" : "Delete"}
+        type="danger"
+      />
     </div>
   );
 }

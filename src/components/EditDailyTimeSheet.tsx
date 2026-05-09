@@ -529,7 +529,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   onChange={(value) => handleFieldChange('job_number', value)}
                   onSelect={handleJobOrderSelect}
                 />
-                <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
+                <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} disabled />
                 <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
                 <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>

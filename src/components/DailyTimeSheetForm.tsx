@@ -332,14 +332,12 @@ export default function DailyTimeSheetForm() {
             />
             <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />
             <div className="md:col-span-2">
-              <CustomerAutocomplete
+              <Input
                 label="Customer"
                 name="customer"
                 value={formData.customer}
                 onChange={handleChange}
-                onSelect={handleCustomerSelect}
-                customers={customers}
-                searchKey="customer"
+                disabled
                 required
               />
             </div>

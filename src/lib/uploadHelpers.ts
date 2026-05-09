@@ -14,12 +14,16 @@ export const buildStoragePath = (category: string, filename: string): string => 
 };
 
 /**
- * Validate if file is an image
+ * Validate if file is an image or PDF
  * @param file - File to validate
- * @returns true if file is an image
+ * @returns true if file is an image or PDF
  */
 export const validateFileType = (file: File): boolean => {
-  return file.type.startsWith('image/');
+  if (file.type.startsWith('image/')) return true;
+  return (
+    file.type === 'application/pdf' ||
+    file.name.toLowerCase().endsWith('.pdf')
+  );
 };
 
 /**

@@ -44,7 +44,7 @@ const Input = ({ label, name, value, type = "text", className = "", step, onChan
   </div>
 );
 
-const TextArea = ({ label, name, value, onChange }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void }) => (
+const TextArea = ({ label, name, value, onChange, disabled = false }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void; disabled?: boolean }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <textarea
@@ -52,19 +52,21 @@ const TextArea = ({ label, name, value, onChange }: { label: string; name: strin
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
       rows={3}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
     />
   </div>
 );
 
-const SelectDropdown = ({ label, name, value, options, onChange }: { label: string; name: string; value: any; options: string[]; onChange: (name: string, value: any) => void }) => (
+const SelectDropdown = ({ label, name, value, options, onChange, disabled = false }: { label: string; name: string; value: any; options: string[]; onChange: (name: string, value: any) => void; disabled?: boolean }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <select
       name={name}
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 disabled:bg-gray-100 disabled:cursor-not-allowed"
     >
       {options.map((option) => (
         <option key={option} value={option}>
@@ -111,6 +113,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   const canReceiveByCreditCollection = hasPermission("jo_credit_collection_approval", "edit");
   const canEditRequestedBy = hasPermission("jo_signatory", "requested_by");
   const canEditVerifiedBy = hasPermission("jo_signatory", "verified_by");
+  const canEditServiceUse = hasPermission("jo_service_use", "edit");
 
   const currentUser = useCurrentUser();
   const currentUserPosition = (
@@ -397,27 +400,28 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             <div>
               <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">Service Use Only</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 bg-red-50 p-4 rounded-lg">
-                <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleFieldChange} />
+                <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleFieldChange} disabled={!canEditServiceUse} />
                 <div className="lg:col-span-2">
-                  <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleFieldChange} />
+                  <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleFieldChange} disabled={!canEditServiceUse} />
                 </div>
-                <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleFieldChange} />
-                <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleFieldChange} />
+                <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleFieldChange} disabled={!canEditServiceUse} />
+                <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleFieldChange} disabled={!canEditServiceUse} />
                 <SelectDropdown
                   label="Status"
                   name="status"
                   value={formData.status}
                   onChange={handleFieldChange}
                   options={["In-Progress", "Pending", "Close", "Cancelled"]}
+                  disabled={!canEditServiceUse}
                 />
-                <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleFieldChange} />
-                <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleFieldChange} />
-                <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleFieldChange} />
-                <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleFieldChange} className="bg-gray-100" />
-                <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleFieldChange} />
-                <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleFieldChange} />
+                <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleFieldChange} disabled={!canEditServiceUse} />
+                <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleFieldChange} disabled={!canEditServiceUse} />
+                <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleFieldChange} disabled={!canEditServiceUse} />
+                <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleFieldChange} className="bg-gray-100" disabled />
+                <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleFieldChange} disabled={!canEditServiceUse} />
+                <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleFieldChange} disabled={!canEditServiceUse} />
                 <div className="lg:col-span-3">
-                  <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleFieldChange} />
+                  <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleFieldChange} disabled={!canEditServiceUse} />
                 </div>
                 <div className="lg:col-span-3">
                   <SignatorySelect

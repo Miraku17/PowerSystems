@@ -5,6 +5,7 @@ interface JobOrderRequestFormData {
   // Header / Basic Information
   // shop_field_jo_number is auto-generated from jo_number (SERIAL) on the backend
   date_prepared: string;
+  reporting_branch: string;
 
   // Customer Information
   full_customer_name: string;
@@ -71,6 +72,7 @@ const initialFormData: JobOrderRequestFormData = {
   // Header / Basic Information
   // shop_field_jo_number is auto-generated
   date_prepared: "",
+  reporting_branch: "",
 
   // Customer Information
   full_customer_name: "",

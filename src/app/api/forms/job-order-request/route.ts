@@ -191,6 +191,33 @@ export const POST = withAuth(async (request, { user }) => {
       }
     }
 
+    // Validate "Service Use Only" data fields. Status defaults to 'Pending' on
+    // create — that's fine for any submitter. Anything else in this section
+    // requires the jo_service_use.edit permission (Admin 1 / Admin 2 / Super Admin).
+    const serviceUseHasContent = [
+      estimated_repair_days,
+      technicians_involved,
+      date_job_started,
+      date_job_completed_closed,
+      parts_cost,
+      labor_cost,
+      other_cost,
+      total_cost,
+      date_of_invoice,
+      invoice_number,
+      remarks,
+    ].some((v) => v && v.trim() !== '') || (status && status !== 'Pending');
+
+    if (serviceUseHasContent) {
+      const allowedSU = await hasPermission(supabase, user.id, 'jo_service_use', 'edit');
+      if (!allowedSU) {
+        return NextResponse.json(
+          { error: 'You do not have permission to set Service Use Only fields' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Signatures
     const rawRequestedBySignature = getString('requested_by_signature');
     const rawApprovedBySignature = getString('approved_by_signature');

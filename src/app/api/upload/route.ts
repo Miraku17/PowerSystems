@@ -20,9 +20,11 @@ export const POST = withAuth(async (request, { user }) => {
       return NextResponse.json({ error: 'No path prefix provided' }, { status: 400 });
     }
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
+    // Validate file type — allow images and PDFs.
+    const isImage = file.type.startsWith('image/');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    if (!isImage && !isPdf) {
+      return NextResponse.json({ error: 'Only image or PDF files are allowed' }, { status: 400 });
     }
 
     // Validate file size (10MB max)

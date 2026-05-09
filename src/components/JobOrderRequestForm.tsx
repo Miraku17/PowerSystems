@@ -97,6 +97,7 @@ export default function JobOrderRequestForm() {
   const canReceiveByServiceDept = hasPermission('jo_signatory', 'service_dept');
   const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
   const canEditVerifiedBy = hasPermission('jo_signatory', 'verified_by');
+  const canEditServiceUse = hasPermission('jo_service_use', 'edit');
   const isSuperAdmin = currentUserPosition === 'super admin';
 
   // Requested By / Service Dept: no auto-populate — logged-in user can choose from dropdown
@@ -389,27 +390,28 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Service Use Only</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
-            <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleChange} />
+            <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleChange} disabled={!canEditServiceUse} />
             <div className="lg:col-span-2">
-              <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleChange} placeholder="Comma-separated names" />
+              <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleChange} placeholder="Comma-separated names" disabled={!canEditServiceUse} />
             </div>
-            <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} />
-            <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} />
+            <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} disabled={!canEditServiceUse} />
             <SelectDropdown
               label="Status"
               name="status"
               value={formData.status}
               onChange={handleChange}
               options={["Pending", "In-Progress", "Close", "Cancelled"]}
+              disabled={!canEditServiceUse}
             />
-            <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
-            <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />
-            <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} />
+            <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} disabled={!canEditServiceUse} />
             <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleChange} disabled />
-            <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleChange} />
-            <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleChange} />
+            <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleChange} disabled={!canEditServiceUse} />
             <div className="lg:col-span-3">
-              <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} />
+              <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} disabled={!canEditServiceUse} />
             </div>
             <div className="lg:col-span-3">
               <SignatorySelect
@@ -613,9 +615,10 @@ interface TextAreaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   rows?: number;
+  disabled?: boolean;
 }
 
-const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => (
+const TextArea = ({ label, name, value, onChange, rows = 3, disabled = false }: TextAreaProps) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <textarea
@@ -623,7 +626,8 @@ const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => 
       value={value}
       onChange={onChange}
       rows={rows}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
       placeholder={`Enter ${label.toLowerCase()}`}
     />
   </div>
@@ -642,9 +646,10 @@ interface SelectDropdownProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   options: string[] | SelectDropdownOption[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
-const SelectDropdown = ({ label, name, value, onChange, options, placeholder }: SelectDropdownProps) => {
+const SelectDropdown = ({ label, name, value, onChange, options, placeholder, disabled = false }: SelectDropdownProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -678,8 +683,9 @@ const SelectDropdown = ({ label, name, value, onChange, options, placeholder }: 
       <div className="relative">
         <button
           type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left text-sm text-gray-900 transition-colors pr-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onClick={() => { if (!disabled) setShowDropdown(!showDropdown); }}
+          disabled={disabled}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left text-sm text-gray-900 transition-colors pr-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           {displayText || <span className="text-gray-400">{placeholder || `Select ${label.toLowerCase()}`}</span>}
         </button>

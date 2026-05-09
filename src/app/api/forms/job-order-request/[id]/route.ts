@@ -109,16 +109,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     // Fetch the current record
     const { data: currentRecord, error: fetchError } = await supabase
       .from("job_order_request_form")
-      .select(`
-        shop_field_jo_number,
-        requested_by_signature,
-        approved_by_signature,
-        received_by_service_dept_signature,
-        received_by_credit_collection_signature,
-        verified_by_signature,
-        deleted_at,
-        created_by
-      `)
+      .select(`*`)
       .eq("id", id)
       .single();
 
@@ -231,6 +222,40 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       verified_by_signature: rawVerifiedBySignature,
       status,
     } = body;
+
+    // Validate "Service Use Only" data fields. If any of these change vs the
+    // current record, the user must have jo_service_use.edit
+    // (Admin 1 / Admin 2 / Super Admin).
+    const serviceUseFieldsToCompare: Array<[string, any]> = [
+      ['estimated_repair_days', estimated_repair_days],
+      ['technicians_involved', technicians_involved],
+      ['date_job_started', date_job_started],
+      ['date_job_completed_closed', date_job_completed_closed],
+      ['parts_cost', parts_cost],
+      ['labor_cost', labor_cost],
+      ['other_cost', other_cost],
+      ['total_cost', total_cost],
+      ['date_of_invoice', date_of_invoice],
+      ['invoice_number', invoice_number],
+      ['remarks', remarks],
+      ['status', status],
+    ];
+    const norm = (v: any) =>
+      v === null || v === undefined || v === '' ? null : String(v);
+    const serviceUseChanged = serviceUseFieldsToCompare.some(
+      ([key, newVal]) =>
+        newVal !== undefined && norm(newVal) !== norm(currentRecord[key])
+    );
+
+    if (serviceUseChanged) {
+      const allowedSU = await hasPermission(supabase, user.id, 'jo_service_use', 'edit');
+      if (!allowedSU) {
+        return NextResponse.json(
+          { error: 'You do not have permission to edit Service Use Only fields' },
+          { status: 403 }
+        );
+      }
+    }
 
     // shop_field_jo_number duplicate check removed — it's auto-generated and immutable
 

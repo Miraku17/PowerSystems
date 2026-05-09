@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
+import ReportHeader from "./ReportHeader";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
@@ -96,6 +97,7 @@ export default function JobOrderRequestForm() {
   const canReceiveByServiceDept = hasPermission('jo_signatory', 'service_dept');
   const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
   const canEditVerifiedBy = hasPermission('jo_signatory', 'verified_by');
+  const isSuperAdmin = currentUserPosition === 'super admin';
 
   // Requested By / Service Dept: no auto-populate — logged-in user can choose from dropdown
 
@@ -107,7 +109,7 @@ export default function JobOrderRequestForm() {
       const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (attachments.length > 0) {
-        showUploadLoading('Uploading images...');
+        showUploadLoading('Uploading files...');
         const results = await uploadFiles(
           attachments.map(a => a.file),
           { bucket: 'service-reports', pathPrefix: 'job-order' }
@@ -177,18 +179,7 @@ export default function JobOrderRequestForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-        </p>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Job Order Request Form
-          </h2>
-        </div>
-      </div>
+      <ReportHeader title="Job Order Request Form" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section: Header Information */}
@@ -338,6 +329,7 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Sales/Service Engineer"
               disabled={!canEditRequestedBy}
+              showAllUsers={isSuperAdmin}
             />
             <SignatorySelect
               label="Approved By (Department Head)"
@@ -349,6 +341,8 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Department Head"
               disabled={!canApproveByDeptHead}
+              showAllUsers
+              filterPositions={isSuperAdmin ? undefined : ["Admin 1", "Admin 2"]}
             />
           </div>
         </div>
@@ -370,6 +364,8 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Service Department"
               disabled={!canReceiveByServiceDept}
+              showAllUsers
+              filterPositions={isSuperAdmin ? undefined : ["Admin 2"]}
             />
             {canReceiveByCreditCollection && (
               <SignatorySelect
@@ -438,7 +434,7 @@ export default function JobOrderRequestForm() {
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 files: images or PDFs)</span>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -448,17 +444,26 @@ export default function JobOrderRequestForm() {
             {attachments.length > 0 && (
               <div className="space-y-3 mb-4">
                 {attachments.map((attachment, index) => {
-                  const previewUrl = URL.createObjectURL(attachment.file);
+                  const isImage = attachment.file.type.startsWith('image/');
+                  const previewUrl = isImage ? URL.createObjectURL(attachment.file) : null;
                   return (
                     <div key={index} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0">
-                          <img
-                            src={previewUrl}
-                            alt={attachment.file.name}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
-                            onLoad={() => URL.revokeObjectURL(previewUrl)}
-                          />
+                          {isImage && previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={attachment.file.name}
+                              className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                              onLoad={() => URL.revokeObjectURL(previewUrl)}
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
+                              <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -508,21 +513,23 @@ export default function JobOrderRequestForm() {
                     <input
                       id="file-upload-job-order"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf"
                       multiple
                       className="sr-only"
                       onChange={async (e) => {
                         if (e.target.files && e.target.files.length > 0) {
                           const files = Array.from(e.target.files);
-                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 files allowed'); e.target.value = ''; return; }
                           const newFiles = [];
                           for (const file of files) {
-                            if (!file.type.startsWith('image/')) {
-                              toast.error('Please select only image files');
+                            const isImage = file.type.startsWith('image/');
+                            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                            if (!isImage && !isPdf) {
+                              toast.error('Only images or PDFs are allowed');
                               continue;
                             }
-                            const compressed = await compressImageIfNeeded(file);
-                            newFiles.push({ file: compressed, title: '' });
+                            const processed = isImage ? await compressImageIfNeeded(file) : file;
+                            newFiles.push({ file: processed, title: '' });
                           }
                           if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                           e.target.value = '';
@@ -532,7 +539,7 @@ export default function JobOrderRequestForm() {
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
+                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF, PDF up to 10MB ({attachments.length}/20 files)</p>
               </div>
             </div>
           </div>

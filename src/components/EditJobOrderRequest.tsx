@@ -10,6 +10,7 @@ import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import SignatorySelect from "./SignatorySelect";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditJobOrderRequestProps {
   data: Record<string, any>;
@@ -110,6 +111,12 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
   const canReceiveByCreditCollection = hasPermission("jo_credit_collection_approval", "edit");
   const canEditRequestedBy = hasPermission("jo_signatory", "requested_by");
   const canEditVerifiedBy = hasPermission("jo_signatory", "verified_by");
+
+  const currentUser = useCurrentUser();
+  const currentUserPosition = (
+    users.find((u: any) => u.id === currentUser?.id)?.position?.name || ""
+  ).toLowerCase();
+  const isSuperAdmin = currentUserPosition === "super admin";
 
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -228,9 +235,16 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
             {/* Job Order Information */}
             <div>
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Job Order Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Input label="SHOP/FIELD J.O. NO." name="shop_field_jo_number" value={formData.shop_field_jo_number} onChange={handleFieldChange} disabled={!canEditJoNumber} />
                 <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleFieldChange} />
+                <SelectDropdown
+                  label="Reporting Branch"
+                  name="reporting_branch"
+                  value={formData.reporting_branch}
+                  onChange={handleFieldChange}
+                  options={["Manila", "Davao"]}
+                />
               </div>
             </div>
 
@@ -322,6 +336,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   users={users}
                   subtitle="Sales/Service Engineer"
                   disabled={!canEditRequestedBy}
+                  showAllUsers={isSuperAdmin}
                 />
                 <SignatorySelect
                   label="Approved By (Department Head)"
@@ -333,6 +348,8 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   users={users}
                   subtitle="Department Head"
                   disabled={!canApproveByDeptHead}
+                  showAllUsers
+                  filterPositions={isSuperAdmin ? undefined : ["Admin 1", "Admin 2"]}
                 />
               </div>
             </div>
@@ -351,6 +368,8 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   users={users}
                   subtitle="Service Department"
                   disabled={!canReceiveByServiceDept}
+                  showAllUsers
+                  filterPositions={isSuperAdmin ? undefined : ["Admin 2"]}
                 />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect
@@ -594,17 +613,23 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                           id="attachment-upload"
                           name="attachment-upload"
                           type="file"
-                          accept="*/*"
+                          accept="image/*,application/pdf"
                           multiple
                           className="sr-only"
                           onChange={async (e) => {
                             if (e.target.files && e.target.files.length > 0) {
                               const files = Array.from(e.target.files);
-                              if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                              if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 files allowed'); e.target.value = ''; return; }
                               const processed = [];
                               for (const file of files) {
-                                const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
-                                processed.push({ file: compressed, description: '' });
+                                const isImage = file.type.startsWith('image/');
+                                const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                                if (!isImage && !isPdf) {
+                                  toast.error(`Skipped ${file.name}: only images or PDFs are allowed`);
+                                  continue;
+                                }
+                                const prepared = isImage ? await compressImageIfNeeded(file) : file;
+                                processed.push({ file: prepared, description: '' });
                               }
                               if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
                               e.target.value = '';
@@ -614,7 +639,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>Any file type up to 10MB ({existingAttachments.length + newAttachments.length}/20 photos)</p>
+                    <p className={`text-xs ${existingAttachments.length + newAttachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF, PDF up to 10MB ({existingAttachments.length + newAttachments.length}/20 files)</p>
                   </div>
                 </div>
               </div>

@@ -607,7 +607,7 @@ export default function DeutzCommissioningReport() {
                     users={users}
                     subtitle="Technician"
                     disabled={!canEditServiceTechnician}
-                />
+                 autoFillForPositions={["User 1", "User 2"]}/>
                 <SignatorySelect
                     label="Approved By"
                     name="approved_by"

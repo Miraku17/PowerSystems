@@ -876,7 +876,7 @@ export default function EngineTeardownForm() {
               users={users}
               subtitle="Signed by Technician"
               disabled={!canEditServiceTechnician}
-            />
+             autoFillForPositions={["User 1", "User 2"]}/>
             <SignatorySelect
               label="Approved By"
               name="approved_by_name"

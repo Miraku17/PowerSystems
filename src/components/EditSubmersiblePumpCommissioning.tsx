@@ -838,7 +838,7 @@ export default function EditSubmersiblePumpCommissioning({
                     subtitle="Svc Engineer/Technician"
                     showAllUsers
                     disabled={!canEditServiceTechnician}
-                  />
+                   autoFillForPositions={["User 1", "User 2"]}/>
                 </div>
 
                 {/* Checked & Approved By */}

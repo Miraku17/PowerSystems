@@ -20,6 +20,12 @@ interface SignatorySelectProps {
   disabled?: boolean;
   lockedToCurrentUser?: boolean;
   filterPositions?: string[];
+  /**
+   * If the logged-in user's position name matches one of these (case-insensitive),
+   * the field auto-populates with their name + signature and locks the dropdown.
+   * Other users keep the normal dropdown UX.
+   */
+  autoFillForPositions?: string[];
 }
 
 export default function SignatorySelect({
@@ -37,12 +43,36 @@ export default function SignatorySelect({
   disabled = false,
   lockedToCurrentUser = false,
   filterPositions,
+  autoFillForPositions,
 }: SignatorySelectProps) {
-  const isLocked = lockedToCurrentUser && !disabled;
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const currentUser = useCurrentUser();
+
+  // If current user's position is in autoFillForPositions, treat the field as
+  // locked-to-current-user (auto-fill effect below handles the actual values).
+  const currentUserRecord = currentUser ? users.find((u) => u.id === currentUser.id) : null;
+  const isAutoFillEligible =
+    !!autoFillForPositions &&
+    autoFillForPositions.length > 0 &&
+    !!currentUserRecord?.position?.name &&
+    autoFillForPositions.some(
+      (p) => p.toLowerCase() === currentUserRecord!.position!.name.toLowerCase(),
+    );
+
+  const isLocked = (lockedToCurrentUser || isAutoFillEligible) && !disabled;
+
+  // Auto-populate when eligible and the field is still empty.
+  useEffect(() => {
+    if (!isAutoFillEligible || !currentUserRecord) return;
+    if (value) return;
+    onChange(name, currentUserRecord.fullName);
+    onSignatureChange(currentUserRecord.signature_url || "");
+    // We intentionally exclude onChange/onSignatureChange from deps to avoid
+    // re-firing when callers create new closures every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAutoFillEligible, currentUserRecord?.id, value, name]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

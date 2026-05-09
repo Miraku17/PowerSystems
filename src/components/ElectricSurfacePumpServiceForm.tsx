@@ -470,7 +470,7 @@ export default function ElectricSurfacePumpServiceForm() {
               users={users}
               subtitle="Svc Engineer/Technician"
               disabled={!canEditServiceTechnician}
-            />
+             autoFillForPositions={["User 1", "User 2"]}/>
             <SignatorySelect
               label="Approved By"
               name="checked_approved_by_name"

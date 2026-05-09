@@ -129,7 +129,7 @@ export const GET = withAuth(async (request, { user, params }) => {
     doc.line(leftMargin + 10, yPos + 41, pageWidth - rightMargin - 10, yPos + 41);
 
     doc.setFontSize(7);
-    doc.text("NAVOTAS • BACOLOD • CEBU • CAGAYAN • DAVAO • GEN SAN • ZAMBOANGA • ILO-ILO • SURIGAO", pageWidth / 2, yPos + 47, { align: "center" });
+    doc.text("NAVOTAS | BACOLOD | CEBU | CAGAYAN | DAVAO | GEN SAN | ZAMBOANGA | ILO-ILO | SURIGAO", pageWidth / 2, yPos + 47, { align: "center" });
 
     yPos = 60;
 

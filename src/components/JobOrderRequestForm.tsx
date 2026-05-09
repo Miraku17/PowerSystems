@@ -14,6 +14,7 @@ import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
 import { useCurrentUser } from '@/stores/authStore';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAutoPopulateUser } from "@/hooks/useAutoPopulateUser";
 
 export default function JobOrderRequestForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,12 +65,22 @@ export default function JobOrderRequestForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       full_customer_name: customer.customer || "",
+      address: customer.address || "",
     });
   };
 
   const handleSignatoryChange = (name: string, value: string) => {
     setFormData({ [name]: value });
   };
+
+  // Auto-populate "Requested By" with the logged-in user's name + signature
+  // when the field is still empty. Editable afterwards.
+  useAutoPopulateUser(
+    setFormData,
+    "requested_by_name",
+    "requested_by_signature",
+    formData.requested_by_name,
+  );
 
   const currentUser = useCurrentUser();
   const { hasPermission } = usePermissions();
@@ -186,7 +197,7 @@ export default function JobOrderRequestForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Job Order Information</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <div className="flex flex-col w-full">
               <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                 SHOP/FIELD J.O. NO.
@@ -199,6 +210,14 @@ export default function JobOrderRequestForm() {
               />
             </div>
             <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleChange} />
+            <SelectDropdown
+              label="Reporting Branch"
+              name="reporting_branch"
+              value={formData.reporting_branch}
+              onChange={handleChange}
+              options={["Manila", "Davao"]}
+              placeholder="Select branch"
+            />
           </div>
         </div>
 
@@ -221,14 +240,11 @@ export default function JobOrderRequestForm() {
               />
             </div>
             <div className="md:col-span-2">
-              <CustomerAutocomplete
+              <Input
                 label="Address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                onSelect={handleCustomerSelect}
-                customers={customers}
-                searchKey="address"
               />
             </div>
             <div className="md:col-span-2">

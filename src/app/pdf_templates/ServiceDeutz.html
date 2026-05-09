@@ -70,7 +70,9 @@
 
         .section {
             margin-bottom: 20px;
+            /* Try to keep the whole section on one page; modern + legacy syntax */
             page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .section-header {
@@ -78,6 +80,12 @@
             padding: 8px 10px;
             border-left: 4px solid #2563eb;
             margin-bottom: 10px;
+            /* Never let a header be the last thing on a page — it must travel
+               to the next page together with whatever content follows it. */
+            page-break-after: avoid;
+            break-after: avoid-page;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .section-header h3 {
@@ -85,6 +93,8 @@
             font-weight: bold;
             text-transform: uppercase;
             color: #000;
+            page-break-after: avoid;
+            break-after: avoid-page;
         }
 
         .field-grid {
@@ -238,6 +248,14 @@
                     .section {
 
                         page-break-inside: avoid;
+                        break-inside: avoid;
+
+                    }
+
+                    .section-header {
+
+                        page-break-after: avoid;
+                        break-after: avoid-page;
 
                     }
 

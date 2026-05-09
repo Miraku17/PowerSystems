@@ -21,6 +21,13 @@ interface SignatorySelectProps {
   lockedToCurrentUser?: boolean;
   filterPositions?: string[];
   /**
+   * Show only users whose position has this permission key (e.g.
+   * "jo_signatory.approved_by"). Composes with filterPositions when both are set.
+   * Pass undefined to skip this filter (e.g. for Super Admin override).
+   * Requires the `users` payload to include each user's `permissions` array.
+   */
+  filterByPermission?: string;
+  /**
    * If the logged-in user's position name matches one of these (case-insensitive),
    * the field auto-populates with their name + signature and locks the dropdown.
    * Other users keep the normal dropdown UX.
@@ -43,6 +50,7 @@ export default function SignatorySelect({
   disabled = false,
   lockedToCurrentUser = false,
   filterPositions,
+  filterByPermission,
   autoFillForPositions,
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -93,16 +101,24 @@ export default function SignatorySelect({
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
     : [];
-  const allDropdownUsers = (
-    filterPositions && filterPositions.length > 0
-      ? baseUsers.filter((u) =>
-          !!u.position?.name &&
-          filterPositions.some(
-            (p) => p.toLowerCase() === u.position!.name.toLowerCase()
-          )
-        )
-      : baseUsers
-  ).sort((a, b) => a.fullName.localeCompare(b.fullName));
+  let filteredBase = baseUsers;
+  if (filterPositions && filterPositions.length > 0) {
+    filteredBase = filteredBase.filter(
+      (u) =>
+        !!u.position?.name &&
+        filterPositions.some(
+          (p) => p.toLowerCase() === u.position!.name.toLowerCase(),
+        ),
+    );
+  }
+  if (filterByPermission) {
+    filteredBase = filteredBase.filter((u) =>
+      Array.isArray(u.permissions) && u.permissions.includes(filterByPermission),
+    );
+  }
+  const allDropdownUsers = filteredBase
+    .slice()
+    .sort((a, b) => a.fullName.localeCompare(b.fullName));
 
   const dropdownUsers = allowTyping && searchTerm
     ? allDropdownUsers.filter((u) =>

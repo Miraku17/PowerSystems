@@ -349,7 +349,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   subtitle="Department Head"
                   disabled={!canApproveByDeptHead}
                   showAllUsers
-                  filterPositions={isSuperAdmin ? undefined : ["Admin 1", "Admin 2"]}
+                  filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
                 />
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   subtitle="Service Department"
                   disabled={!canReceiveByServiceDept}
                   showAllUsers
-                  filterPositions={isSuperAdmin ? undefined : ["Admin 2"]}
+                  filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
                 />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect

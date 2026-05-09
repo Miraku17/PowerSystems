@@ -342,7 +342,7 @@ export default function JobOrderRequestForm() {
               subtitle="Department Head"
               disabled={!canApproveByDeptHead}
               showAllUsers
-              filterPositions={isSuperAdmin ? undefined : ["Admin 1", "Admin 2"]}
+              filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
             />
           </div>
         </div>
@@ -365,7 +365,7 @@ export default function JobOrderRequestForm() {
               subtitle="Service Department"
               disabled={!canReceiveByServiceDept}
               showAllUsers
-              filterPositions={isSuperAdmin ? undefined : ["Admin 2"]}
+              filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
             />
             {canReceiveByCreditCollection && (
               <SignatorySelect

@@ -6,8 +6,6 @@ import { customerService } from "@/services";
 import toast from "react-hot-toast";
 import { useCustomerFormStore } from "@/stores/customerFormStore";
 import {
-  PencilIcon,
-  TrashIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
   PlusIcon,
@@ -75,7 +73,7 @@ export default function Customers() {
 
   // Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useCustomerFormStore();
-  const { canWrite, canEdit, canDelete } = usePermissions();
+  const { canWrite } = usePermissions();
 
   // Local state for edit mode (not persisted)
   const [editFormData, setEditFormData] = useState({
@@ -252,7 +250,7 @@ export default function Customers() {
                 <thead className="bg-gray-50/50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Reporter / Customer
+                      Customer / Reporter
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Contact Person
@@ -260,15 +258,12 @@ export default function Customers() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Equipment
                     </th>
-                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredCustomers.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-12 text-center">
+                      <td colSpan={3} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <UserIcon className="h-12 w-12 text-gray-300 mb-3" />
                           <p className="text-gray-500 text-lg font-medium">No customers found</p>
@@ -282,14 +277,14 @@ export default function Customers() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
-                              <Avatar name={customer.name || customer.customer} />
+                              <Avatar name={customer.customer || customer.name} />
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                              <div className="text-sm text-gray-500 flex items-center mt-0.5">
-                                <BuildingOfficeIcon className="h-3.5 w-3.5 mr-1" />
+                              <div className="text-sm font-medium text-gray-900 flex items-center">
+                                <BuildingOfficeIcon className="h-3.5 w-3.5 mr-1 text-gray-400" />
                                 {customer.customer}
                               </div>
+                              <div className="text-sm text-gray-500 mt-0.5">{customer.name}</div>
                             </div>
                           </div>
                         </td>
@@ -319,28 +314,6 @@ export default function Customers() {
                             {customer.equipment}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex items-center justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            {canEdit("customer_management") && (
-                              <button
-                                onClick={() => handleOpenEditModal(customer)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                title="Edit"
-                              >
-                                <PencilIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                            {canDelete("customer_management") && (
-                              <button
-                                onClick={() => handleDelete(customer.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete"
-                              >
-                                <TrashIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
                       </tr>
                     ))
                   )}
@@ -362,31 +335,11 @@ export default function Customers() {
                   key={customer.id}
                   className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 space-y-4"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <Avatar name={customer.name} />
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{customer.name}</h3>
-                        <p className="text-sm text-gray-500">{customer.customer}</p>
-                      </div>
-                    </div>
-                    <div className="flex space-x-1">
-                      {canEdit("customer_management") && (
-                        <button
-                          onClick={() => handleOpenEditModal(customer)}
-                          className="p-2 text-gray-400 hover:text-blue-600 rounded-lg"
-                        >
-                          <PencilIcon className="h-5 w-5" />
-                        </button>
-                      )}
-                      {canDelete("customer_management") && (
-                        <button
-                          onClick={() => handleDelete(customer.id)}
-                          className="p-2 text-gray-400 hover:text-red-600 rounded-lg"
-                        >
-                          <TrashIcon className="h-5 w-5" />
-                        </button>
-                      )}
+                  <div className="flex items-center space-x-3">
+                    <Avatar name={customer.customer || customer.name} />
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{customer.customer}</h3>
+                      <p className="text-sm text-gray-500">{customer.name}</p>
                     </div>
                   </div>
                   

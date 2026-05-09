@@ -54,6 +54,7 @@ export const KNOWN_PERMISSIONS: ReadonlyArray<{ module: string; action: string }
   { module: 'jo_signatory', action: 'service_dept' },
   { module: 'jo_signatory', action: 'approved_by' },
   { module: 'jo_credit_collection_approval', action: 'edit' },
+  { module: 'jo_service_use', action: 'edit' },
 
   // Knowledge base
   { module: 'knowledge_base', action: 'read' },

@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
 import { useResolveSignature } from "@/hooks/useSharedQueries";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import ReportHeader from "@/components/ReportHeader";
 
 interface ViewSubmersiblePumpTeardownProps {
   data: Record<string, any>;
@@ -239,27 +240,7 @@ export default function ViewSubmersiblePumpTeardown({ data, onClose, onExportPDF
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto">
 
             {/* Company Header */}
-            <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-              <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-              <p className="text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-              </p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com
-              </p>
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <p className="text-[10px] md:text-xs font-bold text-gray-500 tracking-widest uppercase">
-                  NAVOTAS * BACOLOD * CEBU * CAGAYAN * DAVAO * GEN SAN * ZAMBOANGA * ILO-ILO * SURIGAO
-                </p>
-              </div>
-              <div className="mt-6">
-                <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-                  Teardown Report
-                </h2>
-                <p className="text-sm text-gray-600 mt-2">(Submersible Pump)</p>
-              </div>
-            </div>
+            <ReportHeader title="Teardown Report" subtitle="Submersible Pump" />
 
             <div className="space-y-8">
               {/* Section: Job Reference */}

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SignatorySelect from './SignatorySelect';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from "./ConfirmationModal";
+import ReportHeader from "./ReportHeader";
 import { useElectricSurfacePumpCommissioningFormStore } from "@/stores/electricSurfacePumpCommissioningFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
@@ -138,27 +139,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">2nd Floor TOPY&apos;s Place #3 Calle Industria cor. Economia Street, Bagumbayan, Quezon City</p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-        </p>
-        <p className="text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Email:</span> sales@psi-deutz.com
-        </p>
-        <div className="mt-4 pt-3 border-t border-gray-200">
-          <p className="text-[10px] md:text-xs font-bold text-gray-500 tracking-widest uppercase">
-            NAVOTAS * BACOLOD * CEBU * CAGAYAN * DAVAO * GEN SAN * ZAMBOANGA * ILO-ILO * SURIGAO
-          </p>
-        </div>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Commissioning Report
-          </h2>
-          <p className="text-sm text-gray-600 mt-2">(Electric Driven Surface Pump)</p>
-        </div>
-      </div>
+      <ReportHeader title="Commissioning Report" subtitle="Electric Driven Surface Pump" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section: Job Reference */}

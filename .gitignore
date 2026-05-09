@@ -57,3 +57,10 @@ next-env.d.ts
 CHANGELOG_LOGIN_IMPROVEMENTS.md
 TESTING.md
 TESTS_README.md
+
+# Local-only Supabase artifacts (seed dumps, etc.) — contain PII
+/.local/
+
+# Playwright artifacts
+/test-results/
+/playwright-report/

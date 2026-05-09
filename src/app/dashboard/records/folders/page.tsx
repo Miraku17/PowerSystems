@@ -126,10 +126,34 @@ export default function RecordsFoldersPage() {
     router.push(`/dashboard/records/folders/${normalizedFormType}`);
   };
 
+  // Form types backed by the Fill Up Form UI — gated together by
+  // fill_up_form.access so users without that permission don't see any of
+  // these folder cards on the Records page.
+  const FILL_UP_FORM_TYPES = new Set([
+    "deutz-service",
+    "deutz-commissioning",
+    "submersible-pump-commissioning",
+    "submersible-pump-service",
+    "submersible-pump-teardown",
+    "electric-surface-pump-commissioning",
+    "electric-surface-pump-service",
+    "electric-surface-pump-teardown",
+    "engine-surface-pump-commissioning",
+    "engine-surface-pump-service",
+    "engine-teardown",
+    "engine-inspection-receiving",
+    "components-teardown-measuring",
+    "components-buildup-report",
+  ]);
+
   // Filter templates based on permissions and search term
   const filteredTemplates = formTemplates.filter((template) => {
     // Hide DTS folder if user lacks dts.access permission
     if (template.formType === "daily-time-sheet" && !canAccess("dts")) {
+      return false;
+    }
+    // Hide every Fill-Up-Form-style folder if the user lacks fill_up_form.access
+    if (FILL_UP_FORM_TYPES.has(template.formType) && !canAccess("fill_up_form")) {
       return false;
     }
     if (!searchTerm) return true;

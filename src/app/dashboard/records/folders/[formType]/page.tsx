@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import {
   DocumentTextIcon,
@@ -16,6 +16,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ChevronDownIcon,
+  ChevronUpIcon,
+  ChevronUpDownIcon,
 } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
@@ -88,6 +90,44 @@ const SERVICE_REPORT_FORM_TYPES = [
   "electric-surface-pump-service", "electric-surface-pump-commissioning", "electric-surface-pump-teardown",
   "engine-inspection-receiving", "engine-teardown", "components-teardown-measuring", "components-buildup-report",
 ];
+
+export type SortKey = "customer" | "jo_number" | "date_modified";
+
+export function sortRecords(
+  records: FormRecord[],
+  sortKey: SortKey,
+  sortDir: "asc" | "desc",
+  getJobOrder: (r: FormRecord) => string,
+  getCustomer: (r: FormRecord) => string,
+): FormRecord[] {
+  const arr = [...records];
+  const cmpStr = (a: string, b: string) =>
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+  arr.sort((a, b) => {
+    let cmp = 0;
+    if (sortKey === "customer") {
+      cmp = cmpStr(getCustomer(a), getCustomer(b));
+    } else if (sortKey === "jo_number") {
+      cmp = cmpStr(getJobOrder(a), getJobOrder(b));
+    } else {
+      // date_modified — fall back to dateCreated when dateUpdated absent
+      const ta = new Date(a.dateUpdated || a.dateCreated || 0).getTime();
+      const tb = new Date(b.dateUpdated || b.dateCreated || 0).getTime();
+      cmp = ta - tb;
+    }
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  return arr;
+}
+
+function SortIndicator({ active, dir }: { active: boolean; dir: "asc" | "desc" }) {
+  if (!active) return <ChevronUpDownIcon className="h-3.5 w-3.5 opacity-40" />;
+  return dir === "asc" ? (
+    <ChevronUpIcon className="h-3.5 w-3.5" />
+  ) : (
+    <ChevronDownIcon className="h-3.5 w-3.5" />
+  );
+}
 
 // Format a record's last-modified info as "DD-MMM-YY by <username>".
 // Falls back to creator name when the record has never been edited.
@@ -195,6 +235,8 @@ export default function FormRecordsPage() {
   const [records, setRecords] = useState<FormRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortKey, setSortKey] = useState<"customer" | "jo_number" | "date_modified">("date_modified");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedRecord, setSelectedRecord] = useState<FormRecord | null>(null);
   const [editingRecord, setEditingRecord] = useState<FormRecord | null>(null);
   const [recordToDelete, setRecordToDelete] = useState<FormRecord | null>(null);
@@ -671,14 +713,29 @@ export default function FormRecordsPage() {
     return true;
   });
 
-  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const sortedRecords = React.useMemo(
+    () => sortRecords(filteredRecords, sortKey, sortDir, getJobOrder, getCustomer),
+    [filteredRecords, sortKey, sortDir],
+  );
+
+  const handleSort = (key: "customer" | "jo_number" | "date_modified") => {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      // Default direction: dates desc (newest first), text asc (A→Z)
+      setSortDir(key === "date_modified" ? "desc" : "asc");
+    }
+  };
+
+  const totalPages = Math.ceil(sortedRecords.length / recordsPerPage);
   const startIndex = (currentPage - 1) * recordsPerPage;
   const endIndex = startIndex + recordsPerPage;
-  const paginatedRecords = filteredRecords.slice(startIndex, endIndex);
+  const paginatedRecords = sortedRecords.slice(startIndex, endIndex);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, startDate, endDate]);
+  }, [searchTerm, startDate, endDate, sortKey, sortDir]);
 
   const formConfig = formTypeEndpoints[normalizedFormType];
 
@@ -783,10 +840,37 @@ export default function FormRecordsPage() {
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Job Order</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <button
+                        type="button"
+                        onClick={() => handleSort("jo_number")}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        Job Order
+                        <SortIndicator active={sortKey === "jo_number"} dir={sortDir} />
+                      </button>
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <button
+                        type="button"
+                        onClick={() => handleSort("customer")}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        Customer
+                        <SortIndicator active={sortKey === "customer"} dir={sortDir} />
+                      </button>
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">{serialNoLabel}</th>
-                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Last Modified</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <button
+                        type="button"
+                        onClick={() => handleSort("date_modified")}
+                        className="inline-flex items-center gap-1 hover:text-gray-700"
+                      >
+                        Last Modified
+                        <SortIndicator active={sortKey === "date_modified"} dir={sortDir} />
+                      </button>
+                    </th>
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     {canApproveDeptHead && (
                       <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Dept. Head</th>

@@ -376,7 +376,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       ...prev,
       job_number: jo.shop_field_jo_number || "",
       customer: jo.full_customer_name || "",
-      address: jo.address || "",
+      address: jo.location_of_unit || "",
       job_order_request_id: jo.id || "",
     }));
   };
@@ -530,7 +530,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   onSelect={handleJobOrderSelect}
                 />
                 <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} disabled />
-                <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
+                <Input label="Location of Unit" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
                 <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>
             </div>

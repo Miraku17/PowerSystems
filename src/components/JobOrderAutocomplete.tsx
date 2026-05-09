@@ -9,6 +9,7 @@ export interface ApprovedJobOrder {
   shop_field_jo_number: string;
   full_customer_name: string;
   address: string;
+  location_of_unit?: string | null;
 }
 
 interface JobOrderAutocompleteProps {

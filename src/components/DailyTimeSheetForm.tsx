@@ -175,7 +175,7 @@ export default function DailyTimeSheetForm() {
     setFormData({
       job_number: jo.shop_field_jo_number || "",
       customer: jo.full_customer_name || "",
-      address: jo.address || "",
+      address: jo.location_of_unit || "",
       job_order_request_id: jo.id || "",
     });
   };
@@ -343,7 +343,7 @@ export default function DailyTimeSheetForm() {
             </div>
             <div className="md:col-span-2">
               <Input
-                label="Address"
+                label="Location of Unit"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}

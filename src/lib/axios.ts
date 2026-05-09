@@ -113,9 +113,16 @@ apiClient.interceptors.response.use(
               throw new Error("Token refresh failed");
             }
           } catch (refreshError) {
-            // Refresh failed, clear auth and redirect to login
+            // Refresh failed.
             processQueue(refreshError, null);
             isRefreshing = false;
+
+            // If we're offline, the refresh attempt is meaningless — the device
+            // simply has no path to Supabase. Keep the cached session intact so
+            // the app stays usable on the device until connectivity returns.
+            if (typeof navigator !== "undefined" && navigator.onLine === false) {
+              return Promise.reject(refreshError);
+            }
 
             localStorage.removeItem("authToken");
             localStorage.removeItem("user");

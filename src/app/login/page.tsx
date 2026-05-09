@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { LoginForm } from "@/types";
@@ -31,6 +31,18 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Offline guard: if the device is offline AND a cached session exists in
+  // localStorage, bounce back to the dashboard instead of showing the login
+  // form. The dashboard's own offline-aware code paths take it from there.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const cachedToken = localStorage.getItem("authToken");
+    const cachedUser = localStorage.getItem("user");
+    if (!navigator.onLine && cachedToken && cachedUser) {
+      router.replace("/dashboard/overview");
+    }
+  }, [router]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

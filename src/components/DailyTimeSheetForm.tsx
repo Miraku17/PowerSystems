@@ -623,6 +623,7 @@ export default function DailyTimeSheetForm() {
               onSignatureChange={(sig) => setFormData({ performed_by_signature: sig })}
               users={users as FormUser[]}
               subtitle="Performed By"
+              autoFillForPositions={["User 1", "User 2"]}
             />
             {/* <SignatorySelect
               label="Supervisor"

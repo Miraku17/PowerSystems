@@ -791,6 +791,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   onSignatureChange={(sig) => handleFieldChange("performed_by_signature", sig)}
                   users={users}
                   subtitle="Performed By"
+                  autoFillForPositions={["User 1", "User 2"]}
                 />
                 <SignatorySelect
                   label="Supervisor"

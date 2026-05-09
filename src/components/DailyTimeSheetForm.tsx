@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
+import ReportHeader from "./ReportHeader";
 import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
@@ -14,6 +15,7 @@ import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers, FormUser } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,6 +36,18 @@ export default function DailyTimeSheetForm() {
   const canEditServiceCoordinator = hasPermission('dts_service_office', 'service_coordinator');
   const canEditApprovedBy = hasPermission('dts_service_office', 'approved_by');
   const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
+
+  // Whole "FOR SERVICE OFFICE ONLY" section is locked unless the user has at
+  // least one of the service-office signatory permissions (i.e. they're an
+  // Admin 1/2, Super User, or Super Admin per the dashboard config).
+  const canEncodeServiceOffice =
+    canEditCheckedBy || canEditServiceCoordinator || canEditApprovedBy || canEditServiceManager;
+
+  const currentUser = useCurrentUser();
+  const currentUserPosition = (
+    users.find((u) => u.id === currentUser?.id)?.position?.name || ''
+  ).toLowerCase();
+  const isSuperAdmin = currentUserPosition === 'super admin';
 
   // SVC. CO'RDNTR: no auto-populate — logged-in user can choose from dropdown
 
@@ -305,15 +319,7 @@ export default function DailyTimeSheetForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Daily Time Sheet
-          </h2>
-        </div>
-      </div>
+      <ReportHeader title="Daily Time Sheet" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section: Header Information */}
@@ -650,12 +656,12 @@ export default function DailyTimeSheetForm() {
             <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled placeholder=" " />
             <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
-            <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} />
-            <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} />
-            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} />
-            <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} />
+            <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.checked_by"} />
+            <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_coordinator"} />
+            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"} />
+            <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_manager"} />
             <div className="lg:col-span-4">
-              <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} />
+              <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} disabled={!canEncodeServiceOffice && !isSuperAdmin} />
             </div>
             <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization} onChange={() => {}} disabled placeholder=" " />
           </div>
@@ -834,9 +840,10 @@ interface TextAreaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   rows?: number;
+  disabled?: boolean;
 }
 
-const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => (
+const TextArea = ({ label, name, value, onChange, rows = 3, disabled = false }: TextAreaProps) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <textarea
@@ -844,7 +851,8 @@ const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => 
       value={value}
       onChange={onChange}
       rows={rows}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
       placeholder={`Enter ${label.toLowerCase()}`}
     />
   </div>

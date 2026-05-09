@@ -42,6 +42,7 @@ interface FormCounts {
   "electric-surface-pump-teardown": number;
   "engine-inspection-receiving": number;
   "components-teardown-measuring": number;
+  "components-buildup-report": number;
 }
 
 interface PendingApprovals {
@@ -99,6 +100,10 @@ const formTypeConfig: Record<
   },
   "components-teardown-measuring": {
     name: "Components Teardown/Measuring",
+    category: "Analysis",
+  },
+  "components-buildup-report": {
+    name: "Components Build-up Report",
     category: "Analysis",
   },
 };
@@ -180,8 +185,11 @@ export default function OverviewPage() {
   const categoryTotals = formCounts
     ? Object.entries(formCounts).reduce(
         (acc, [key, count]) => {
-          const category = formTypeConfig[key as keyof FormCounts].category;
-          acc[category] = (acc[category] || 0) + count;
+          const config = formTypeConfig[key as keyof FormCounts];
+          // Skip unknown form types so a stray key from the counts API
+          // doesn't crash the dashboard.
+          if (!config) return acc;
+          acc[config.category] = (acc[config.category] || 0) + count;
           return acc;
         },
         {} as Record<string, number>,
@@ -527,6 +535,9 @@ export default function OverviewPage() {
                     .map(([formType, count]) => {
                       const config =
                         formTypeConfig[formType as keyof FormCounts];
+                      // Skip unknown form types so an unconfigured key from
+                      // the counts API doesn't blow up the table.
+                      if (!config) return null;
                       return (
                         <tr
                           key={formType}

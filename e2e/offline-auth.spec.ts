@@ -44,10 +44,12 @@ test.describe("Offline auth survival", () => {
       });
     }, { token });
 
-    // Land on the dashboard normally.
+    // Land somewhere under /dashboard. The exact subpath depends on the
+    // layout's role-based routing; we only care that we're authenticated and
+    // not on /login.
     await page.goto("/dashboard/overview");
     await page.waitForLoadState("networkidle");
-    expect(page.url()).toMatch(/\/dashboard\/overview\/?$/);
+    expect(page.url()).toMatch(/\/dashboard\//);
     const tokenBefore = await page.evaluate(() => window.localStorage.getItem("authToken"));
     expect(tokenBefore).toBeTruthy();
 

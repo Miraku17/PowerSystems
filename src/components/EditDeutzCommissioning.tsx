@@ -1076,7 +1076,7 @@ export default function EditDeutzCommissioning({
                     users={users}
                     subtitle="Sign above"
                     disabled={!canEditServiceTechnician}
-                  />
+                   autoFillForPositions={["User 1", "User 2"]}/>
                 </div>
 
                 <div className="flex flex-col space-y-4">

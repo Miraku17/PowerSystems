@@ -854,7 +854,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     subtitle="Signed by Technician"
                     showAllUsers
                     disabled={!canEditServiceTechnician}
-                  />
+                   autoFillForPositions={["User 1", "User 2"]}/>
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SignatorySelect

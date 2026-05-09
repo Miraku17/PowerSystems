@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
-import { getUserAddresses } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -47,6 +47,8 @@ export const GET = withAuth(async (request, { user }) => {
     const creatorIds = [...new Set(data.map((r: any) => r.created_by).filter(Boolean))];
     const addressMap = await getUserAddresses(supabase, creatorIds as string[]);
 
+    const updaterIds = [...new Set(data.map((r: any) => r.updated_by).filter(Boolean))];
+    const nameMap = await getUserDisplayNames(supabase, [...new Set([...creatorIds, ...updaterIds])] as string[]);
     const formRecords = data.map((record: any) => {
       const approval = getApprovalForRecord(approvalMap, String(record.id));
       const rawStatus = (record.status || "").trim();
@@ -60,6 +62,7 @@ export const GET = withAuth(async (request, { user }) => {
         dateUpdated: record.updated_at,
         created_by: record.created_by,
         created_by_address: addressMap[record.created_by] || null,
+updated_by_name: record.updated_by ? (nameMap[record.updated_by] || "") : "",
         approval,
         companyForm: {
           id: "job-order-request",
@@ -131,6 +134,7 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Extract all fields (shop_field_jo_number is now auto-generated from jo_number)
     const date_prepared = getString('date_prepared');
+    const reporting_branch = getString('reporting_branch');
     const full_customer_name = getString('full_customer_name');
     const address = getString('address');
     const location_of_unit = getString('location_of_unit');
@@ -187,6 +191,33 @@ export const POST = withAuth(async (request, { user }) => {
       }
     }
 
+    // Validate "Service Use Only" data fields. Status defaults to 'Pending' on
+    // create — that's fine for any submitter. Anything else in this section
+    // requires the jo_service_use.edit permission (Admin 1 / Admin 2 / Super Admin).
+    const serviceUseHasContent = [
+      estimated_repair_days,
+      technicians_involved,
+      date_job_started,
+      date_job_completed_closed,
+      parts_cost,
+      labor_cost,
+      other_cost,
+      total_cost,
+      date_of_invoice,
+      invoice_number,
+      remarks,
+    ].some((v) => v && v.trim() !== '') || (status && status !== 'Pending');
+
+    if (serviceUseHasContent) {
+      const allowedSU = await hasPermission(supabase, user.id, 'jo_service_use', 'edit');
+      if (!allowedSU) {
+        return NextResponse.json(
+          { error: 'You do not have permission to set Service Use Only fields' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Signatures
     const rawRequestedBySignature = getString('requested_by_signature');
     const rawApprovedBySignature = getString('approved_by_signature');
@@ -232,6 +263,7 @@ export const POST = withAuth(async (request, { user }) => {
       .insert([
         {
           date_prepared: date_prepared || null,
+          reporting_branch: reporting_branch || null,
           full_customer_name,
           address,
           location_of_unit,

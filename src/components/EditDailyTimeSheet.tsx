@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 
 interface EditDailyTimeSheetProps {
   data: Record<string, any>;
@@ -74,7 +75,7 @@ const Input = ({ label, name, value, type = "text", className = "", step, disabl
   </div>
 );
 
-const TextArea = ({ label, name, value, onChange }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void }) => (
+const TextArea = ({ label, name, value, onChange, disabled = false }: { label: string; name: string; value: any; onChange: (name: string, value: any) => void; disabled?: boolean }) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <textarea
@@ -82,7 +83,8 @@ const TextArea = ({ label, name, value, onChange }: { label: string; name: strin
       value={value || ''}
       onChange={(e) => onChange(name, e.target.value)}
       rows={3}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
     />
   </div>
 );
@@ -187,6 +189,14 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
   const canEditServiceCoordinator = hasPermission('dts_service_office', 'service_coordinator');
   const canEditApprovedBy = hasPermission('dts_service_office', 'approved_by');
   const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
+
+  const canEncodeServiceOffice =
+    canEditCheckedBy || canEditServiceCoordinator || canEditApprovedBy || canEditServiceManager;
+  const currentUser = useCurrentUser();
+  const currentUserPosition = (
+    users.find((u: any) => u.id === currentUser?.id)?.position?.name || ''
+  ).toLowerCase();
+  const isSuperAdmin = currentUserPosition === 'super admin';
 
   useEffect(() => {
     const fetchAttachments = async () => {
@@ -376,7 +386,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
       ...prev,
       job_number: jo.shop_field_jo_number || "",
       customer: jo.full_customer_name || "",
-      address: jo.address || "",
+      address: jo.location_of_unit || "",
       job_order_request_id: jo.id || "",
     }));
   };
@@ -529,8 +539,8 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   onChange={(value) => handleFieldChange('job_number', value)}
                   onSelect={handleJobOrderSelect}
                 />
-                <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} />
-                <Input label="Address" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
+                <Input label="Customer" name="customer" value={formData.customer} onChange={handleFieldChange} disabled />
+                <Input label="Location of Unit" name="address" value={formData.address} onChange={handleFieldChange} className="md:col-span-2" />
                 <Input label="Date" name="date" type="date" value={formData.date} onChange={handleFieldChange} />
               </div>
             </div>
@@ -791,6 +801,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   onSignatureChange={(sig) => handleFieldChange("performed_by_signature", sig)}
                   users={users}
                   subtitle="Performed By"
+                  autoFillForPositions={["User 1", "User 2"]}
                 />
                 <SignatorySelect
                   label="Supervisor"
@@ -814,12 +825,12 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                 <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleFieldChange} disabled />
                 <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleFieldChange} disabled />
                 <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleFieldChange} disabled />
-                <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("checked_by_signature", sig)} users={users} showAllUsers disabled={!canEditCheckedBy} />
-                <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_coordinator_signature", sig)} users={users} showAllUsers disabled={!canEditServiceCoordinator} />
-                <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("approved_by_service_signature", sig)} users={users} showAllUsers disabled={!canEditApprovedBy} />
-                <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_manager_signature", sig)} users={users} showAllUsers disabled={!canEditServiceManager} />
+                <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("checked_by_signature", sig)} users={users} showAllUsers disabled={!canEditCheckedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.checked_by"} />
+                <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_coordinator_signature", sig)} users={users} showAllUsers disabled={!canEditServiceCoordinator} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_coordinator"} />
+                <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("approved_by_service_signature", sig)} users={users} showAllUsers disabled={!canEditApprovedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"} />
+                <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleFieldChange} onSignatureChange={(sig) => handleFieldChange("service_manager_signature", sig)} users={users} showAllUsers disabled={!canEditServiceManager} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_manager"} />
                 <div className="lg:col-span-4">
-                  <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} />
+                  <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleFieldChange} disabled={!canEncodeServiceOffice && !isSuperAdmin} />
                 </div>
                 <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization || ''} onChange={() => {}} disabled />
               </div>

@@ -398,7 +398,7 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
                     subtitle="Signed by Technician"
                     showAllUsers
                     disabled={!canEditServiceTechnician}
-                  />
+                   autoFillForPositions={["User 1", "User 2"]}/>
                 </div>
 
                 <div className="space-y-4">

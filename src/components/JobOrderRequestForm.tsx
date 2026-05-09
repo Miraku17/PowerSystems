@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/axios';
 import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
+import ReportHeader from "./ReportHeader";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useJobOrderRequestFormStore } from "@/stores/jobOrderRequestFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
@@ -14,6 +15,7 @@ import { useUsers, useCustomers, FormUser } from '@/hooks/useSharedQueries';
 import { useCurrentUser } from '@/stores/authStore';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAutoPopulateUser } from "@/hooks/useAutoPopulateUser";
 
 export default function JobOrderRequestForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,12 +66,22 @@ export default function JobOrderRequestForm() {
   const handleCustomerSelect = (customer: any) => {
     setFormData({
       full_customer_name: customer.customer || "",
+      address: customer.address || "",
     });
   };
 
   const handleSignatoryChange = (name: string, value: string) => {
     setFormData({ [name]: value });
   };
+
+  // Auto-populate "Requested By" with the logged-in user's name + signature
+  // when the field is still empty. Editable afterwards.
+  useAutoPopulateUser(
+    setFormData,
+    "requested_by_name",
+    "requested_by_signature",
+    formData.requested_by_name,
+  );
 
   const currentUser = useCurrentUser();
   const { hasPermission } = usePermissions();
@@ -85,6 +97,8 @@ export default function JobOrderRequestForm() {
   const canReceiveByServiceDept = hasPermission('jo_signatory', 'service_dept');
   const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
   const canEditVerifiedBy = hasPermission('jo_signatory', 'verified_by');
+  const canEditServiceUse = hasPermission('jo_service_use', 'edit');
+  const isSuperAdmin = currentUserPosition === 'super admin';
 
   // Requested By / Service Dept: no auto-populate — logged-in user can choose from dropdown
 
@@ -96,7 +110,7 @@ export default function JobOrderRequestForm() {
       const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (attachments.length > 0) {
-        showUploadLoading('Uploading images...');
+        showUploadLoading('Uploading files...');
         const results = await uploadFiles(
           attachments.map(a => a.file),
           { bucket: 'service-reports', pathPrefix: 'job-order' }
@@ -166,18 +180,7 @@ export default function JobOrderRequestForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-        </p>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Job Order Request Form
-          </h2>
-        </div>
-      </div>
+      <ReportHeader title="Job Order Request Form" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Section: Header Information */}
@@ -186,7 +189,7 @@ export default function JobOrderRequestForm() {
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Job Order Information</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <div className="flex flex-col w-full">
               <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
                 SHOP/FIELD J.O. NO.
@@ -199,6 +202,14 @@ export default function JobOrderRequestForm() {
               />
             </div>
             <Input label="Date Prepared" name="date_prepared" type="date" value={formData.date_prepared} onChange={handleChange} />
+            <SelectDropdown
+              label="Reporting Branch"
+              name="reporting_branch"
+              value={formData.reporting_branch}
+              onChange={handleChange}
+              options={["Manila", "Davao"]}
+              placeholder="Select branch"
+            />
           </div>
         </div>
 
@@ -221,14 +232,11 @@ export default function JobOrderRequestForm() {
               />
             </div>
             <div className="md:col-span-2">
-              <CustomerAutocomplete
+              <Input
                 label="Address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                onSelect={handleCustomerSelect}
-                customers={customers}
-                searchKey="address"
               />
             </div>
             <div className="md:col-span-2">
@@ -322,6 +330,7 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Sales/Service Engineer"
               disabled={!canEditRequestedBy}
+              showAllUsers={isSuperAdmin}
             />
             <SignatorySelect
               label="Approved By (Department Head)"
@@ -333,6 +342,8 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Department Head"
               disabled={!canApproveByDeptHead}
+              showAllUsers
+              filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
             />
           </div>
         </div>
@@ -354,6 +365,8 @@ export default function JobOrderRequestForm() {
               users={users}
               subtitle="Service Department"
               disabled={!canReceiveByServiceDept}
+              showAllUsers
+              filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
             />
             {canReceiveByCreditCollection && (
               <SignatorySelect
@@ -377,27 +390,28 @@ export default function JobOrderRequestForm() {
             <h3 className="text-lg font-bold text-gray-800 uppercase">Service Use Only</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
-            <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleChange} />
+            <Input label="Estimated No. of Repairs Days" name="estimated_repair_days" type="number" value={formData.estimated_repair_days} onChange={handleChange} disabled={!canEditServiceUse} />
             <div className="lg:col-span-2">
-              <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleChange} placeholder="Comma-separated names" />
+              <Input label="Technicians Involved" name="technicians_involved" value={formData.technicians_involved} onChange={handleChange} placeholder="Comma-separated names" disabled={!canEditServiceUse} />
             </div>
-            <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} />
-            <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} />
+            <Input label="Date Job Started" name="date_job_started" type="date" value={formData.date_job_started} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Date Job Completed/Closed" name="date_job_completed_closed" type="date" value={formData.date_job_completed_closed} onChange={handleChange} disabled={!canEditServiceUse} />
             <SelectDropdown
               label="Status"
               name="status"
               value={formData.status}
               onChange={handleChange}
               options={["Pending", "In-Progress", "Close", "Cancelled"]}
+              disabled={!canEditServiceUse}
             />
-            <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} />
-            <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} />
-            <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} />
+            <Input label="Parts Cost" name="parts_cost" type="number" step="0.01" value={formData.parts_cost} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Labor Cost" name="labor_cost" type="number" step="0.01" value={formData.labor_cost} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Other Cost" name="other_cost" type="number" step="0.01" value={formData.other_cost} onChange={handleChange} disabled={!canEditServiceUse} />
             <Input label="Total Cost" name="total_cost" type="number" step="0.01" value={formData.total_cost} onChange={handleChange} disabled />
-            <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleChange} />
-            <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleChange} />
+            <Input label="Date of Invoice" name="date_of_invoice" type="date" value={formData.date_of_invoice} onChange={handleChange} disabled={!canEditServiceUse} />
+            <Input label="Invoice Number" name="invoice_number" value={formData.invoice_number} onChange={handleChange} disabled={!canEditServiceUse} />
             <div className="lg:col-span-3">
-              <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} />
+              <TextArea label="Remarks" name="remarks" value={formData.remarks} onChange={handleChange} rows={3} disabled={!canEditServiceUse} />
             </div>
             <div className="lg:col-span-3">
               <SignatorySelect
@@ -422,7 +436,7 @@ export default function JobOrderRequestForm() {
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
             <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 photos only)</span>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 files: images or PDFs)</span>
           </div>
           <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
             <label className="block text-xs font-bold text-gray-700 uppercase mb-2">
@@ -432,17 +446,26 @@ export default function JobOrderRequestForm() {
             {attachments.length > 0 && (
               <div className="space-y-3 mb-4">
                 {attachments.map((attachment, index) => {
-                  const previewUrl = URL.createObjectURL(attachment.file);
+                  const isImage = attachment.file.type.startsWith('image/');
+                  const previewUrl = isImage ? URL.createObjectURL(attachment.file) : null;
                   return (
                     <div key={index} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
                       <div className="flex items-start gap-4">
                         <div className="flex-shrink-0">
-                          <img
-                            src={previewUrl}
-                            alt={attachment.file.name}
-                            className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
-                            onLoad={() => URL.revokeObjectURL(previewUrl)}
-                          />
+                          {isImage && previewUrl ? (
+                            <img
+                              src={previewUrl}
+                              alt={attachment.file.name}
+                              className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                              onLoad={() => URL.revokeObjectURL(previewUrl)}
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
+                              <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -492,21 +515,23 @@ export default function JobOrderRequestForm() {
                     <input
                       id="file-upload-job-order"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf"
                       multiple
                       className="sr-only"
                       onChange={async (e) => {
                         if (e.target.files && e.target.files.length > 0) {
                           const files = Array.from(e.target.files);
-                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
+                          if (attachments.length + files.length > 20) { toast.error('Maximum 20 files allowed'); e.target.value = ''; return; }
                           const newFiles = [];
                           for (const file of files) {
-                            if (!file.type.startsWith('image/')) {
-                              toast.error('Please select only image files');
+                            const isImage = file.type.startsWith('image/');
+                            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+                            if (!isImage && !isPdf) {
+                              toast.error('Only images or PDFs are allowed');
                               continue;
                             }
-                            const compressed = await compressImageIfNeeded(file);
-                            newFiles.push({ file: compressed, title: '' });
+                            const processed = isImage ? await compressImageIfNeeded(file) : file;
+                            newFiles.push({ file: processed, title: '' });
                           }
                           if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
                           e.target.value = '';
@@ -516,7 +541,7 @@ export default function JobOrderRequestForm() {
                   </label>
                   <p className="pl-1">or drag and drop</p>
                 </div>
-                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF up to 10MB ({attachments.length}/20 photos)</p>
+                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF, PDF up to 10MB ({attachments.length}/20 files)</p>
               </div>
             </div>
           </div>
@@ -590,9 +615,10 @@ interface TextAreaProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   rows?: number;
+  disabled?: boolean;
 }
 
-const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => (
+const TextArea = ({ label, name, value, onChange, rows = 3, disabled = false }: TextAreaProps) => (
   <div className="flex flex-col w-full">
     <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
     <textarea
@@ -600,7 +626,8 @@ const TextArea = ({ label, name, value, onChange, rows = 3 }: TextAreaProps) => 
       value={value}
       onChange={onChange}
       rows={rows}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none"
+      disabled={disabled}
+      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
       placeholder={`Enter ${label.toLowerCase()}`}
     />
   </div>
@@ -619,9 +646,10 @@ interface SelectDropdownProps {
   onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
   options: string[] | SelectDropdownOption[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
-const SelectDropdown = ({ label, name, value, onChange, options, placeholder }: SelectDropdownProps) => {
+const SelectDropdown = ({ label, name, value, onChange, options, placeholder, disabled = false }: SelectDropdownProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
 
@@ -655,8 +683,9 @@ const SelectDropdown = ({ label, name, value, onChange, options, placeholder }: 
       <div className="relative">
         <button
           type="button"
-          onClick={() => setShowDropdown(!showDropdown)}
-          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left text-sm text-gray-900 transition-colors pr-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          onClick={() => { if (!disabled) setShowDropdown(!showDropdown); }}
+          disabled={disabled}
+          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white text-left text-sm text-gray-900 transition-colors pr-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           {displayText || <span className="text-gray-400">{placeholder || `Select ${label.toLowerCase()}`}</span>}
         </button>

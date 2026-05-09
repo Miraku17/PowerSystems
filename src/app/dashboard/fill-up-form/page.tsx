@@ -50,7 +50,9 @@ const FillUpFormPage = () => {
       case "engine-inspection-receiving":
         return <EngineInspectionReceivingForm />;
       case "components-teardown-measuring":
-        return <ComponentsTeardownMeasuringForm />;
+        return <ComponentsTeardownMeasuringForm kind="teardown" />;
+      case "components-buildup-report":
+        return <ComponentsTeardownMeasuringForm kind="buildup" />;
       default:
         return <DeutzServiceForm />;
     }
@@ -70,6 +72,7 @@ const FillUpFormPage = () => {
     { value: "electric-surface-pump-teardown", label: "Electric Driven Surface Pump Teardown Report" },
     { value: "engine-inspection-receiving", label: "Engine Inspection / Receiving Report" },
     { value: "components-teardown-measuring", label: "Components Teardown Measuring Report" },
+    { value: "components-buildup-report", label: "Components Build-up Report" },
   ];
 
   return (

@@ -51,7 +51,7 @@ export const useSupabaseUpload = (): UseSupabaseUploadReturn => {
     if (!validateFileType(file)) {
       return {
         success: false,
-        error: 'Invalid file type. Only images are allowed.',
+        error: 'Invalid file type. Only images or PDFs are allowed.',
         fileName: file.name,
       };
     }

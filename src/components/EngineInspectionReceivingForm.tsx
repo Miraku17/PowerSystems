@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import SignatorySelect from './SignatorySelect';
 import SignaturePad from './SignaturePad';
 import ConfirmationModal from './ConfirmationModal';
+import ReportHeader from './ReportHeader';
 import {
   useEngineInspectionReceivingFormStore,
   SECTION_DEFINITIONS,
@@ -228,22 +229,7 @@ export default function EngineInspectionReceivingForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Company Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">
-          Power Systems, Inc.
-        </h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">
-          C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City
-        </p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-        </p>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Engine Inspection / Receiving Report
-          </h2>
-        </div>
-      </div>
+      <ReportHeader title="Engine Inspection / Receiving Report" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Header Information */}
@@ -462,7 +448,7 @@ export default function EngineInspectionReceivingForm() {
               users={users}
               subtitle="Signed by Technician"
               disabled={!canEditServiceTechnician}
-            />
+             autoFillForPositions={["User 1", "User 2"]}/>
             <SignatorySelect
               label="Approved By"
               name="approved_by_name"

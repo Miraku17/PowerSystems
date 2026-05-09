@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 import apiClient from "@/lib/axios";
 import { useResolveSignature } from "@/hooks/useSharedQueries";
+import ReportHeader from "@/components/ReportHeader";
 
 interface ViewJobOrderRequestProps {
   data: Record<string, any>;
@@ -187,25 +188,15 @@ export default function ViewJobOrderRequest({ data, onClose, onExportPDF }: View
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto">
 
             {/* Company Header */}
-            <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-              <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Inc.</h1>
-              <p className="text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-              </p>
-              <div className="mt-6">
-                <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-                  Job Order Request Form
-                </h2>
-              </div>
-            </div>
+            <ReportHeader title="Job Order Request Form" />
 
             {/* Job Order Information */}
             <div className="mb-6">
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Job Order Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Field label="SHOP/FIELD J.O. NO." value={data.shop_field_jo_number} />
                 <Field label="Date Prepared" value={formatDate(data.date_prepared)} />
+                <Field label="Reporting Branch" value={data.reporting_branch} />
               </div>
             </div>
 

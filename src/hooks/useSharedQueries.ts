@@ -16,6 +16,12 @@ export interface FormUser {
     description: string | null;
   };
   signature_url?: string | null;
+  /**
+   * Flat list of "module.action" keys derived from this user's position_permissions.
+   * Used by SignatorySelect's `filterByPermission` prop to show only users whose
+   * position grants the relevant signatory permission.
+   */
+  permissions?: string[];
 }
 
 export function useUsers() {

@@ -5,6 +5,7 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 import { supabase } from "@/lib/supabase";
 import apiClient from "@/lib/axios";
 import { useResolveSignature } from "@/hooks/useSharedQueries";
+import ReportHeader from "@/components/ReportHeader";
 
 interface ViewDailyTimeSheetProps {
   data: Record<string, any>;
@@ -255,15 +256,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
           <div className="bg-white shadow-sm border border-gray-200 rounded-xl p-8 max-w-5xl mx-auto">
 
             {/* Company Header */}
-            <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-              <h1 className="text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">Power Systems, Incorporated</h1>
-              <p className="text-sm text-gray-600 mt-2">C-3 Road corner Torsillo Street, Dagat-Dagatan, Caloocan City</p>
-              <div className="mt-6">
-                <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-                  Daily Time Sheet
-                </h2>
-              </div>
-            </div>
+            <ReportHeader title="Daily Time Sheet" />
 
             {/* Basic Information */}
             <div className="mb-6">

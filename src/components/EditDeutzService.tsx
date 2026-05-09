@@ -571,7 +571,7 @@ export default function EditDeutzService({ data, recordId, onClose, onSaved, onS
                     subtitle="Sign above"
                     showAllUsers
                     disabled={!canEditServiceTechnician}
-                  />
+                   autoFillForPositions={["User 1", "User 2"]}/>
                 </div>
 
                 <div className="flex flex-col space-y-4">

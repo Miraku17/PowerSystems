@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { CompanyForm, DynamicField, FormSection } from "@/types";
+import ReportHeader from "./ReportHeader";
 import { companyFormService, formRecordService } from "@/services";
 import { useUsers, useCustomers, useEngines } from "@/hooks/useSharedQueries";
 import {
@@ -718,35 +719,10 @@ export default function FormInstances({ formId, forms }: FormInstancesProps) {
         className="bg-white shadow-lg"
         style={{ maxWidth: "900px", margin: "0 auto" }}
       >
-        {/* Company Header */}
-        <div className="text-center py-6 px-8 border-b-2 border-gray-300">
-          <h1 className="text-2xl font-bold text-gray-900 mb-1">
-            Power Systems, Incorporated
-          </h1>
-          <p className="text-xs text-gray-600 mb-1">
-            2nd Floor TOPY's Place #3 Calle Industria cor. Economia Street,
-            Bagumbayan, Quezon City
-          </p>
-          <p className="text-xs text-gray-600 mb-1">
-            Tel: (+63-2) 8687-9275 | Fax: (+63-2) 8633-6678
-          </p>
-          <p className="text-xs text-gray-600 mb-2">
-            Email: sales@psi-deutz.com
-          </p>
-          <p className="text-xs text-gray-500 uppercase tracking-wide">
-            NAVOTAS • BACOLOD • CEBU • CAGAYAN • DAVAO • GEN SAN • ZAMBOANGA •
-            ILO-ILO • SURIGAO
-          </p>
-        </div>
-
-        {/* Form Title */}
-        <div className="text-center py-4 bg-white">
-          <h2
-            className="text-2xl font-bold uppercase tracking-wide"
-            style={{ color: "#2B4C7E" }}
-          >
-            {formTemplate.company?.name ? `${formTemplate.company.name} - ${formTemplate.name}` : formTemplate.name}
-          </h2>
+        <div className="px-8 pt-6">
+          <ReportHeader
+            title={formTemplate.company?.name ? `${formTemplate.company.name} - ${formTemplate.name}` : formTemplate.name}
+          />
         </div>
 
         {/* Form Body */}

@@ -19,6 +19,28 @@ export const GET = withAuth(async (request, { user }) => {
     // Create a map of public users for easy lookup
     const publicUsersMap = new Map(publicUsers.map(u => [u.id, u]));
 
+    // Build a position_id -> ["module.action", ...] map so each user can be
+    // filtered by permission (e.g. "jo_signatory.approved_by") on the client.
+    const positionIds = [
+      ...new Set(publicUsers.map((u: any) => u.position_id).filter(Boolean)),
+    ] as string[];
+    const positionPermsMap = new Map<string, string[]>();
+    if (positionIds.length > 0) {
+      const { data: posPerms, error: posPermsErr } = await supabase
+        .from("position_permissions")
+        .select("position_id, permissions(module, action)")
+        .in("position_id", positionIds);
+      if (posPermsErr) throw posPermsErr;
+      for (const row of posPerms ?? []) {
+        const perm = (row as any).permissions as { module: string; action: string } | null;
+        if (!perm) continue;
+        const key = `${perm.module}.${perm.action}`;
+        const list = positionPermsMap.get((row as any).position_id) ?? [];
+        list.push(key);
+        positionPermsMap.set((row as any).position_id, list);
+      }
+    }
+
     // Merge the data
     const users = authUsersData.users.map(authUser => {
       const publicUser = publicUsersMap.get(authUser.id) as any;
@@ -41,6 +63,9 @@ export const GET = withAuth(async (request, { user }) => {
         position_id: publicUser?.position_id || null,
         position: publicUser?.positions || null,
         signature_url,
+        permissions: publicUser?.position_id
+          ? positionPermsMap.get(publicUser.position_id) ?? []
+          : [],
       };
     });
 

@@ -26,7 +26,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
-import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon, TrashIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon, TrashIcon, EyeIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
   children,
@@ -54,9 +54,7 @@ function DashboardLayoutInner({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [formsExpanded, setFormsExpanded] = useState(false);
-  const [productsExpanded, setProductsExpanded] = useState(false);
   const [activeFormTab, setActiveFormTab] = useState<string | null>(null);
-  const [activeProductTab, setActiveProductTab] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
   const [userRole, setUserRole] = useState<string>("user");
   const [userPosition, setUserPosition] = useState<string>("");
@@ -121,26 +119,14 @@ function DashboardLayoutInner({
     }
   }, [pathname]);
 
-  // Auto-expand products menu when on products page
-  useEffect(() => {
-    if (pathname.includes("/products")) {
-      setProductsExpanded(true);
-    }
-  }, [pathname]);
-
   // Update active tabs whenever URL changes
   useEffect(() => {
     const tabParam = searchParams.get("tab");
 
     if (pathname.includes("/forms")) {
       setActiveFormTab(tabParam);
-      setActiveProductTab(null);
-    } else if (pathname.includes("/products")) {
-      setActiveProductTab(tabParam);
-      setActiveFormTab(null);
     } else {
       setActiveFormTab(null);
-      setActiveProductTab(null);
     }
   }, [pathname, searchParams]);
 
@@ -175,8 +161,6 @@ function DashboardLayoutInner({
       name: "Products",
       icon: CogIcon,
       href: "/dashboard/products",
-      hasSubmenu: true,
-      submenuType: "products",
       permissionModule: "products",
     },
 
@@ -253,6 +237,19 @@ function DashboardLayoutInner({
       section: "System",
     },
     {
+      name: "Permission Management",
+      icon: ShieldCheckIcon,
+      href: "/dashboard/permission-management",
+      section: "System",
+      superAdminOnly: true,
+    },
+    {
+      name: "Header Settings",
+      icon: Cog6ToothIcon,
+      href: "/dashboard/header-settings",
+      superAdminOnly: true,
+    },
+    {
       name: "Deleted Records",
       icon: TrashIcon,
       href: "/dashboard/trash",
@@ -267,6 +264,9 @@ function DashboardLayoutInner({
   ];
 
   const navigation = allNavigation.filter((item: any) => {
+    if (item.superAdminOnly) {
+      return userPosition === "Super Admin";
+    }
     // Permission-gated items: only show if user has the required permission
     if (item.permission) {
       if (item.permission.action) {
@@ -303,6 +303,14 @@ function DashboardLayoutInner({
         return;
       }
       if (pathname.startsWith("/dashboard/daily-time-sheet") && !canAccess("dts")) {
+        router.push("/dashboard/overview");
+        return;
+      }
+      if (pathname.startsWith("/dashboard/permission-management") && userPosition !== "Super Admin") {
+        router.push("/dashboard/overview");
+        return;
+      }
+      if (pathname.startsWith("/dashboard/header-settings") && userPosition !== "Super Admin") {
         router.push("/dashboard/overview");
         return;
       }
@@ -433,14 +441,8 @@ function DashboardLayoutInner({
             ) : null;
 
             if (item.hasSubmenu) {
-              const isExpanded =
-                item.submenuType === "forms"
-                  ? formsExpanded
-                  : productsExpanded;
-              const setExpanded =
-                item.submenuType === "forms"
-                  ? setFormsExpanded
-                  : setProductsExpanded;
+              const isExpanded = formsExpanded;
+              const setExpanded = setFormsExpanded;
 
               return (
                 <div key={item.href}>
@@ -495,41 +497,7 @@ function DashboardLayoutInner({
                         : "max-h-0 opacity-0"
                     }`}
                   >
-                    <div className="space-y-0.5 py-1">
-                      {/* Submenu Items Logic */}
-                      {item.submenuType === "products" && (
-                        <>
-                          <button
-                            onClick={() => {
-                              router.push(`${item.href}?tab=engines`);
-                              setSidebarOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
-                              pathname.includes("/products") &&
-                              activeProductTab === "engines"
-                                ? "text-white font-medium before:bg-blue-300"
-                                : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
-                            }`}
-                          >
-                            Engines
-                          </button>
-                          <button
-                            onClick={() => {
-                              router.push(`${item.href}?tab=pumps`);
-                              setSidebarOpen(false);
-                            }}
-                            className={`w-full flex items-center gap-2 pl-9 pr-2.5 py-1.5 text-[13px] transition-colors relative before:absolute before:left-[22px] before:top-1/2 before:-translate-y-1/2 before:w-1.5 before:h-1.5 before:rounded-full before:content-[''] hover:before:bg-blue-300 ${
-                              pathname.includes("/products") &&
-                              activeProductTab === "pumps"
-                                ? "text-white font-medium before:bg-blue-300"
-                                : "text-blue-100/60 hover:text-white before:bg-blue-200/20"
-                            }`}
-                          >
-                            Pumps
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    <div className="space-y-0.5 py-1" />
                   </div>
                 </div>
                 </div>

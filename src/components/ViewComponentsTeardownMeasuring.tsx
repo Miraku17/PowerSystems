@@ -5,6 +5,7 @@ import { XMarkIcon, ChevronDownIcon, ChevronUpIcon, PrinterIcon } from "@heroico
 import toast from "react-hot-toast";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/axios";
+import ReportHeader from "@/components/ReportHeader";
 
 interface ViewComponentsTeardownMeasuringProps {
   data: any;
@@ -181,7 +182,11 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
       <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col print:max-w-none print:max-h-none print:rounded-none">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50 print:hidden">
-          <h2 className="text-lg font-bold text-gray-800">View Components Teardown Measuring Report</h2>
+          <h2 className="text-lg font-bold text-gray-800">{`View ${
+            (fullData?.report_kind ?? data?.report_kind) === 'buildup'
+              ? 'Components Build-up Report'
+              : 'Components Teardown Measuring Report'
+          }`}</h2>
           <div className="flex items-center gap-2">
             <button onClick={handlePrint} className="p-2 hover:bg-gray-200 rounded" title="Print">
               <PrinterIcon className="h-5 w-5 text-gray-600" />
@@ -193,11 +198,14 @@ export default function ViewComponentsTeardownMeasuring({ data, recordId, onClos
         </div>
 
         {/* Print Header */}
-        <div className="hidden print:block text-center py-4 border-b">
-          <h1 className="text-xl font-bold">POWER SYSTEMS, INC.</h1>
-          <p className="text-sm text-gray-600">C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City</p>
-          <h2 className="text-lg font-bold mt-2 uppercase">Components Teardown Measuring Report</h2>
-        </div>
+        <ReportHeader
+          title={
+            (fullData?.report_kind ?? data?.report_kind) === 'buildup'
+              ? 'Components Build-up Report'
+              : 'Components Teardown Measuring Report'
+          }
+          className="hidden print:block"
+        />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 print:overflow-visible">

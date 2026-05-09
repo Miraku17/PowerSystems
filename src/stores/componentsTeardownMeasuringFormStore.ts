@@ -1236,6 +1236,14 @@ interface ComponentsTeardownMeasuringFormStore {
     index: number,
     data: Partial<ComponentsTeardownMeasuringFormData[T] extends Array<infer U> ? U : never>
   ) => void;
+  addMeasurementRow: <T extends keyof ComponentsTeardownMeasuringFormData>(
+    section: T,
+    row: ComponentsTeardownMeasuringFormData[T] extends Array<infer U> ? U : never
+  ) => void;
+  removeMeasurementRow: <T extends keyof ComponentsTeardownMeasuringFormData>(
+    section: T,
+    index: number
+  ) => void;
   resetFormData: () => void;
 }
 
@@ -1261,6 +1269,31 @@ export const useComponentsTeardownMeasuringFormStore = create<ComponentsTeardown
           const newArray = [...currentArray];
           newArray[index] = { ...newArray[index], ...data };
 
+          return {
+            formData: {
+              ...state.formData,
+              [section]: newArray,
+            },
+          };
+        }),
+
+      addMeasurementRow: (section, row) =>
+        set((state) => {
+          const currentArray = state.formData[section];
+          if (!Array.isArray(currentArray)) return state;
+          return {
+            formData: {
+              ...state.formData,
+              [section]: [...currentArray, row],
+            },
+          };
+        }),
+
+      removeMeasurementRow: (section, index) =>
+        set((state) => {
+          const currentArray = state.formData[section];
+          if (!Array.isArray(currentArray)) return state;
+          const newArray = currentArray.filter((_, i) => i !== index);
           return {
             formData: {
               ...state.formData,
@@ -1335,4 +1368,165 @@ export {
   buildValveUnloadedLengthData,
   buildValveRecessData,
   buildPistonCylinderHeadDistanceData,
+};
+
+// =============================================================
+// BLANK ROW FACTORIES (used for the "+ Add Row" feature in forms)
+// =============================================================
+
+export const BLANK_ROWS: Record<string, () => any> = {
+  cylinderBoreData: (): CylinderBoreRow => ({
+    bank: 'A',
+    cylinder_no: 0,
+    data_point: 'a',
+    measurement_1: '',
+    measurement_2: '',
+    measurement_3: '',
+  }),
+  cylinderLinerData: (): CylinderLinerRow => ({
+    section: 'seating',
+    cylinder_no: 0,
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+    measurement_d: '',
+  }),
+  mainBearingBoreData: (): MainBearingBoreRow => ({
+    bore_no: 0,
+    axis: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  mainBearingRadialClearanceData: (): MainBearingRadialClearanceRow => ({
+    journal_no: 0,
+    data_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  crankshaftMainJournalDiameterData: (): CrankshaftMainJournalDiameterRow => ({
+    journal_no: 0,
+    datum: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  connectingRodBearingBoreData: (): ConnectingRodBearingBoreRow => ({
+    journal_no: 0,
+    datum: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  camshaftBushingData: (): CamshaftBushingRow => ({
+    bush_no: 0,
+    measuring_point: 0,
+    measurement_a: '',
+    measurement_b: '',
+  }),
+  mainJournalData: (): MainJournalRow => ({
+    journal_no: 0,
+    measuring_point: 0,
+    measurement_a: '',
+    measurement_b: '',
+  }),
+  mainJournalWidthData: (): MainJournalWidthRow => ({
+    journal_no: 0,
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+    measurement_d: '',
+  }),
+  conRodJournalData: (): ConRodJournalRow => ({
+    journal_no: 0,
+    axis: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  crankshaftTrueRunningData: (): CrankshaftTrueRunningRow => ({
+    journal_no: 0,
+    measured_value: '',
+  }),
+  smallEndBushData: (): SmallEndBushRow => ({
+    con_rod_arm_no: 0,
+    datum: 0,
+    measurement_a: '',
+    measurement_b: '',
+  }),
+  bigEndBearingData: (): BigEndBearingRow => ({
+    con_rod_arm_no: 0,
+    measuring_point: 0,
+    measurement_a: '',
+    measurement_b: '',
+  }),
+  connectingRodArmData: (): ConnectingRodArmRow => ({
+    arm_no: 0,
+    bank: 'A',
+    measurement: '',
+  }),
+  pistonPinBushClearanceData: (): PistonPinBushClearanceRow => ({
+    conrod_arm_no: 0,
+    measuring_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  camshaftJournalDiameterData: (): CamshaftJournalDiameterRow => ({
+    journal_no: 0,
+    measuring_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  camshaftBushClearanceData: (): CamshaftBushClearanceRow => ({
+    journal_no: 0,
+    measuring_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  camlobeHeightData: (): CamlobeHeightRow => ({
+    journal_no: 0,
+    measuring_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+  }),
+  cylinderLinerBoreData: (): CylinderLinerBoreRow => ({
+    cylinder_no: 0,
+    measuring_point: 'X',
+    measurement_a: '',
+    measurement_b: '',
+    measurement_c: '',
+    measurement_d: '',
+  }),
+  pistonRingGapData: (): PistonRingGapRow => ({
+    piston_no: 0,
+    ring_1_value: '',
+    ring_2_value: '',
+    ring_3_value: '',
+  }),
+  pistonRingAxialClearanceData: (): PistonRingAxialClearanceRow => ({
+    piston_no: 0,
+    ring_1_value: '',
+    ring_2_value: '',
+    ring_3_value: '',
+  }),
+  valveUnloadedLengthData: (): ValveUnloadedLengthRow => ({
+    cylinder_no: 0,
+    intake_value: '',
+    exhaust_value: '',
+  }),
+  valveRecessData: (): ValveRecessRow => ({
+    cylinder_no: 0,
+    intake_value: '',
+    exhaust_value: '',
+  }),
+  pistonCylinderHeadDistanceData: (): PistonCylinderHeadDistanceRow => ({
+    cylinder_no: 0,
+    measurement_a: '',
+    measurement_b: '',
+  }),
 };

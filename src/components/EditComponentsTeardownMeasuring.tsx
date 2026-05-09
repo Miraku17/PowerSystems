@@ -10,6 +10,7 @@ import {
   buildMainBearingRadialClearanceData,
   buildCrankshaftMainJournalDiameterData,
   buildConnectingRodBearingBoreData,
+  BLANK_ROWS,
 } from "@/stores/componentsTeardownMeasuringFormStore";
 
 interface EditComponentsTeardownMeasuringProps {
@@ -170,6 +171,26 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
     });
   };
 
+  const handleAddRow = (sectionKey: string, blankRow: any) => {
+    setFormState((prev) => ({
+      ...prev,
+      measurementData: {
+        ...prev.measurementData,
+        [sectionKey]: [...(prev.measurementData?.[sectionKey] || []), blankRow],
+      },
+    }));
+  };
+
+  const handleRemoveRow = (sectionKey: string, index: number) => {
+    setFormState((prev) => ({
+      ...prev,
+      measurementData: {
+        ...prev.measurementData,
+        [sectionKey]: (prev.measurementData?.[sectionKey] || []).filter((_: any, i: number) => i !== index),
+      },
+    }));
+  };
+
   const handleAddJournal = (sectionKey: string, pairField: string, pairValues: [string, string]) => {
     setFormState((prev) => {
       const rows = prev.measurementData?.[sectionKey] || [];
@@ -325,40 +346,102 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
     </div>
   );
 
-  const renderMeasurementTable = (dataKey: string, columns: string[], rowLabelFn: (row: any) => string) => {
+  type IdentityCol = { field: string; label?: string; type: 'text' | 'number'; widthClass?: string };
+
+  const renderMeasurementTable = (
+    dataKey: string,
+    identityColumns: IdentityCol[],
+    measurementColumns: string[]
+  ) => {
     const rows = formState.measurementData?.[dataKey] || [];
-    if (rows.length === 0) return <p className="text-sm text-gray-500 italic">No data available</p>;
+    const factory = BLANK_ROWS[dataKey];
+
+    const addRowButton = factory ? (
+      <div className="mt-2 mb-2">
+        <button
+          type="button"
+          onClick={() => handleAddRow(dataKey, factory())}
+          className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+        >
+          + Add Row
+        </button>
+      </div>
+    ) : null;
+
+    if (rows.length === 0) {
+      return (
+        <>
+          <p className="text-sm text-gray-500 italic">No data available</p>
+          {addRowButton}
+        </>
+      );
+    }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs border-collapse">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-2 py-1 text-left">Item</th>
-              {columns.map(col => (
-                <th key={col} className="border px-2 py-1 text-center uppercase">{col.replace('_', ' ')}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row: any, index: number) => (
-              <tr key={index} className="hover:bg-gray-50">
-                <td className="border px-2 py-1 text-sm">{rowLabelFn(row)}</td>
-                {columns.map(col => (
-                  <td key={col} className="border px-1 py-1">
-                    <input
-                      type="text"
-                      value={row[col] || ''}
-                      onChange={(e) => handleMeasurementDataChange(dataKey, index, col, e.target.value)}
-                      className="w-full px-1 py-0.5 border rounded text-xs"
-                    />
-                  </td>
+      <>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-gray-100">
+                {identityColumns.map(idCol => (
+                  <th key={idCol.field} className={`border px-2 py-1 text-left uppercase ${idCol.widthClass || ''}`}>
+                    {(idCol.label || idCol.field).replace(/_/g, ' ')}
+                  </th>
                 ))}
+                {measurementColumns.map(col => (
+                  <th key={col} className="border px-2 py-1 text-center uppercase">{col.replace('_', ' ')}</th>
+                ))}
+                <th className="border px-2 py-1 text-center w-12">Action</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row: any, index: number) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  {identityColumns.map(idCol => (
+                    <td key={idCol.field} className="border px-1 py-1">
+                      <input
+                        type={idCol.type === 'number' ? 'number' : 'text'}
+                        min={idCol.type === 'number' ? 0 : undefined}
+                        value={row[idCol.field] ?? ''}
+                        onChange={(e) =>
+                          handleMeasurementDataChange(
+                            dataKey,
+                            index,
+                            idCol.field,
+                            idCol.type === 'number' ? Number(e.target.value) : e.target.value
+                          )
+                        }
+                        className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                      />
+                    </td>
+                  ))}
+                  {measurementColumns.map(col => (
+                    <td key={col} className="border px-1 py-1">
+                      <input
+                        type="text"
+                        value={row[col] || ''}
+                        onChange={(e) => handleMeasurementDataChange(dataKey, index, col, e.target.value)}
+                        className="w-full px-1 py-0.5 border rounded text-xs"
+                      />
+                    </td>
+                  ))}
+                  <td className="border px-1 py-1 text-center align-middle w-12">
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveRow(dataKey, index)}
+                      className="text-red-600 hover:text-red-800 text-base font-bold leading-none"
+                      title="Delete row"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {addRowButton}
+      </>
     );
   };
 
@@ -412,7 +495,11 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
       <div className="bg-white rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-          <h2 className="text-lg font-bold text-gray-800">Edit Components Teardown Measuring Report</h2>
+          <h2 className="text-lg font-bold text-gray-800">{`Edit ${
+            (fullData?.report_kind ?? data?.report_kind) === 'buildup'
+              ? 'Components Build-up Report'
+              : 'Components Teardown Measuring Report'
+          }`}</h2>
           <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
             <XMarkIcon className="h-6 w-6 text-gray-500" />
           </button>
@@ -445,8 +532,11 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Cylinder Bore" sectionKey="cylinderBore" pageNum="Page 1" />
           {expandedSections.cylinderBore && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('cylinderBoreData', ['measurement_1', 'measurement_2', 'measurement_3'],
-                (row) => `${row.bank}-${row.cylinder_no}-${row.data_point}`)}
+              {renderMeasurementTable('cylinderBoreData', [
+                { field: 'bank', label: 'Bank', type: 'text' },
+                { field: 'cylinder_no', label: 'CYL', type: 'number' },
+                { field: 'data_point', label: 'Data', type: 'text' },
+              ], ['measurement_1', 'measurement_2', 'measurement_3'])}
               {renderMetaFooter('cylinderBoreMeta')}
             </div>
           )}
@@ -455,8 +545,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Cylinder Liner" sectionKey="cylinderLiner" pageNum="Page 2" />
           {expandedSections.cylinderLiner && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('cylinderLinerData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
-                (row) => `${row.section}-${row.cylinder_no}`)}
+              {renderMeasurementTable('cylinderLinerData', [
+                { field: 'section', label: 'Section', type: 'text' },
+                { field: 'cylinder_no', label: 'CYL', type: 'number' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'])}
               {renderMetaFooter('cylinderLinerMeta')}
             </div>
           )}
@@ -465,8 +557,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Main Bearing Bore" sectionKey="mainBearingBore" pageNum="Page 3" />
           {expandedSections.mainBearingBore && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('mainBearingBoreData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Bore ${row.bore_no} - ${row.axis}`)}
+              {renderMeasurementTable('mainBearingBoreData', [
+                { field: 'bore_no', label: 'Bore', type: 'number' },
+                { field: 'axis', label: 'Axis', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c'])}
               {renderMetaFooter('mainBearingBoreMeta')}
             </div>
           )}
@@ -484,8 +578,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Camshaft Bushing" sectionKey="camshaftBushing" pageNum="Page 4" />
           {expandedSections.camshaftBushing && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('camshaftBushingData', ['measurement_a', 'measurement_b'],
-                (row) => `Bush ${row.bush_no} - MP ${row.measuring_point}`)}
+              {renderMeasurementTable('camshaftBushingData', [
+                { field: 'bush_no', label: 'Bush', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'number' },
+              ], ['measurement_a', 'measurement_b'])}
               {renderMetaFooter('camshaftBushingMeta')}
             </div>
           )}
@@ -494,8 +590,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Main Journal Diameter" sectionKey="mainJournal" pageNum="Page 5" />
           {expandedSections.mainJournal && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('mainJournalData', ['measurement_a', 'measurement_b'],
-                (row) => `Journal ${row.journal_no} - MP ${row.measuring_point}`)}
+              {renderMeasurementTable('mainJournalData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'number' },
+              ], ['measurement_a', 'measurement_b'])}
               {renderMetaFooter('mainJournalMeta')}
             </div>
           )}
@@ -513,8 +611,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Main Journal Width" sectionKey="mainJournalWidth" pageNum="Page 6" />
           {expandedSections.mainJournalWidth && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('mainJournalWidthData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
-                (row) => `Journal ${row.journal_no}`)}
+              {renderMeasurementTable('mainJournalWidthData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'])}
               {renderMetaFooter('mainJournalWidthMeta')}
             </div>
           )}
@@ -523,8 +622,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Con Rod Journal" sectionKey="conRodJournal" pageNum="Page 7" />
           {expandedSections.conRodJournal && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('conRodJournalData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.axis}`)}
+              {renderMeasurementTable('conRodJournalData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+                { field: 'axis', label: 'Axis', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c'])}
               {renderMetaFooter('conRodJournalMeta')}
             </div>
           )}
@@ -542,8 +643,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Crankshaft True Running" sectionKey="crankshaftTrueRunning" pageNum="Page 8" />
           {expandedSections.crankshaftTrueRunning && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('crankshaftTrueRunningData', ['measured_value'],
-                (row) => `Journal ${row.journal_no}`)}
+              {renderMeasurementTable('crankshaftTrueRunningData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+              ], ['measured_value'])}
               {renderMetaFooter('crankshaftTrueRunningMeta')}
             </div>
           )}
@@ -552,8 +654,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Small End Bush" sectionKey="smallEndBush" pageNum="Page 9" />
           {expandedSections.smallEndBush && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('smallEndBushData', ['measurement_a', 'measurement_b'],
-                (row) => `Arm ${row.con_rod_arm_no} - Datum ${row.datum}`)}
+              {renderMeasurementTable('smallEndBushData', [
+                { field: 'con_rod_arm_no', label: 'Arm', type: 'number' },
+                { field: 'datum', label: 'Datum', type: 'number' },
+              ], ['measurement_a', 'measurement_b'])}
               {renderMetaFooter('smallEndBushMeta')}
             </div>
           )}
@@ -562,8 +666,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Big End Bearing" sectionKey="bigEndBearing" pageNum="Page 10" />
           {expandedSections.bigEndBearing && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('bigEndBearingData', ['measurement_a', 'measurement_b'],
-                (row) => `Arm ${row.con_rod_arm_no} - MP ${row.measuring_point}`)}
+              {renderMeasurementTable('bigEndBearingData', [
+                { field: 'con_rod_arm_no', label: 'Arm', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'number' },
+              ], ['measurement_a', 'measurement_b'])}
               {renderMetaFooter('bigEndBearingMeta')}
             </div>
           )}
@@ -572,8 +678,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Connecting Rod Arm" sectionKey="connectingRodArm" pageNum="Page 11" />
           {expandedSections.connectingRodArm && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('connectingRodArmData', ['measurement'],
-                (row) => `Arm ${row.arm_no} - Bank ${row.bank}`)}
+              {renderMeasurementTable('connectingRodArmData', [
+                { field: 'arm_no', label: 'Arm', type: 'number' },
+                { field: 'bank', label: 'Bank', type: 'text' },
+              ], ['measurement'])}
               {renderMetaFooter('connectingRodArmMeta')}
             </div>
           )}
@@ -582,8 +690,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Piston Pin Bush Clearance" sectionKey="pistonPinBushClearance" pageNum="Page 12" />
           {expandedSections.pistonPinBushClearance && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('pistonPinBushClearanceData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Arm ${row.conrod_arm_no} - ${row.measuring_point}`)}
+              {renderMeasurementTable('pistonPinBushClearanceData', [
+                { field: 'conrod_arm_no', label: 'Arm', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c'])}
               {renderMetaFooter('pistonPinBushClearanceMeta')}
             </div>
           )}
@@ -601,8 +711,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Camshaft Bush Clearance" sectionKey="camshaftBushClearance" pageNum="Page 14" />
           {expandedSections.camshaftBushClearance && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('camshaftBushClearanceData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderMeasurementTable('camshaftBushClearanceData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c'])}
               {renderMetaFooter('camshaftBushClearanceMeta')}
             </div>
           )}
@@ -611,8 +723,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Camlobe Height" sectionKey="camlobeHeight" pageNum="Page 15" />
           {expandedSections.camlobeHeight && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('camlobeHeightData', ['measurement_a', 'measurement_b', 'measurement_c'],
-                (row) => `Journal ${row.journal_no} - ${row.measuring_point}`)}
+              {renderMeasurementTable('camlobeHeightData', [
+                { field: 'journal_no', label: 'Journal', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c'])}
               {renderMetaFooter('camlobeHeightMeta')}
             </div>
           )}
@@ -621,8 +735,10 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Cylinder Liner Bore" sectionKey="cylinderLinerBore" pageNum="Page 16" />
           {expandedSections.cylinderLinerBore && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('cylinderLinerBoreData', ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'],
-                (row) => `Cyl ${row.cylinder_no} - ${row.measuring_point}`)}
+              {renderMeasurementTable('cylinderLinerBoreData', [
+                { field: 'cylinder_no', label: 'Cylinder', type: 'number' },
+                { field: 'measuring_point', label: 'MP', type: 'text' },
+              ], ['measurement_a', 'measurement_b', 'measurement_c', 'measurement_d'])}
               {renderMetaFooter('cylinderLinerBoreMeta')}
             </div>
           )}
@@ -631,8 +747,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Piston Ring Gap" sectionKey="pistonRingGap" pageNum="Page 17" />
           {expandedSections.pistonRingGap && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('pistonRingGapData', ['ring_1_value', 'ring_2_value', 'ring_3_value'],
-                (row) => `Piston ${row.piston_no}`)}
+              {renderMeasurementTable('pistonRingGapData', [
+                { field: 'piston_no', label: 'Piston', type: 'number' },
+              ], ['ring_1_value', 'ring_2_value', 'ring_3_value'])}
               {renderMetaFooter('pistonRingGapMeta')}
             </div>
           )}
@@ -641,8 +758,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Piston Ring Axial Clearance" sectionKey="pistonRingAxialClearance" pageNum="Page 18" />
           {expandedSections.pistonRingAxialClearance && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('pistonRingAxialClearanceData', ['ring_1_value', 'ring_2_value', 'ring_3_value'],
-                (row) => `Piston ${row.piston_no}`)}
+              {renderMeasurementTable('pistonRingAxialClearanceData', [
+                { field: 'piston_no', label: 'Piston', type: 'number' },
+              ], ['ring_1_value', 'ring_2_value', 'ring_3_value'])}
               {renderMetaFooter('pistonRingAxialClearanceMeta')}
             </div>
           )}
@@ -651,8 +769,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Valve Unloaded Length" sectionKey="valveUnloadedLength" pageNum="Page 19" />
           {expandedSections.valveUnloadedLength && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('valveUnloadedLengthData', ['intake_value', 'exhaust_value'],
-                (row) => `Cylinder ${row.cylinder_no}`)}
+              {renderMeasurementTable('valveUnloadedLengthData', [
+                { field: 'cylinder_no', label: 'Cylinder', type: 'number' },
+              ], ['intake_value', 'exhaust_value'])}
               {renderMetaFooter('valveUnloadedLengthMeta')}
             </div>
           )}
@@ -661,8 +780,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           <SectionHeader title="Valve Recess" sectionKey="valveRecess" pageNum="Page 20" />
           {expandedSections.valveRecess && formState.measurementData && (
             <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              {renderMeasurementTable('valveRecessData', ['intake_value', 'exhaust_value'],
-                (row) => `Cylinder ${row.cylinder_no}`)}
+              {renderMeasurementTable('valveRecessData', [
+                { field: 'cylinder_no', label: 'Cylinder', type: 'number' },
+              ], ['intake_value', 'exhaust_value'])}
               {renderMetaFooter('valveRecessMeta')}
             </div>
           )}
@@ -705,8 +825,9 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
               {formState.measurementData?.pistonCylinderHeadDistanceData && (
                 <>
                   <h5 className="font-semibold text-gray-700">Piston Cylinder Head Distance</h5>
-                  {renderMeasurementTable('pistonCylinderHeadDistanceData', ['measurement_a', 'measurement_b'],
-                    (row) => `Cylinder ${row.cylinder_no}`)}
+                  {renderMeasurementTable('pistonCylinderHeadDistanceData', [
+                    { field: 'cylinder_no', label: 'Cylinder', type: 'number' },
+                  ], ['measurement_a', 'measurement_b'])}
                   {renderMetaFooter('pistonCylinderHeadDistanceMeta')}
                 </>
               )}

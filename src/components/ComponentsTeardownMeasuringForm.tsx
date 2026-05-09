@@ -4,9 +4,11 @@ import React, { useState, useCallback } from 'react';
 import Image from 'next/image';
 import toast from 'react-hot-toast';
 import ConfirmationModal from './ConfirmationModal';
+import ReportHeader from './ReportHeader';
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import {
   useComponentsTeardownMeasuringFormStore,
+  BLANK_ROWS,
   type MeasurementSectionMeta,
   type CylinderLinerMeta,
   type CrankshaftTrueRunningMeta,
@@ -27,9 +29,17 @@ interface Customer {
   address?: string;
 }
 
-export default function ComponentsTeardownMeasuringForm() {
+interface ComponentsTeardownMeasuringFormProps {
+  kind?: 'teardown' | 'buildup';
+}
+
+export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: ComponentsTeardownMeasuringFormProps = {}) {
+  const isBuildup = kind === 'buildup';
+  const reportTitle = isBuildup
+    ? 'Components Build-up Report'
+    : 'Components Teardown Measuring Report';
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { formData, setFormData, updateMeasurementRow, resetFormData } = useComponentsTeardownMeasuringFormStore();
+  const { formData, setFormData, updateMeasurementRow, addMeasurementRow, removeMeasurementRow, resetFormData } = useComponentsTeardownMeasuringFormStore();
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
@@ -115,6 +125,7 @@ export default function ComponentsTeardownMeasuringForm() {
       engine_model: formData.engine_model,
       serial_no: formData.serial_no,
       job_order_no: formData.job_order_no,
+      report_kind: kind,
       measurementData: JSON.stringify({
         cylinderBoreMeta: formData.cylinderBoreMeta,
         cylinderBoreData: formData.cylinderBoreData,
@@ -322,6 +333,38 @@ export default function ComponentsTeardownMeasuringForm() {
   );
 
   // =========================================================
+  // ROW ACTION HELPERS (delete-row + add-row controls)
+  // =========================================================
+
+  const RowActionTd = ({ section, index }: { section: string; index: number }) => (
+    <td className="border border-gray-300 px-1 py-1 text-center align-middle w-12">
+      <button
+        type="button"
+        onClick={() => removeMeasurementRow(section as any, index)}
+        className="text-red-600 hover:text-red-800 text-base font-bold leading-none"
+        title="Delete row"
+      >
+        ×
+      </button>
+    </td>
+  );
+
+  const AddRowButton = ({ section }: { section: string }) => (
+    <div className="mt-2 mb-4">
+      <button
+        type="button"
+        onClick={() => {
+          const factory = BLANK_ROWS[section];
+          if (factory) addMeasurementRow(section as any, factory());
+        }}
+        className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+      >
+        + Add Row
+      </button>
+    </div>
+  );
+
+  // =========================================================
   // RENDER MEASUREMENT TABLES
   // =========================================================
 
@@ -342,14 +385,37 @@ export default function ComponentsTeardownMeasuringForm() {
               <th className="border border-gray-300 px-2 py-2 text-center">1</th>
               <th className="border border-gray-300 px-2 py-2 text-center">2</th>
               <th className="border border-gray-300 px-2 py-2 text-center">3</th>
+              <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
             </tr>
           </thead>
           <tbody>
             {formData.cylinderBoreData.map((row, index) => (
               <tr key={index} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-2 py-1 font-medium">{row.bank}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.cylinder_no}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.data_point}</td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="text"
+                    value={row.bank}
+                    onChange={(e) => updateMeasurementRow('cylinderBoreData', index, { bank: e.target.value as any })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.cylinder_no}
+                    onChange={(e) => updateMeasurementRow('cylinderBoreData', index, { cylinder_no: Number(e.target.value) })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="text"
+                    value={row.data_point}
+                    onChange={(e) => updateMeasurementRow('cylinderBoreData', index, { data_point: e.target.value as any })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
                 <td className="border border-gray-300 px-1 py-1">
                   <input
                     type="text"
@@ -374,10 +440,12 @@ export default function ComponentsTeardownMeasuringForm() {
                     className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                   />
                 </td>
+                <RowActionTd section="cylinderBoreData" index={index} />
               </tr>
             ))}
           </tbody>
         </table>
+        <AddRowButton section="cylinderBoreData" />
       </div>
     );
   };
@@ -442,13 +510,29 @@ export default function ComponentsTeardownMeasuringForm() {
               <th className="border border-gray-300 px-2 py-2 text-center">B</th>
               <th className="border border-gray-300 px-2 py-2 text-center">C</th>
               <th className="border border-gray-300 px-2 py-2 text-center">D</th>
+              <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
             </tr>
           </thead>
           <tbody>
             {formData.cylinderLinerData.map((row, index) => (
               <tr key={index} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-2 py-1 font-medium capitalize">{row.section}</td>
-                <td className="border border-gray-300 px-2 py-1">{row.cylinder_no}</td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="text"
+                    value={row.section}
+                    onChange={(e) => updateMeasurementRow('cylinderLinerData', index, { section: e.target.value as any })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.cylinder_no}
+                    onChange={(e) => updateMeasurementRow('cylinderLinerData', index, { cylinder_no: Number(e.target.value) })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
                 <td className="border border-gray-300 px-1 py-1">
                   <input
                     type="text"
@@ -481,10 +565,12 @@ export default function ComponentsTeardownMeasuringForm() {
                     className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                   />
                 </td>
+                <RowActionTd section="cylinderLinerData" index={index} />
               </tr>
             ))}
           </tbody>
         </table>
+        <AddRowButton section="cylinderLinerData" />
       </div>
     </>
     );
@@ -505,13 +591,29 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-center">A</th>
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
             <th className="border border-gray-300 px-2 py-2 text-center">C</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData[dataKey].map((row: any, index: number) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row[labelField]}</td>
-              <td className="border border-gray-300 px-2 py-1 font-medium">{row.axis}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row[labelField]}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { [labelField]: Number(e.target.value) } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="text"
+                  value={row.axis}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { axis: e.target.value } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -536,10 +638,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section={dataKey} index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section={dataKey} />
     </div>
   );
 
@@ -792,13 +896,30 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-left">MP</th>
             <th className="border border-gray-300 px-2 py-2 text-center">A</th>
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData[dataKey].map((row: any, index: number) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row[labelField]}</td>
-              <td className="border border-gray-300 px-2 py-1 font-medium">{row[mpField]}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row[labelField]}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { [labelField]: Number(e.target.value) } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row[mpField]}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { [mpField]: Number(e.target.value) } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -815,10 +936,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section={dataKey} index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section={dataKey} />
     </div>
   );
 
@@ -833,12 +956,21 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
             <th className="border border-gray-300 px-2 py-2 text-center">C</th>
             <th className="border border-gray-300 px-2 py-2 text-center">D</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData.mainJournalWidthData.map((row, index) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row.journal_no}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row.journal_no}
+                  onChange={(e) => updateMeasurementRow('mainJournalWidthData', index, { journal_no: Number(e.target.value) })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -871,10 +1003,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section="mainJournalWidthData" index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section="mainJournalWidthData" />
     </div>
   );
 
@@ -915,12 +1049,21 @@ export default function ComponentsTeardownMeasuringForm() {
             <tr className="bg-gray-100">
               <th className="border border-gray-300 px-2 py-2 text-left">Journal</th>
               <th className="border border-gray-300 px-2 py-2 text-center">Measured Value</th>
+              <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
             </tr>
           </thead>
           <tbody>
             {formData.crankshaftTrueRunningData.map((row, index) => (
               <tr key={index} className="hover:bg-gray-50">
-                <td className="border border-gray-300 px-2 py-1">{row.journal_no}</td>
+                <td className="border border-gray-300 px-1 py-1">
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.journal_no}
+                    onChange={(e) => updateMeasurementRow('crankshaftTrueRunningData', index, { journal_no: Number(e.target.value) })}
+                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </td>
                 <td className="border border-gray-300 px-1 py-1">
                   <input
                     type="text"
@@ -929,10 +1072,12 @@ export default function ComponentsTeardownMeasuringForm() {
                     className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                   />
                 </td>
+                <RowActionTd section="crankshaftTrueRunningData" index={index} />
               </tr>
             ))}
           </tbody>
         </table>
+        <AddRowButton section="crankshaftTrueRunningData" />
       </div>
     </>
     );
@@ -947,13 +1092,29 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-left">Arm</th>
             <th className="border border-gray-300 px-2 py-2 text-left">Bank</th>
             <th className="border border-gray-300 px-2 py-2 text-center">Measurement</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData.connectingRodArmData.map((row, index) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row.arm_no}</td>
-              <td className="border border-gray-300 px-2 py-1 font-medium">{row.bank}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row.arm_no}
+                  onChange={(e) => updateMeasurementRow('connectingRodArmData', index, { arm_no: Number(e.target.value) })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="text"
+                  value={row.bank}
+                  onChange={(e) => updateMeasurementRow('connectingRodArmData', index, { bank: e.target.value as any })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -962,10 +1123,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section="connectingRodArmData" index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section="connectingRodArmData" />
     </div>
   );
 
@@ -984,13 +1147,29 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-center">A</th>
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
             <th className="border border-gray-300 px-2 py-2 text-center">C</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData[dataKey].map((row: any, index: number) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row[labelField]}</td>
-              <td className="border border-gray-300 px-2 py-1 font-medium">{row.measuring_point}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row[labelField]}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { [labelField]: Number(e.target.value) } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="text"
+                  value={row.measuring_point}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { measuring_point: e.target.value } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -1015,10 +1194,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section={dataKey} index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section={dataKey} />
     </div>
   );
 
@@ -1034,13 +1215,29 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
             <th className="border border-gray-300 px-2 py-2 text-center">C</th>
             <th className="border border-gray-300 px-2 py-2 text-center">D</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData.cylinderLinerBoreData.map((row, index) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row.cylinder_no}</td>
-              <td className="border border-gray-300 px-2 py-1 font-medium">{row.measuring_point}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row.cylinder_no}
+                  onChange={(e) => updateMeasurementRow('cylinderLinerBoreData', index, { cylinder_no: Number(e.target.value) })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="text"
+                  value={row.measuring_point}
+                  onChange={(e) => updateMeasurementRow('cylinderLinerBoreData', index, { measuring_point: e.target.value as any })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -1073,10 +1270,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section="cylinderLinerBoreData" index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section="cylinderLinerBoreData" />
     </div>
   );
 
@@ -1129,12 +1328,21 @@ export default function ComponentsTeardownMeasuringForm() {
                 <th className="border border-gray-300 px-2 py-2 text-center">1st Ring</th>
                 <th className="border border-gray-300 px-2 py-2 text-center">2nd Ring</th>
                 <th className="border border-gray-300 px-2 py-2 text-center">3rd Ring</th>
+                <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
               </tr>
             </thead>
             <tbody>
               {formData[dataKey].map((row: any, index: number) => (
                 <tr key={index} className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-2 py-1">{row.piston_no}</td>
+                  <td className="border border-gray-300 px-1 py-1">
+                    <input
+                      type="number"
+                      min={0}
+                      value={row.piston_no}
+                      onChange={(e) => updateMeasurementRow(dataKey, index, { piston_no: Number(e.target.value) } as any)}
+                      className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                    />
+                  </td>
                   <td className="border border-gray-300 px-1 py-1">
                     <input
                       type="text"
@@ -1159,10 +1367,12 @@ export default function ComponentsTeardownMeasuringForm() {
                       className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                     />
                   </td>
+                  <RowActionTd section={dataKey} index={index} />
                 </tr>
               ))}
             </tbody>
           </table>
+          <AddRowButton section={dataKey} />
         </div>
       </>
     );
@@ -1179,12 +1389,21 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-left">Cylinder</th>
             <th className="border border-gray-300 px-2 py-2 text-center">Intake</th>
             <th className="border border-gray-300 px-2 py-2 text-center">Exhaust</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData[dataKey].map((row: any, index: number) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row.cylinder_no}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row.cylinder_no}
+                  onChange={(e) => updateMeasurementRow(dataKey, index, { cylinder_no: Number(e.target.value) } as any)}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -1201,10 +1420,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section={dataKey} index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section={dataKey} />
     </div>
   );
 
@@ -1217,12 +1438,21 @@ export default function ComponentsTeardownMeasuringForm() {
             <th className="border border-gray-300 px-2 py-2 text-left">Cylinder</th>
             <th className="border border-gray-300 px-2 py-2 text-center">A</th>
             <th className="border border-gray-300 px-2 py-2 text-center">B</th>
+            <th className="border border-gray-300 px-2 py-2 text-center w-12">Action</th>
           </tr>
         </thead>
         <tbody>
           {formData.pistonCylinderHeadDistanceData.map((row, index) => (
             <tr key={index} className="hover:bg-gray-50">
-              <td className="border border-gray-300 px-2 py-1">{row.cylinder_no}</td>
+              <td className="border border-gray-300 px-1 py-1">
+                <input
+                  type="number"
+                  min={0}
+                  value={row.cylinder_no}
+                  onChange={(e) => updateMeasurementRow('pistonCylinderHeadDistanceData', index, { cylinder_no: Number(e.target.value) })}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 bg-white"
+                />
+              </td>
               <td className="border border-gray-300 px-1 py-1">
                 <input
                   type="text"
@@ -1239,10 +1469,12 @@ export default function ComponentsTeardownMeasuringForm() {
                   className="w-full px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500"
                 />
               </td>
+              <RowActionTd section="pistonCylinderHeadDistanceData" index={index} />
             </tr>
           ))}
         </tbody>
       </table>
+      <AddRowButton section="pistonCylinderHeadDistanceData" />
     </div>
   );
 
@@ -1326,22 +1558,7 @@ export default function ComponentsTeardownMeasuringForm() {
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
       {/* Company Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-800 pb-6">
-        <h1 className="text-xl md:text-3xl font-extrabold text-gray-900 uppercase tracking-tight font-serif">
-          Power Systems, Inc.
-        </h1>
-        <p className="text-xs md:text-sm text-gray-600 mt-2">
-          C3 Road cor Torsillo St., Dagat-dagatan, Caloocan City
-        </p>
-        <p className="text-xs md:text-sm text-gray-600 mt-1">
-          <span className="font-bold text-gray-700">Tel:</span> (+63-2) 8687-9275 <span className="mx-2">|</span> <span className="font-bold text-gray-700">Fax:</span> (+63-2) 8633-6678
-        </p>
-        <div className="mt-6">
-          <h2 className="text-2xl font-black text-[#1A2F4F] uppercase inline-block px-6 py-2 border-2 border-[#1A2F4F] tracking-wider">
-            Components Teardown Measuring Report
-          </h2>
-        </div>
-      </div>
+      <ReportHeader title={reportTitle} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Header Section */}
@@ -2226,8 +2443,8 @@ export default function ComponentsTeardownMeasuringForm() {
 
       <ConfirmationModal
         isOpen={isModalOpen}
-        title="Submit Components Teardown Measuring Report"
-        message="Are you sure you want to submit this Components Teardown Measuring Report? Please make sure all information is correct."
+        title={`Submit ${reportTitle}`}
+        message={`Are you sure you want to submit this ${reportTitle}? Please make sure all information is correct.`}
         onConfirm={handleConfirmSubmit}
         onClose={() => setIsModalOpen(false)}
         confirmText="Submit"

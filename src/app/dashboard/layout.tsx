@@ -242,6 +242,7 @@ function DashboardLayoutInner({
       href: "/dashboard/permission-management",
       section: "System",
       superAdminOnly: true,
+      hidden: true,
     },
     {
       name: "Header Settings",
@@ -264,6 +265,9 @@ function DashboardLayoutInner({
   ];
 
   const navigation = allNavigation.filter((item: any) => {
+    if (item.hidden) {
+      return false;
+    }
     if (item.superAdminOnly) {
       return userPosition === "Super Admin";
     }

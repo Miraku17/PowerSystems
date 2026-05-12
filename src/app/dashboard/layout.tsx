@@ -236,14 +236,16 @@ function DashboardLayoutInner({
       href: "/dashboard/audit-logs",
       section: "System",
     },
-    {
-      name: "Permission Management",
-      icon: ShieldCheckIcon,
-      href: "/dashboard/permission-management",
-      section: "System",
-      superAdminOnly: true,
-      hidden: true,
-    },
+    // Permission Management — disabled for now. Re-enable when the
+    // feature is ready to ship.
+    // {
+    //   name: "Permission Management",
+    //   icon: ShieldCheckIcon,
+    //   href: "/dashboard/permission-management",
+    //   section: "System",
+    //   superAdminOnly: true,
+    //   hidden: true,
+    // },
     {
       name: "Header Settings",
       icon: Cog6ToothIcon,

@@ -13,7 +13,9 @@ import {
   BuildingOfficeIcon,
   EnvelopeIcon,
   PhoneIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  PencilSquareIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { TableSkeleton } from "./Skeletons";
 import ConfirmationModal from "./ConfirmationModal";
@@ -73,7 +75,10 @@ export default function Customers() {
 
   // Zustand store for persistent form data
   const { formData, setFormData, resetFormData } = useCustomerFormStore();
-  const { canWrite } = usePermissions();
+  const { canWrite, canEdit, canDelete } = usePermissions();
+  const canEditCustomer = canEdit("customer_management");
+  const canDeleteCustomer = canDelete("customer_management");
+  const showActionsColumn = canEditCustomer || canDeleteCustomer;
 
   // Local state for edit mode (not persisted)
   const [editFormData, setEditFormData] = useState({
@@ -258,12 +263,17 @@ export default function Customers() {
                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       Equipment
                     </th>
+                    {showActionsColumn && (
+                      <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredCustomers.length === 0 ? (
                     <tr>
-                      <td colSpan={3} className="px-6 py-12 text-center">
+                      <td colSpan={showActionsColumn ? 4 : 3} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center">
                           <UserIcon className="h-12 w-12 text-gray-300 mb-3" />
                           <p className="text-gray-500 text-lg font-medium">No customers found</p>
@@ -314,6 +324,32 @@ export default function Customers() {
                             {customer.equipment}
                           </span>
                         </td>
+                        {showActionsColumn && (
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {canEditCustomer && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenEditModal(customer)}
+                                  aria-label={`Edit ${customer.customer}`}
+                                  className="p-2 rounded-lg text-[#2B4C7E] hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                                >
+                                  <PencilSquareIcon className="h-5 w-5" />
+                                </button>
+                              )}
+                              {canDeleteCustomer && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(customer.id)}
+                                  aria-label={`Delete ${customer.customer}`}
+                                  className="p-2 rounded-lg text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                                >
+                                  <TrashIcon className="h-5 w-5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        )}
                       </tr>
                     ))
                   )}
@@ -366,6 +402,33 @@ export default function Customers() {
                       </div>
                     )}
                   </div>
+
+                  {showActionsColumn && (
+                    <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                      {canEditCustomer && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditModal(customer)}
+                          aria-label={`Edit ${customer.customer}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-[#2B4C7E] hover:bg-blue-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                        >
+                          <PencilSquareIcon className="h-4 w-4" />
+                          Edit
+                        </button>
+                      )}
+                      {canDeleteCustomer && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(customer.id)}
+                          aria-label={`Delete ${customer.customer}`}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500/30"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          Delete
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))
             )}

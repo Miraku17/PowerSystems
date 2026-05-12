@@ -433,8 +433,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     onSignatureChange={(sig) => handleFieldChange("verified_by_signature", sig)}
                     users={users}
                     subtitle="Verified By"
-                    showAllUsers
-                    filterPositions={["Admin 1", "Admin 2", "Super Admin"]}
+                    autoFillForPositions={["Admin 1", "Admin 2", "Super Admin"]}
                     disabled={!canEditVerifiedBy}
                   />
                 </div>

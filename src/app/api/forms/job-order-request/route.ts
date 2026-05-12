@@ -193,20 +193,32 @@ export const POST = withAuth(async (request, { user }) => {
 
     // Validate "Service Use Only" data fields. Status defaults to 'Pending' on
     // create — that's fine for any submitter. Anything else in this section
-    // requires the jo_service_use.edit permission (Admin 1 / Admin 2 / Super Admin).
-    const serviceUseHasContent = [
-      estimated_repair_days,
-      technicians_involved,
-      date_job_started,
-      date_job_completed_closed,
-      parts_cost,
-      labor_cost,
-      other_cost,
-      total_cost,
-      date_of_invoice,
-      invoice_number,
-      remarks,
-    ].some((v) => v && v.trim() !== '') || (status && status !== 'Pending');
+    // requires the jo_service_use.edit permission.
+    //
+    // Cost fields need special handling: the form's auto-calc effect stamps
+    // `total_cost = (parts + labor + other).toFixed(2)` even when parts/labor/
+    // other are blank, so a perfectly empty submission arrives as
+    // total_cost="0.00". A naive non-empty check would 403 anyone without
+    // jo_service_use.edit (e.g. User 2) on every create.
+    const meaningfulText = (v: string) => !!v && v.trim() !== '';
+    const meaningfulCost = (v: string) => {
+      if (!v || v.trim() === '') return false;
+      const n = parseFloat(v);
+      return !Number.isNaN(n) && n !== 0;
+    };
+    const serviceUseHasContent =
+      meaningfulCost(parts_cost) ||
+      meaningfulCost(labor_cost) ||
+      meaningfulCost(other_cost) ||
+      meaningfulCost(total_cost) ||
+      meaningfulText(estimated_repair_days) ||
+      meaningfulText(technicians_involved) ||
+      meaningfulText(date_job_started) ||
+      meaningfulText(date_job_completed_closed) ||
+      meaningfulText(date_of_invoice) ||
+      meaningfulText(invoice_number) ||
+      meaningfulText(remarks) ||
+      (!!status && status !== 'Pending');
 
     if (serviceUseHasContent) {
       const allowedSU = await hasPermission(supabase, user.id, 'jo_service_use', 'edit');

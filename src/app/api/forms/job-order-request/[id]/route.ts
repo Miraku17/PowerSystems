@@ -236,8 +236,18 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     } = body;
 
     // Validate "Service Use Only" data fields. If any of these change vs the
-    // current record, the user must have jo_service_use.edit
-    // (Admin 1 / Admin 2 / Super Admin).
+    // current record, the user must have jo_service_use.edit.
+    //
+    // Cost fields are normalized numerically because the form's auto-calc
+    // re-stamps total_cost = "0.00" whenever parts/labor/other are blank,
+    // which would otherwise trip this gate when a User-2-style position
+    // opens an Admin-created JO with null costs and just edits a basic field.
+    const COST_FIELDS = new Set([
+      'parts_cost',
+      'labor_cost',
+      'other_cost',
+      'total_cost',
+    ]);
     const serviceUseFieldsToCompare: Array<[string, any]> = [
       ['estimated_repair_days', estimated_repair_days],
       ['technicians_involved', technicians_involved],
@@ -252,12 +262,20 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       ['remarks', remarks],
       ['status', status],
     ];
-    const norm = (v: any) =>
+    const normText = (v: any) =>
       v === null || v === undefined || v === '' ? null : String(v);
-    const serviceUseChanged = serviceUseFieldsToCompare.some(
-      ([key, newVal]) =>
-        newVal !== undefined && norm(newVal) !== norm(currentRecord[key])
-    );
+    const normCost = (v: any) => {
+      if (v === null || v === undefined || v === '') return 0;
+      const n = parseFloat(String(v));
+      return Number.isNaN(n) ? 0 : n;
+    };
+    const serviceUseChanged = serviceUseFieldsToCompare.some(([key, newVal]) => {
+      if (newVal === undefined) return false;
+      if (COST_FIELDS.has(key)) {
+        return normCost(newVal) !== normCost(currentRecord[key]);
+      }
+      return normText(newVal) !== normText(currentRecord[key]);
+    });
 
     if (serviceUseChanged) {
       const allowedSU = await hasPermission(supabase, user.id, 'jo_service_use', 'edit');

@@ -155,7 +155,12 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
-    // Validate JO signatory field-level permissions
+    // Validate JO signatory field-level permissions. Only trigger when the
+    // submitted value actually differs from what's already on the record — the
+    // edit form sends the entire formData on every save (including empty
+    // strings for fields the user never touched), so a strict `!== undefined`
+    // check would block any user without that signatory's permission even
+    // when they're only editing unrelated fields.
     const joSignatoryFields = [
       { field: 'requested_by_name', action: 'requested_by', sigField: 'requested_by_signature' },
       { field: 'approved_by_name', action: 'approved_by', sigField: 'approved_by_signature' },
@@ -163,10 +168,17 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       { field: 'verified_by_name', action: 'verified_by', sigField: 'verified_by_signature' },
     ];
 
+    const normSig = (v: any) =>
+      v === null || v === undefined || v === '' ? null : String(v);
+
     for (const { field, action, sigField } of joSignatoryFields) {
       const newValue = body[field];
       const newSigValue = body[sigField];
-      if (newValue !== undefined || newSigValue !== undefined) {
+      const nameChanged =
+        newValue !== undefined && normSig(newValue) !== normSig(currentRecord[field]);
+      const sigChanged =
+        newSigValue !== undefined && normSig(newSigValue) !== normSig(currentRecord[sigField]);
+      if (nameChanged || sigChanged) {
         const allowed = await hasPermission(supabase, user.id, 'jo_signatory', action);
         if (!allowed) {
           return NextResponse.json(

@@ -10,13 +10,13 @@ export async function requireSuperAdmin(
 ): Promise<GuardResult> {
   const { data, error } = await supabase
     .from('users')
-    .select('position:positions(id, name)')
+    .select('position:positions(id, is_super_admin)')
     .eq('id', userId)
     .single();
 
   if (error || !data) return { ok: false };
-  const position = (data as any).position as { id: string; name: string } | null;
-  if (!position || position.name !== 'Super Admin') return { ok: false };
+  const position = (data as any).position as { id: string; is_super_admin: boolean } | null;
+  if (!position || position.is_super_admin !== true) return { ok: false };
 
   return { ok: true, superAdminPositionId: position.id };
 }

@@ -5,6 +5,7 @@ export type Scope = 'all' | 'branch' | 'own';
 export interface Position {
   id: string;
   name: string;
+  is_super_admin?: boolean;
 }
 
 export interface Permission {

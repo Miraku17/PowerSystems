@@ -66,7 +66,7 @@ function DashboardLayoutInner({
   const queryClient = useQueryClient();
 
   // Permissions
-  const { canAccess, canRead, hasPermission, isLoading: permissionsLoading } = usePermissions();
+  const { canAccess, canRead, hasPermission, isSuperAdmin, isLoading: permissionsLoading } = usePermissions();
 
   // Load user data on mount
   useEffect(() => {
@@ -265,11 +265,16 @@ function DashboardLayoutInner({
   ];
 
   const navigation = allNavigation.filter((item: any) => {
+    // Super Admin (server-derived flag) sees every navigation entry,
+    // including hidden and gated ones.
+    if (isSuperAdmin) {
+      return true;
+    }
     if (item.hidden) {
       return false;
     }
     if (item.superAdminOnly) {
-      return userPosition === "Super Admin";
+      return false;
     }
     // Permission-gated items: only show if user has the required permission
     if (item.permission) {
@@ -310,11 +315,11 @@ function DashboardLayoutInner({
         router.push("/dashboard/overview");
         return;
       }
-      if (pathname.startsWith("/dashboard/permission-management") && userPosition !== "Super Admin") {
+      if (pathname.startsWith("/dashboard/permission-management") && !isSuperAdmin) {
         router.push("/dashboard/overview");
         return;
       }
-      if (pathname.startsWith("/dashboard/header-settings") && userPosition !== "Super Admin") {
+      if (pathname.startsWith("/dashboard/header-settings") && !isSuperAdmin) {
         router.push("/dashboard/overview");
         return;
       }

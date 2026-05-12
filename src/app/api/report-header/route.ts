@@ -23,17 +23,17 @@ export const GET = withAuth(async () => {
 export const PATCH = withAuth(async (request, { user }) => {
   const supabase = getServiceSupabase();
 
-  // Super Admin gate
+  // Super Admin gate (data-driven via positions.is_super_admin)
   const { data: me, error: meErr } = await supabase
     .from("users")
-    .select("position:positions(name)")
+    .select("position:positions(is_super_admin)")
     .eq("id", user.id)
     .single();
   if (meErr) {
     return NextResponse.json({ error: meErr.message }, { status: 500 });
   }
-  const positionName = (me?.position as any)?.name;
-  if (positionName !== "Super Admin") {
+  const isSuperAdmin = (me?.position as any)?.is_super_admin === true;
+  if (!isSuperAdmin) {
     return NextResponse.json({ error: "Only Super Admin can edit the report header" }, { status: 403 });
   }
 

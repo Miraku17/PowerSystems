@@ -11,8 +11,28 @@ export interface PermissionCheckResult {
 }
 
 /**
+ * Returns true when the user's position is flagged as super admin in the DB
+ * (positions.is_super_admin). Super Admins bypass all permission checks.
+ */
+export async function isSuperAdmin(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('users')
+    .select('position:positions(is_super_admin)')
+    .eq('id', userId)
+    .single();
+
+  if (error || !data) return false;
+  const position = (data as any).position as { is_super_admin: boolean } | null;
+  return position?.is_super_admin === true;
+}
+
+/**
  * Check if a user has a specific permission using the positions/permissions tables.
  * Uses: users -> position_permissions -> permissions lookup.
+ * Positions flagged as is_super_admin in the DB bypass every permission check.
  */
 export async function hasPermission(
   supabase: SupabaseClient,
@@ -22,11 +42,14 @@ export async function hasPermission(
 ): Promise<boolean> {
   const { data, error } = await supabase
     .from('users')
-    .select('position_id')
+    .select('position_id, position:positions(is_super_admin)')
     .eq('id', userId)
     .single();
 
   if (error || !data?.position_id) return false;
+
+  const position = (data as any).position as { is_super_admin: boolean } | null;
+  if (position?.is_super_admin === true) return true;
 
   const { data: perms, error: permError } = await supabase
     .from('position_permissions')
@@ -55,11 +78,14 @@ export async function getPermissionScope(
 ): Promise<string | null> {
   const { data: userData } = await supabase
     .from('users')
-    .select('position_id')
+    .select('position_id, position:positions(is_super_admin)')
     .eq('id', userId)
     .single();
 
   if (!userData?.position_id) return null;
+
+  const position = (userData as any).position as { is_super_admin: boolean } | null;
+  if (position?.is_super_admin === true) return 'all';
 
   const { data: perm } = await supabase
     .from('position_permissions')

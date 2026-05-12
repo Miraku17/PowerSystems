@@ -7,8 +7,8 @@ jest.mock('@/lib/axios');
 
 const matrix = {
   positions: [
-    { id: 'pos-super', name: 'Super Admin' },
-    { id: 'pos-a', name: 'Admin 1' },
+    { id: 'pos-super', name: 'Super Admin', is_super_admin: true },
+    { id: 'pos-a', name: 'Admin 1', is_super_admin: false },
   ],
   permissions: [
     { id: 'p1', module: 'leave', action: 'access', description: 'Access leave page', is_scoped: false },

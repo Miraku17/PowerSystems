@@ -9,6 +9,7 @@ import {
   REPORT_HEADER_DEFAULTS,
   type ReportHeaderContent,
 } from "@/hooks/useReportHeader";
+import { usePermissions } from "@/hooks/usePermissions";
 
 type FormState = ReportHeaderContent;
 
@@ -24,24 +25,16 @@ const FIELD_LABELS: Record<keyof FormState, string> = {
 const MULTILINE_FIELDS: Array<keyof FormState> = ["address", "branches"];
 
 export default function HeaderSettingsPage() {
-  const [position, setPosition] = useState<string | null | undefined>(undefined);
+  const { isSuperAdmin, isLoading: permissionsLoading } = usePermissions();
   const [form, setForm] = useState<FormState | null>(null);
   const [initial, setInitial] = useState<FormState | null>(null);
   const [loadingContent, setLoadingContent] = useState(true);
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch user position
-  useEffect(() => {
-    apiClient
-      .get("/auth/position")
-      .then((res) => setPosition(res.data?.positionName ?? null))
-      .catch(() => setPosition(null));
-  }, []);
-
   // Fetch current header content (only when authorized)
   useEffect(() => {
-    if (position !== "Super Admin") return;
+    if (!isSuperAdmin) return;
     let cancelled = false;
     setLoadingContent(true);
     apiClient
@@ -81,7 +74,7 @@ export default function HeaderSettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [position]);
+  }, [isSuperAdmin]);
 
   const isDirty = useMemo(() => {
     if (!form || !initial) return false;
@@ -136,10 +129,10 @@ export default function HeaderSettingsPage() {
     }
   };
 
-  if (position === undefined) {
+  if (permissionsLoading) {
     return <div className="p-6 text-sm text-gray-600">Loading…</div>;
   }
-  if (position !== "Super Admin") {
+  if (!isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <ShieldExclamationIcon className="h-16 w-16 text-gray-300 mb-4" />

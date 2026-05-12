@@ -36,7 +36,7 @@ export function PermissionMatrixPage() {
   }, [dirtyCount]);
 
   const superAdminPosition: Position | undefined = useMemo(
-    () => matrix?.positions.find((p) => p.name === 'Super Admin'),
+    () => matrix?.positions.find((p) => p.is_super_admin === true),
     [matrix],
   );
 
@@ -57,7 +57,7 @@ export function PermissionMatrixPage() {
 
   const orderedPositions = [
     ...(superAdminPosition ? [superAdminPosition] : []),
-    ...matrix.positions.filter((p) => p.name !== 'Super Admin'),
+    ...matrix.positions.filter((p) => !p.is_super_admin),
   ];
 
   const onConfirmSave = async (reason: string) => {

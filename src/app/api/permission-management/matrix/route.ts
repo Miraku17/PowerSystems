@@ -16,7 +16,7 @@ export const GET = withAuth(async (_req, { user }) => {
   }
 
   const [positions, permissions, assignments] = await Promise.all([
-    supabase.from('positions').select('id, name').order('name'),
+    supabase.from('positions').select('id, name, is_super_admin').order('name'),
     supabase
       .from('permissions')
       .select('id, module, action, description, is_scoped')

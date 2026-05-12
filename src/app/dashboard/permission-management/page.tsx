@@ -1,24 +1,16 @@
 "use client";
 
-import { useEffect, useState } from 'react';
 import { ShieldCheckIcon, ShieldExclamationIcon } from '@heroicons/react/24/outline';
-import apiClient from '@/lib/axios';
 import { PermissionMatrixPage } from '@/components/permission-management/PermissionMatrixPage';
+import { usePermissions } from '@/hooks/usePermissions';
 
 export default function PermissionManagementPage() {
-  const [position, setPosition] = useState<string | null | undefined>(undefined);
+  const { isSuperAdmin, isLoading } = usePermissions();
 
-  useEffect(() => {
-    apiClient
-      .get('/auth/position')
-      .then((res) => setPosition(res.data?.positionName ?? null))
-      .catch(() => setPosition(null));
-  }, []);
-
-  if (position === undefined) {
+  if (isLoading) {
     return <div className="p-6 text-sm text-gray-600">Loading…</div>;
   }
-  if (position !== 'Super Admin') {
+  if (!isSuperAdmin) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <ShieldExclamationIcon className="h-16 w-16 text-gray-300 mb-4" />

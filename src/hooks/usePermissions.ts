@@ -9,34 +9,47 @@ interface Permission {
   scope: string;
 }
 
-async function fetchPermissions(): Promise<Permission[]> {
+interface PermissionsResponse {
+  permissions: Permission[];
+  isSuperAdmin: boolean;
+}
+
+async function fetchPermissions(): Promise<PermissionsResponse> {
   const response = await apiClient.get("/permissions/me");
-  return response.data.data || [];
+  return {
+    permissions: response.data.data || [],
+    isSuperAdmin: !!response.data.isSuperAdmin,
+  };
 }
 
 export function usePermissions() {
   const {
-    data: permissions = [],
+    data,
     isLoading: queryLoading,
     isFetching,
     error,
-  } = useQuery<Permission[]>({
+  } = useQuery<PermissionsResponse>({
     queryKey: ["permissions", "me"],
     queryFn: fetchPermissions,
     staleTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
   });
 
+  const permissions = data?.permissions ?? [];
+  const isSuperAdmin = data?.isSuperAdmin ?? false;
+
   // Treat as loading if the query is loading OR if fetching with no cached data yet
-  const isLoading = queryLoading || (isFetching && permissions.length === 0);
+  const isLoading = queryLoading || (isFetching && !data);
 
   const hasPermission = (module: string, action: string): boolean => {
+    if (isSuperAdmin) return true;
     return permissions.some(
       (p) => p.module === module && p.action === action
     );
   };
 
   const getScope = (module: string, action: string): string | null => {
+    if (isSuperAdmin) return "all";
     const perm = permissions.find(
       (p) => p.module === module && p.action === action
     );
@@ -52,6 +65,7 @@ export function usePermissions() {
 
   return {
     permissions,
+    isSuperAdmin,
     isLoading,
     error,
     hasPermission,

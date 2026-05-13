@@ -5,6 +5,7 @@ import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress } from "@/lib/jo-status";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -226,6 +227,11 @@ export const POST = withAuth(async (request, { user }) => {
 
     for (const field of textFields) {
       insertData[field] = getString(field);
+    }
+
+    {
+      const gate = await assertJoInProgress(supabase, insertData.job_order);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
     }
 
     for (const field of dateFields) {

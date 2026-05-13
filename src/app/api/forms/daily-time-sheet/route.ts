@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress, assertJoInProgressById } from "@/lib/jo-status";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -183,6 +184,13 @@ export const POST = withAuth(async (request, { user }) => {
       }
     }
     const job_order_request_id = getString('job_order_request_id');
+    // Phase 2 gate: block fill-up when the JO is not In-Progress.
+    // DTS references the JO by UUID (job_order_request_id), so use the
+    // ID-flavoured assertion.
+    {
+      const gate = await assertJoInProgressById(supabase, job_order_request_id);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+    }
     const status = getString('status') || 'Pending';
     const entriesJson = isNewFormat ? (jsonBody.entries || '') : getString('entries');
 

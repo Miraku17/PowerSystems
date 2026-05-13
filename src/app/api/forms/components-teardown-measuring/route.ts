@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress } from "@/lib/jo-status";
 
 // --- GET: Fetch all components teardown measuring reports ---
 export const GET = withAuth(async (request, { user }) => {
@@ -107,6 +108,10 @@ export const POST = withAuth(async (request, { user }) => {
     const engine_model = getString('engine_model');
     const serial_no = getString('serial_no');
     const job_order_no = getString('job_order_no');
+    {
+      const gate = await assertJoInProgress(supabase, job_order_no);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+    }
 
     // Report kind: 'teardown' (default) or 'buildup'
     const rawKind = getString('report_kind') || 'teardown';

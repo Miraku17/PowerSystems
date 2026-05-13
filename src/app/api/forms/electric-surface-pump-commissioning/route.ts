@@ -5,6 +5,7 @@ import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress } from "@/lib/jo-status";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -178,6 +179,10 @@ export const POST = withAuth(async (request, { user }) => {
     const reporting_person_contact = getString('reporting_person_contact');
     const equipment_manufacturer = getString('equipment_manufacturer');
     const job_order = getString('job_order');
+    {
+      const gate = await assertJoInProgress(supabase, job_order);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+    }
     const jo_date = getString('jo_date');
     const customer = getString('customer');
     const contact_person = getString('contact_person');

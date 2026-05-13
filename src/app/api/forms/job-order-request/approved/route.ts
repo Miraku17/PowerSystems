@@ -9,10 +9,15 @@ export const GET = withAuth(async (request, { user }) => {
     const search = searchParams.get("search")?.trim() || "";
     const limit = Math.min(Number(searchParams.get("limit")) || 20, 50);
 
+    // Per spec: fill-up forms may only be filed against JOs whose status is
+    // 'In-Progress'. Filter the autocomplete here so users never see
+    // Pending / Close / Cancelled JOs in the dropdown. (The server also
+    // re-validates on each form submit — see lib/jo-status.ts.)
     let query = supabase
       .from("job_order_request_form")
       .select("id, shop_field_jo_number, full_customer_name, address, location_of_unit")
       .is("deleted_at", null)
+      .eq("status", "In-Progress")
       .order("created_at", { ascending: false })
       .limit(limit);
 

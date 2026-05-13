@@ -5,6 +5,7 @@ import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress } from "@/lib/jo-status";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -199,6 +200,13 @@ export const POST = withAuth(async (request, { user }) => {
     const reporting_person_name = getString('reporting_person_name');
     const equipment_manufacturer = getString('equipment_manufacturer');
     const job_order = getString('job_order');
+    // Phase 2 gate: block fill-up when the JO is not In-Progress.
+    {
+      const gate = await assertJoInProgress(supabase, job_order);
+      if (!gate.ok) {
+        return NextResponse.json({ error: gate.reason }, { status: 403 });
+      }
+    }
     const report_date = getString('report_date');
     const customer_name = getString('customer_name');
     const contact_person = getString('contact_person');

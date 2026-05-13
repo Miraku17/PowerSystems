@@ -5,6 +5,7 @@ import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/
 import { SECTION_DEFINITIONS } from "@/stores/engineInspectionReceivingFormStore";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress, assertJoInProgressById } from "@/lib/jo-status";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -163,6 +164,10 @@ export const POST = withAuth(async (request, { user }) => {
     const customer = getString('customer');
     const jo_date = getString('jo_date');
     const jo_number = getString('jo_number');
+    {
+      const gate = await assertJoInProgress(supabase, jo_number);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+    }
     const address = getString('address');
     const err_no = getString('err_no');
     const engine_maker = getString('engine_maker');

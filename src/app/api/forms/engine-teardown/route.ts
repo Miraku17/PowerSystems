@@ -4,6 +4,7 @@ import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { assertJoInProgress, assertJoInProgressById } from "@/lib/jo-status";
 
 // Helper to extract file path from Supabase storage URL
 const getFilePathFromUrl = (url: string | null): string | null => {
@@ -198,6 +199,10 @@ export const POST = withAuth(async (request, { user }) => {
     // Header Information
     const customer = getString('customer');
     const job_number = getString('job_number');
+    {
+      const gate = await assertJoInProgress(supabase, job_number);
+      if (!gate.ok) return NextResponse.json({ error: gate.reason }, { status: 403 });
+    }
     const engine_model = getString('engine_model');
     const serial_no = getString('serial_no');
 

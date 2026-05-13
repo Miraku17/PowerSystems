@@ -353,6 +353,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   disabled={!canApproveByDeptHead}
                   showAllUsers
                   filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
+                  autoFillForPositions={["Admin 1", "Admin 2", "Super Admin"]}
                 />
               </div>
             </div>
@@ -373,6 +374,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   disabled={!canReceiveByServiceDept}
                   showAllUsers
                   filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
+                  autoFillForPositions={["Admin 2", "Super Admin"]}
                 />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect

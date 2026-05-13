@@ -6,13 +6,12 @@ import {
   ArrowUpTrayIcon,
   DocumentArrowDownIcon,
   DocumentTextIcon,
+  PencilSquareIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { supabase } from "@/lib/supabase";
+import apiClient from "@/lib/axios";
 import { usePermissions } from "@/hooks/usePermissions";
 import ConfirmationModal from "./ConfirmationModal";
-
-const BUCKET = "products";
 
 interface ProductFile {
   name: string;
@@ -34,28 +33,24 @@ export default function ProductFiles() {
   const [isUploading, setIsUploading] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [isRenaming, setIsRenaming] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const loadFiles = useCallback(async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.storage.from(BUCKET).list("", {
-      sortBy: { column: "updated_at", order: "desc" },
-    });
-    if (error) {
-      toast.error("Failed to load files");
-      setFiles([]);
-    } else {
-      setFiles(
-        (data ?? [])
-          .filter((f) => f.name && !f.name.endsWith("/"))
-          .map((f) => ({
-            name: f.name,
-            size: (f.metadata as { size?: number } | null)?.size ?? 0,
-            updated_at: f.updated_at ?? null,
-          })),
+    try {
+      const res = await apiClient.get<{ success: boolean; data: ProductFile[] }>(
+        "/products",
       );
+      setFiles(res.data.data ?? []);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Failed to load files");
+      setFiles([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -70,19 +65,26 @@ export default function ProductFiles() {
     const loadingToast = toast.loading(`Uploading ${fileList.length} file(s)…`);
     let successes = 0;
     for (const file of Array.from(fileList)) {
-      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+      if (
+        file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")
+      ) {
         toast.error(`Skipped ${file.name}: not a PDF`);
         continue;
       }
-      const safeName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(safeName, file, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
-      if (error) {
-        toast.error(`Failed to upload ${file.name}: ${error.message}`);
-      } else {
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        await apiClient.post("/products", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         successes += 1;
+      } catch (err: any) {
+        toast.error(
+          `Failed to upload ${file.name}: ${
+            err?.response?.data?.message ?? err.message
+          }`,
+        );
       }
     }
     setIsUploading(false);
@@ -96,24 +98,59 @@ export default function ProductFiles() {
     if (!pendingDelete) return;
     setIsDeleting(true);
     const target = pendingDelete;
-    const { error } = await supabase.storage.from(BUCKET).remove([target]);
-    setIsDeleting(false);
-    setPendingDelete(null);
-    if (error) {
-      toast.error(`Failed to delete: ${error.message}`);
+    try {
+      await apiClient.delete(`/products/${encodeURIComponent(target)}`);
+      toast.success("File deleted");
+      await loadFiles();
+    } catch (err: any) {
+      toast.error(
+        `Failed to delete: ${err?.response?.data?.message ?? err.message}`,
+      );
+    } finally {
+      setIsDeleting(false);
+      setPendingDelete(null);
+    }
+  };
+
+  const openRename = (name: string) => {
+    setRenameTarget(name);
+    setRenameValue(name.replace(/\.pdf$/i, ""));
+  };
+
+  const handleConfirmRename = async () => {
+    if (!renameTarget) return;
+    const newName = renameValue.trim();
+    if (!newName) {
+      toast.error("Name cannot be empty");
       return;
     }
-    toast.success("File deleted");
-    await loadFiles();
+    setIsRenaming(true);
+    try {
+      await apiClient.patch(`/products/${encodeURIComponent(renameTarget)}`, {
+        newName,
+      });
+      toast.success("File renamed");
+      setRenameTarget(null);
+      setRenameValue("");
+      await loadFiles();
+    } catch (err: any) {
+      toast.error(
+        `Failed to rename: ${err?.response?.data?.message ?? err.message}`,
+      );
+    } finally {
+      setIsRenaming(false);
+    }
   };
 
   const openFile = async (name: string) => {
-    const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(name, 60 * 5);
-    if (error || !data?.signedUrl) {
-      toast.error("Could not open file");
-      return;
+    try {
+      const res = await apiClient.get<{ data: { signedUrl: string } }>(
+        `/products/${encodeURIComponent(name)}`,
+      );
+      window.open(res.data.data.signedUrl, "_blank", "noopener,noreferrer");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? "Could not open file");
     }
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   return (
@@ -179,13 +216,24 @@ export default function ProductFiles() {
                   <DocumentArrowDownIcon className="h-4 w-4" />
                 </button>
                 {canWrite("products") && (
-                  <button
-                    onClick={() => setPendingDelete(file.name)}
-                    className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                    title="Delete"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
+                  <>
+                    <button
+                      onClick={() => openRename(file.name)}
+                      aria-label={`Rename ${file.name}`}
+                      className="rounded-md p-1.5 text-gray-400 hover:bg-blue-50 hover:text-[#2B4C7E]"
+                      title="Rename"
+                    >
+                      <PencilSquareIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setPendingDelete(file.name)}
+                      aria-label={`Delete ${file.name}`}
+                      className="rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                      title="Delete"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
+                  </>
                 )}
               </li>
             ))}
@@ -204,6 +252,60 @@ export default function ProductFiles() {
         confirmText={isDeleting ? "Deleting…" : "Delete"}
         type="danger"
       />
+
+      {renameTarget !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+        >
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl">
+            <div className="border-b border-gray-100 p-5">
+              <h3 className="text-lg font-semibold text-gray-900">Rename file</h3>
+              <p className="mt-1 truncate text-xs text-gray-500" title={renameTarget}>
+                {renameTarget}
+              </p>
+            </div>
+            <div className="p-5">
+              <label className="block text-sm font-medium text-gray-700">
+                New name
+              </label>
+              <input
+                autoFocus
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isRenaming) handleConfirmRename();
+                  if (e.key === "Escape" && !isRenaming) setRenameTarget(null);
+                }}
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Product reference sheet"
+              />
+              <p className="mt-2 text-xs text-gray-500">
+                The .pdf extension is added automatically.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-gray-100 p-4">
+              <button
+                type="button"
+                onClick={() => setRenameTarget(null)}
+                disabled={isRenaming}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRename}
+                disabled={isRenaming || !renameValue.trim()}
+                className="rounded-lg bg-[#2B4C7E] px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-[#1A2F4F] disabled:opacity-50"
+              >
+                {isRenaming ? "Renaming…" : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

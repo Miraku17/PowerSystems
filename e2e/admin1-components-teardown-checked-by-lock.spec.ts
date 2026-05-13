@@ -71,11 +71,24 @@ test.describe("Admin 1 — Components Teardown Measuring Checked By lock", () =>
       .locator("xpath=ancestor::div[1]")
       .getByRole("button")
       .first();
-    await expect(selectTrigger).toBeVisible({ timeout: 10_000 });
-    await selectTrigger.click();
-    await page
-      .getByRole("button", { name: "Components Teardown Measuring Report" })
-      .click();
+    await expect(selectTrigger).toBeVisible({ timeout: 15_000 });
+
+    // Open the CustomSelect, retrying if the panel doesn't render — first
+    // navigation after a dev-server restart can swallow the first click while
+    // Turbopack finishes compiling the route.
+    const targetOption = page.getByRole("button", {
+      name: "Components Teardown Measuring Report",
+    });
+    for (let attempt = 0; attempt < 4; attempt++) {
+      await selectTrigger.click();
+      try {
+        await expect(targetOption).toBeVisible({ timeout: 5_000 });
+        break;
+      } catch {
+        if (attempt === 3) throw new Error("Form selector panel did not open");
+      }
+    }
+    await targetOption.click();
 
     // Wait for the form to mount. The main-summary "Checked By" sits next to a
     // "Technician" autocomplete near the bottom; locate the last Checked By

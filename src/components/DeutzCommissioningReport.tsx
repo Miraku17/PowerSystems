@@ -141,6 +141,11 @@ export default function DeutzCommissioningReport() {
                     job_order_no: jo.shop_field_jo_number || "",
                     customer_name: jo.full_customer_name || "",
                     address: jo.address || "",
+                    // Spec #14: auto-populate engine + equipment identifiers
+                    // from the JO. equipment_number → equipment_no on this form.
+                    engine_model: jo.engine_model || "",
+                    engine_serial_no: jo.esn || "",
+                    equipment_no: jo.equipment_number || "",
                   })}
                   required
                 />

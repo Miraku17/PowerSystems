@@ -10,6 +10,12 @@ export interface ApprovedJobOrder {
   full_customer_name: string;
   address: string;
   location_of_unit?: string | null;
+  // Equipment + engine identifiers — surfaced by /api/forms/job-order-request/approved
+  // so Fill-Up forms can auto-populate these fields when the user picks a JO.
+  equipment_model?: string | null;
+  equipment_number?: string | null;
+  engine_model?: string | null;
+  esn?: string | null;
 }
 
 interface JobOrderAutocompleteProps {

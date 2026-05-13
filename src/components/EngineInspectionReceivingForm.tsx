@@ -269,6 +269,9 @@ export default function EngineInspectionReceivingForm() {
                   jo_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",
                   address: jo.address || "",
+                  // Spec #14: auto-populate engine identifiers from the JO.
+                  engine_model: jo.engine_model || "",
+                  engine_serial_number: jo.esn || "",
                 })}
                 required
               />

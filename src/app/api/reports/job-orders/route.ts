@@ -94,7 +94,31 @@ export const GET = withAuth(async (request, { user }) => {
       );
     }
 
-    const validTypes = ["generated", "status", "wip", "cancelled", "engine", "manhour"];
+    // Report-type contract (per the new spec, item 14):
+    //   pending-jo        → job_order_request_form WHERE status='Pending'
+    //   work-in-progress  → job_order_request_form WHERE status='In-Progress'
+    //   cancelled-jo      → job_order_request_form WHERE status='Cancelled'
+    //   closed-jo         → job_order_request_form WHERE status='Close'
+    //   engine            → deutz_service_report (optionally filtered by
+    //                       engine_model / engine_serial_no / date range)
+    //
+    // Legacy aliases (still accepted so older bookmarks / clients keep
+    // working): generated → pending-jo, status → closed-jo, wip →
+    // work-in-progress, cancelled → cancelled-jo. The `manhour` report is
+    // retained as-is — the spec changed JO reports only.
+    const validTypes = [
+      "pending-jo",
+      "work-in-progress",
+      "cancelled-jo",
+      "closed-jo",
+      "engine",
+      "manhour",
+      // legacy aliases
+      "generated",
+      "status",
+      "wip",
+      "cancelled",
+    ];
     if (!validTypes.includes(reportType)) {
       return NextResponse.json(
         { success: false, message: `Invalid reportType. Must be one of: ${validTypes.join(", ")}` },
@@ -127,7 +151,209 @@ export const GET = withAuth(async (request, { user }) => {
     let csv = "";
     let filename = "";
 
-    if (reportType === "generated") {
+    // ---------------------------------------------------------------
+    // Pending Job Orders — JO with status='Pending'
+    // ---------------------------------------------------------------
+    if (reportType === "pending-jo") {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { success: false, message: "startDate and endDate are required" },
+          { status: 400 }
+        );
+      }
+      query = query
+        .gte("date_prepared", startDate)
+        .lte("date_prepared", endDate)
+        .eq("status", "Pending")
+        .order("date_prepared", { ascending: true });
+
+      const { data: rawData, error } = await query;
+      if (error) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      }
+      const data = await applyBranchFilter(rawData || []);
+      if (data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "No pending job orders found for the selected date range" },
+          { status: 404 }
+        );
+      }
+
+      const headers = [
+        "J.O. NO.",
+        "DATE OPEN",
+        "CUSTOMER",
+        "JOB DESCRIPTION",
+        "ENGINE/EQPMT MODEL",
+        "SERIAL NUMBER",
+      ];
+      const rows = data.map((r: any) => [
+        r.shop_field_jo_number || "",
+        formatDate(r.date_prepared),
+        r.full_customer_name || "",
+        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
+        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
+        r.esn || "",
+      ]);
+      csv = buildCsv(headers, rows);
+      filename = `pending_job_orders_${startDate}_to_${endDate}.csv`;
+
+    // ---------------------------------------------------------------
+    // Work In Progress — JO with status='In-Progress'
+    // ---------------------------------------------------------------
+    } else if (reportType === "work-in-progress" || reportType === "wip") {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { success: false, message: "startDate and endDate are required" },
+          { status: 400 }
+        );
+      }
+      query = query
+        .gte("date_prepared", startDate)
+        .lte("date_prepared", endDate)
+        .eq("status", "In-Progress")
+        .order("date_prepared", { ascending: true });
+
+      const { data: rawData, error } = await query;
+      if (error) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      }
+      const data = await applyBranchFilter(rawData || []);
+      if (data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "No in-progress job orders found for the selected date range" },
+          { status: 404 }
+        );
+      }
+
+      const headers = [
+        "J.O. NO.",
+        "DATE OPEN",
+        "CUSTOMER",
+        "JOB DESCRIPTION",
+        "ENGINE/EQPMT MODEL",
+        "SERIAL NUMBER",
+        "AMOUNT (TOTAL)",
+      ];
+      const rows = data.map((r: any) => [
+        r.shop_field_jo_number || "",
+        formatDate(r.date_prepared),
+        r.full_customer_name || "",
+        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
+        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
+        r.esn || "",
+        formatCost(r.total_cost),
+      ]);
+      csv = buildCsv(headers, rows);
+      filename = `work_in_progress_${startDate}_to_${endDate}.csv`;
+
+    // ---------------------------------------------------------------
+    // Cancelled Job Orders — JO with status='Cancelled'
+    // ---------------------------------------------------------------
+    } else if (reportType === "cancelled-jo" || reportType === "cancelled") {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { success: false, message: "startDate and endDate are required" },
+          { status: 400 }
+        );
+      }
+      query = query
+        .gte("date_prepared", startDate)
+        .lte("date_prepared", endDate)
+        .eq("status", "Cancelled")
+        .order("date_prepared", { ascending: true });
+
+      const { data: rawData, error } = await query;
+      if (error) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      }
+      const data = await applyBranchFilter(rawData || []);
+      if (data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "No cancelled job orders found for the selected date range" },
+          { status: 404 }
+        );
+      }
+
+      const headers = [
+        "J.O. NO.",
+        "DATE OPEN",
+        "CUSTOMER",
+        "REASON FOR CANCELLATION",
+      ];
+      const rows = data.map((r: any) => [
+        r.shop_field_jo_number || "",
+        formatDate(r.date_prepared),
+        r.full_customer_name || "",
+        r.remarks || "",
+      ]);
+      csv = buildCsv(headers, rows);
+      filename = `cancelled_job_orders_${startDate}_to_${endDate}.csv`;
+
+    // ---------------------------------------------------------------
+    // Closed Job Orders — JO with status='Close' (with cost breakdown)
+    // ---------------------------------------------------------------
+    } else if (reportType === "closed-jo" || reportType === "status") {
+      if (!startDate || !endDate) {
+        return NextResponse.json(
+          { success: false, message: "startDate and endDate are required" },
+          { status: 400 }
+        );
+      }
+      query = query
+        .gte("date_job_completed_closed", startDate)
+        .lte("date_job_completed_closed", endDate)
+        .eq("status", "Close")
+        .order("date_prepared", { ascending: true });
+
+      const { data: rawData, error } = await query;
+      if (error) {
+        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+      }
+      const data = await applyBranchFilter(rawData || []);
+      if (data.length === 0) {
+        return NextResponse.json(
+          { success: false, message: "No closed job orders found for the selected date range" },
+          { status: 404 }
+        );
+      }
+
+      const headers = [
+        "J.O. NO.",
+        "DATE OPEN",
+        "DATE CLOSED",
+        "CUSTOMER",
+        "JOB DESCRIPTION",
+        "ENGINE/EQPMT MODEL",
+        "SERIAL NUMBER",
+        "PARTS",
+        "LABOR",
+        "OTHERS",
+        "TOTAL",
+        "COST ABSORBED BY",
+      ];
+      const rows = data.map((r: any) => [
+        r.shop_field_jo_number || "",
+        formatDate(r.date_prepared),
+        formatDate(r.date_job_completed_closed),
+        r.full_customer_name || "",
+        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
+        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
+        r.esn || "",
+        formatCost(r.parts_cost),
+        formatCost(r.labor_cost),
+        formatCost(r.other_cost),
+        formatCost(r.total_cost),
+        r.charges_absorbed_by || "",
+      ]);
+      csv = buildCsv(headers, rows);
+      filename = `closed_job_orders_${startDate}_to_${endDate}.csv`;
+
+    // ---------------------------------------------------------------
+    // Legacy alias: "generated" → behave like the old all-status report
+    // (kept so existing bookmarks keep working).
+    // ---------------------------------------------------------------
+    } else if (reportType === "generated") {
       if (!startDate || !endDate) {
         return NextResponse.json(
           { success: false, message: "startDate and endDate are required for this report type" },
@@ -174,173 +400,43 @@ export const GET = withAuth(async (request, { user }) => {
       csv = buildCsv(headers, rows);
       filename = `job_orders_generated_${startDate}_to_${endDate}.csv`;
 
-    } else if (reportType === "status") {
-      if (!startDate || !endDate) {
-        return NextResponse.json(
-          { success: false, message: "startDate and endDate are required for this report type" },
-          { status: 400 }
-        );
-      }
-      query = query
-        .gte("date_job_completed_closed", startDate)
-        .lte("date_job_completed_closed", endDate)
-        .eq("status", "Close");
-      query = query.order("date_prepared", { ascending: true });
-
-      const { data: rawData, error } = await query;
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-      }
-
-      const data = await applyBranchFilter(rawData || []);
-
-      if (data.length === 0) {
-        return NextResponse.json(
-          { success: false, message: "No closed job orders found for the selected date range" },
-          { status: 404 }
-        );
-      }
-
-      const headers = [
-        "J.O. NO.",
-        "DATE OPEN",
-        "DATE CLOSED",
-        "CUSTOMER",
-        "JOB DESCRIPTION",
-        "ENGINE/EQP MT MODEL",
-        "SERIAL NUMBER",
-        "PARTS",
-        "LABOR",
-        "OTHERS",
-        "TOTAL",
-        "COST ABSORBED BY",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        formatDate(r.date_job_completed_closed),
-        r.full_customer_name || "",
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
-        r.esn || "",
-        formatCost(r.parts_cost),
-        formatCost(r.labor_cost),
-        formatCost(r.other_cost),
-        formatCost(r.total_cost),
-        r.charges_absorbed_by || "",
-      ]);
-      csv = buildCsv(headers, rows);
-      filename = `job_order_status_${startDate}_to_${endDate}.csv`;
-
-    } else if (reportType === "wip") {
-      if (!endDate) {
-        return NextResponse.json(
-          { success: false, message: "endDate is required for this report type" },
-          { status: 400 }
-        );
-      }
-      query = query
-        .eq("status", "In-Progress")
-        .or(`date_prepared.lte.${endDate},date_prepared.is.null`);
-      query = query.order("date_prepared", { ascending: true });
-
-      const { data: rawData, error } = await query;
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-      }
-
-      const data = await applyBranchFilter(rawData || []);
-
-      if (data.length === 0) {
-        return NextResponse.json(
-          { success: false, message: "No in-progress job orders found as of the selected date" },
-          { status: 404 }
-        );
-      }
-
-      const headers = [
-        "J.O NO",
-        "DATE OPEN",
-        "CUSTOMER",
-        "JOB DESCRIPTION",
-        "ENG/EQPMT MODEL",
-        "SERIAL NO.",
-        "AMOUNT (TOTAL)",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        r.full_customer_name || "",
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
-        r.esn || "",
-        formatCost(r.total_cost),
-      ]);
-      csv = buildCsv(headers, rows);
-      filename = `work_in_process_as_of_${endDate}.csv`;
-
-    } else if (reportType === "cancelled") {
-      if (!startDate || !endDate) {
-        return NextResponse.json(
-          { success: false, message: "startDate and endDate are required for this report type" },
-          { status: 400 }
-        );
-      }
-      query = query
-        .gte("date_prepared", startDate)
-        .lte("date_prepared", endDate)
-        .eq("status", "Cancelled");
-      query = query.order("date_prepared", { ascending: true });
-
-      const { data: rawData, error } = await query;
-      if (error) {
-        return NextResponse.json({ success: false, message: error.message }, { status: 500 });
-      }
-
-      const data = await applyBranchFilter(rawData || []);
-
-      if (data.length === 0) {
-        return NextResponse.json(
-          { success: false, message: "No cancelled job orders found for the selected date range" },
-          { status: 404 }
-        );
-      }
-
-      const headers = [
-        "J.O NO",
-        "DATE OPEN",
-        "CUSTOMER",
-        "REASON FOR CANCELLATION",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        r.full_customer_name || "",
-        r.remarks || "",
-      ]);
-      csv = buildCsv(headers, rows);
-      filename = `cancelled_job_orders_${startDate}_to_${endDate}.csv`;
-
+    // ---------------------------------------------------------------
+    // Engine Report — pulled from deutz_service_report, not from
+    // job_order_request_form. Spec-listed columns: JO number, Customer,
+    // Equipment/Model, Engine/Serial Number, Running Hours, Findings,
+    // Recommendation.
+    //
+    // Filters (all optional, at least one must be supplied by the page):
+    //   engineModel    → ilike on deutz_service_report.engine_model
+    //   serialNumber   → ilike on engine_serial_no OR equipment_serial_no
+    //   startDate/end  → report_date range
+    // ---------------------------------------------------------------
     } else if (reportType === "engine") {
-      if (!engineModel && !serialNumber) {
+      if (!engineModel && !serialNumber && !(startDate && endDate)) {
         return NextResponse.json(
-          { success: false, message: "At least one of engineModel or serialNumber is required" },
+          { success: false, message: "Provide an engine model, serial number, or date range" },
           { status: 400 }
         );
       }
 
       let engineQuery = supabase
-        .from("job_order_request_form")
-        .select("*")
+        .from("deutz_service_report")
+        .select(
+          "job_order, customer_name, equipment_model, engine_model, engine_serial_no, equipment_serial_no, running_hours, findings, recommendations, report_date, created_by",
+        )
         .is("deleted_at", null);
 
       if (engineModel) {
         engineQuery = engineQuery.ilike("engine_model", `%${engineModel}%`);
       }
       if (serialNumber) {
-        engineQuery = engineQuery.ilike("esn", `%${serialNumber}%`);
+        engineQuery = engineQuery.or(
+          `engine_serial_no.ilike.%${serialNumber}%,equipment_serial_no.ilike.%${serialNumber}%`,
+        );
       }
-      engineQuery = engineQuery.order("date_prepared", { ascending: true });
+      if (startDate) engineQuery = engineQuery.gte("report_date", startDate);
+      if (endDate) engineQuery = engineQuery.lte("report_date", endDate);
+      engineQuery = engineQuery.order("report_date", { ascending: true });
 
       const { data: rawData, error } = await engineQuery;
       if (error) {
@@ -351,36 +447,36 @@ export const GET = withAuth(async (request, { user }) => {
 
       if (data.length === 0) {
         return NextResponse.json(
-          { success: false, message: "No job orders found for the specified engine model or serial number" },
+          { success: false, message: "No service reports found for the selected filters" },
           { status: 404 }
         );
       }
 
-      // Header metadata from first record
-      const first = data[0];
-      const headerRows = [
-        `ENGINE MODEL,${escapeCsvField(first.engine_model || "")},EQUIPMENT MODEL,${escapeCsvField(first.equipment_model || "")}`,
-        `ENGINE SERIAL NUMBER,${escapeCsvField(first.esn || "")},EQPMT. SERIAL NUMBER,${escapeCsvField(first.equipment_number || "")}`,
-        "",
+      const headers = [
+        "JO NUMBER",
+        "CUSTOMER",
+        "EQUIPMENT / MODEL",
+        "ENGINE / SERIAL NUMBER",
+        "RUNNING HOURS",
+        "FINDINGS",
+        "RECOMMENDATION",
       ];
-
-      const tableHeaders = ["DATE", "FAILURE DESCRIPTION", "J.O NUMBER", "PARTS USED", "PERFORMED BY"];
-      const tableRows = data.map((r: any) => [
-        formatDate(r.date_prepared),
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        r.shop_field_jo_number || "",
-        r.particulars || "",
-        r.technicians_involved || "",
+      const rows = data.map((r: any) => [
+        r.job_order || "",
+        r.customer_name || "",
+        r.equipment_model || "",
+        [r.engine_model, r.engine_serial_no].filter(Boolean).join(" / "),
+        r.running_hours || "",
+        r.findings || "",
+        r.recommendations || "",
       ]);
-
-      const tableHeaderLine = tableHeaders.map(escapeCsvField).join(",");
-      const tableDataLines = tableRows.map((row: string[]) => row.map(escapeCsvField).join(","));
-      csv = [...headerRows, tableHeaderLine, ...tableDataLines].join("\n");
+      csv = buildCsv(headers, rows);
 
       const modelPart = engineModel ? engineModel.replace(/\s+/g, "_") : "";
       const snPart = serialNumber ? serialNumber.replace(/\s+/g, "_") : "";
-      const parts = [modelPart, snPart].filter(Boolean).join("_");
-      filename = `engine_report_${parts}.csv`;
+      const dateRange = startDate && endDate ? `${startDate}_to_${endDate}` : "";
+      const tag = [modelPart, snPart, dateRange].filter(Boolean).join("_") || "all";
+      filename = `engine_report_${tag}.csv`;
 
     } else if (reportType === "manhour") {
       if (!startDate || !endDate) {

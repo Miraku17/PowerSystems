@@ -13,10 +13,19 @@ import {
   XCircleIcon,
   ArrowDownTrayIcon,
   CogIcon,
-  ClockIcon,
+  CheckCircleIcon,
 } from "@heroicons/react/24/outline";
 
-type ReportType = "generated" | "status" | "wip" | "cancelled" | "engine" | "manhour";
+// Per the new spec (item 14): replace the previous 6 report types with five
+// status-bound JO reports + an Engine Report sourced from Deutz Service
+// Reports. The "Include Statuses" checkbox group is removed — each report's
+// status is implicit in its own type.
+type ReportType =
+  | "pending-jo"
+  | "work-in-progress"
+  | "cancelled-jo"
+  | "closed-jo"
+  | "engine";
 
 const REPORT_TYPES: {
   value: ReportType;
@@ -25,65 +34,48 @@ const REPORT_TYPES: {
   icon: typeof DocumentChartBarIcon;
 }[] = [
   {
-    value: "generated",
-    label: "JOB Orders Generated",
-    description: "List of all job orders created within a date range",
-    icon: DocumentChartBarIcon,
-  },
-  {
-    value: "status",
-    label: "JOB Order Status",
-    description: "Job orders with cost breakdown and status details",
+    value: "pending-jo",
+    label: "Pending Job Orders",
+    description: "Job orders awaiting both Credit & Collection and Department Head approval",
     icon: ClipboardDocumentListIcon,
   },
   {
-    value: "wip",
-    label: "Work In Process",
-    description: "All open/unclosed job orders as of a specific date",
+    value: "work-in-progress",
+    label: "Work In Progress",
+    description: "Job orders currently in service (both approvals received)",
     icon: WrenchScrewdriverIcon,
   },
   {
-    value: "cancelled",
+    value: "cancelled-jo",
     label: "Cancelled Job Orders",
-    description: "Job orders that were cancelled within a date range",
+    description: "Job orders that were cancelled by an admin",
     icon: XCircleIcon,
+  },
+  {
+    value: "closed-jo",
+    label: "Closed Job Orders",
+    description: "Job orders that have been closed by an admin, with cost breakdown",
+    icon: CheckCircleIcon,
   },
   {
     value: "engine",
     label: "Engine Report",
-    description: "Job order history filtered by engine model or serial number",
+    description: "Service history pulled from Deutz Service Reports, optionally filtered by engine model or serial number",
     icon: CogIcon,
   },
-  {
-    value: "manhour",
-    label: "Manhour Utilization",
-    description: "Employee utilization based on DTS hours vs available hours",
-    icon: ClockIcon,
-  },
 ];
-
-const STATUS_OPTIONS = ["Pending", "In-Progress", "Close", "Cancelled"];
 
 export default function ReportsPage() {
   useAuth();
   const { canAccess, isLoading: permissionsLoading } = usePermissions();
 
-  const [reportType, setReportType] = useState<ReportType>("generated");
+  const [reportType, setReportType] = useState<ReportType>("pending-jo");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([
-    "Pending",
-    "In-Progress",
-    "Close",
-    "Cancelled",
-  ]);
   const [engineModel, setEngineModel] = useState("");
   const [serialNumber, setSerialNumber] = useState("");
 
   const isEngineReport = reportType === "engine";
-  const isManhourReport = reportType === "manhour";
-  const showStatusFilter = reportType === "generated";
-  const showStartDate = reportType !== "wip" && !isEngineReport;
 
   const downloadMutation = useMutation({
     mutationFn: (params: ReportParams) => reportService.downloadReport(params),
@@ -99,53 +91,46 @@ export default function ReportsPage() {
 
   const handleDownload = () => {
     if (isEngineReport) {
-      if (!engineModel.trim() && !serialNumber.trim()) {
-        toast.error("Please enter an engine model or serial number");
+      // Engine Report supports an optional engine-model / serial-number
+      // filter and an optional date range. At least one filter must be set
+      // to avoid generating an unbounded dump.
+      const hasFilter = engineModel.trim() || serialNumber.trim() || (startDate && endDate);
+      if (!hasFilter) {
+        toast.error("Enter an engine model, serial number, or a date range");
         return;
       }
       const params: ReportParams = {
         reportType: "engine",
         engineModel: engineModel.trim() || undefined,
         serialNumber: serialNumber.trim() || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       };
       downloadMutation.mutate(params);
       return;
     }
 
-    // Validation for date-based reports
-    if (showStartDate && !startDate) {
+    // JO-status reports all require start + end date.
+    if (!startDate) {
       toast.error("Please select a start date");
       return;
     }
     if (!endDate) {
-      toast.error(reportType === "wip" ? "Please select an 'As of' date" : "Please select an end date");
+      toast.error("Please select an end date");
       return;
     }
-    if (showStartDate && startDate > endDate) {
+    if (startDate > endDate) {
       toast.error("Start date must be before or equal to end date");
-      return;
-    }
-    if (showStatusFilter && selectedStatuses.length === 0) {
-      toast.error("Please select at least one status");
       return;
     }
 
     const params: ReportParams = {
       reportType,
+      startDate,
       endDate,
     };
-    if (showStartDate) params.startDate = startDate;
-    if (showStatusFilter) params.status = selectedStatuses;
 
     downloadMutation.mutate(params);
-  };
-
-  const toggleStatus = (status: string) => {
-    setSelectedStatuses((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    );
   };
 
   if (permissionsLoading) {
@@ -252,8 +237,7 @@ export default function ReportsPage() {
               </h2>
             </div>
             <div className="p-6 space-y-6">
-              {isEngineReport ? (
-                /* Engine Report Filters */
+              {isEngineReport && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider mb-2">
@@ -279,73 +263,45 @@ export default function ReportsPage() {
                       className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all"
                     />
                   </div>
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                    <p className="text-[10px] text-[#607D8B] leading-normal font-medium">
-                      Enter at least one field above to generate the report.
-                    </p>
-                  </div>
                 </div>
-              ) : (
-                <>
-                  {/* Date Range */}
-                  <div className="space-y-4">
-                    {showStartDate && (
-                      <div>
-                        <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider mb-2">
-                          Start Date
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => setStartDate(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all appearance-none"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider mb-2">
-                        {reportType === "wip" ? "As of Date" : "End Date"}
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all appearance-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
+              )}
 
-                  {/* Status Filter */}
-                  {showStatusFilter && (
-                    <div className="space-y-3">
-                      <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider">
-                        Include Statuses
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {STATUS_OPTIONS.map((status) => {
-                          const isChecked = selectedStatuses.includes(status);
-                          return (
-                            <button
-                              key={status}
-                              onClick={() => toggleStatus(status)}
-                              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all border ${
-                                isChecked
-                                  ? "bg-[#2B4C7E] text-white border-[#2B4C7E] shadow-sm shadow-[#2B4C7E]/20"
-                                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                              }`}
-                            >
-                              {status}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </>
+              {/* Date Range — required for all JO reports; optional for Engine. */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider mb-2">
+                    Start Date{isEngineReport && (
+                      <span className="ml-2 text-[10px] font-medium text-slate-400 normal-case">(optional)</span>
+                    )}
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all appearance-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#1A2F4F] uppercase tracking-wider mb-2">
+                    End Date{isEngineReport && (
+                      <span className="ml-2 text-[10px] font-medium text-slate-400 normal-case">(optional)</span>
+                    )}
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-4 focus:ring-[#2B4C7E]/5 focus:border-[#2B4C7E] outline-none transition-all appearance-none"
+                  />
+                </div>
+              </div>
+
+              {isEngineReport && (
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                  <p className="text-[10px] text-[#607D8B] leading-normal font-medium">
+                    Enter at least one filter — engine model, serial number, or date range.
+                  </p>
+                </div>
               )}
 
               {/* Download Action */}

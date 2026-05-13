@@ -53,10 +53,13 @@ test.describe("Admin 2 — JO Request signatory locks", () => {
 
     await page.goto("/dashboard/job-order-request");
 
-    // Both fields must auto-fill with Admin 2's fullName.
+    // All three signatory fields Admin 2 can edit must auto-fill with
+    // their fullName. Verified By was shipped in 00a7d7a (autoFillForPositions
+    // includes "Admin 2"); this guards Admin 2 hits that same auto-fill path.
     const fields: Array<{ name: string; label: string }> = [
       { name: "approved_by_name", label: "Approved By" },
       { name: "received_by_service_dept_name", label: "Service Dept." },
+      { name: "verified_by_name", label: "Verified By" },
     ];
 
     for (const { name, label } of fields) {

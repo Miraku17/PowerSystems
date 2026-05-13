@@ -854,7 +854,8 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     subtitle="Signed by Technician"
                     showAllUsers
                     disabled={!canEditServiceTechnician}
-                   autoFillForPositions={["User 1", "User 2"]}/>
+                   autoFillForPositions={["User 1", "User 2"]}
+                   lockIfDifferentUser/>
                 </div>
                 <div className="flex flex-col space-y-4">
                   <SignatorySelect
@@ -867,6 +868,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     users={users}
                     subtitle="Authorized Signature"
                     disabled={!canEditApprovedBy}
+                    lockIfDifferentUser
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={approvedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.approved_by_user_id)} onChange={(e) => requestToggle('approved_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
@@ -884,6 +886,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     users={users}
                     subtitle="Service Manager"
                     disabled={!canEditNotedBy}
+                    lockIfDifferentUser
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input type="checkbox" checked={notedByChecked} disabled={approvalLoading || !currentUser || (currentUser.id !== data.noted_by_user_id)} onChange={(e) => requestToggle('noted_by', e.target.checked)} className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
@@ -901,6 +904,7 @@ export default function EditEngineTeardown({ data, recordId, onClose, onSaved, o
                     showAllUsers
                     hideSignature
                   allowTyping
+                  lockIfDifferentUser
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

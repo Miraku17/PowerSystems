@@ -33,6 +33,12 @@ interface SignatorySelectProps {
    * Other users keep the normal dropdown UX.
    */
   autoFillForPositions?: string[];
+  /**
+   * When true, the field locks if it already holds a name that isn't the
+   * current user's. Super Admin is exempt and can always edit. Use this in
+   * EDIT dialogs so UserA cannot remove/replace UserB's saved signature.
+   */
+  lockIfDifferentUser?: boolean;
 }
 
 export default function SignatorySelect({
@@ -52,6 +58,7 @@ export default function SignatorySelect({
   filterPositions,
   filterByPermission,
   autoFillForPositions,
+  lockIfDifferentUser = false,
 }: SignatorySelectProps) {
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,7 +81,18 @@ export default function SignatorySelect({
       (p) => p.toLowerCase() === currentUserRecord!.position!.name.toLowerCase(),
     );
 
-  const isLocked = (lockedToCurrentUser || isAutoFillEligible) && !disabled;
+  // Lock the field when it already holds another user's signature. Super Admin
+  // bypasses this so they can correct/replace any signature. A missing
+  // currentUserRecord (e.g. session not loaded) is treated as "different user"
+  // so we fail closed rather than expose an edit window.
+  const isDifferentUserLocked =
+    lockIfDifferentUser &&
+    !!value &&
+    !isCurrentUserSuperAdmin &&
+    (!currentUserRecord || value !== currentUserRecord.fullName);
+
+  const isLocked =
+    (lockedToCurrentUser || isAutoFillEligible || isDifferentUserLocked) && !disabled;
 
   // Auto-populate when eligible and the field is still empty.
   useEffect(() => {

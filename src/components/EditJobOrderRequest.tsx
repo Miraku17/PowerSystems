@@ -347,6 +347,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   subtitle="Sales/Service Engineer"
                   disabled={!canEditRequestedBy}
                   showAllUsers={isSuperAdmin}
+                  lockIfDifferentUser
                 />
                 <SignatorySelect
                   label="Approved By (Department Head)"
@@ -361,6 +362,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   showAllUsers
                   filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
                   autoFillForPositions={["Admin 1", "Admin 2", "Super Admin"]}
+                  lockIfDifferentUser
                 />
               </div>
             </div>
@@ -382,6 +384,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                   showAllUsers
                   filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
                   autoFillForPositions={["Admin 2", "Super Admin"]}
+                  lockIfDifferentUser
                 />
                 {canReceiveByCreditCollection ? (
                   <SignatorySelect
@@ -394,6 +397,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     users={users}
                     subtitle="Credit & Collection"
                     autoFillForPositions={["Finance"]}
+                    lockIfDifferentUser
                   />
                 ) : (
                   <ReadOnlySignatory
@@ -445,6 +449,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     subtitle="Verified By"
                     autoFillForPositions={["Admin 1", "Admin 2", "Super Admin"]}
                     disabled={!canEditVerifiedBy}
+                    lockIfDifferentUser
                   />
                 </div>
               </div>

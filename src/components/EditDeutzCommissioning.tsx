@@ -1076,7 +1076,8 @@ export default function EditDeutzCommissioning({
                     users={users}
                     subtitle="Sign above"
                     disabled={!canEditServiceTechnician}
-                   autoFillForPositions={["User 1", "User 2"]}/>
+                   autoFillForPositions={["User 1", "User 2"]}
+                   lockIfDifferentUser/>
                 </div>
 
                 <div className="flex flex-col space-y-4">
@@ -1090,6 +1091,7 @@ export default function EditDeutzCommissioning({
                     users={users}
                     subtitle="Sign above"
                     disabled={!canEditApprovedBy}
+                    lockIfDifferentUser
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
@@ -1114,6 +1116,7 @@ export default function EditDeutzCommissioning({
                     users={users}
                     subtitle="Sign above"
                     disabled={!canEditNotedBy}
+                    lockIfDifferentUser
                   />
                   <label className="flex items-center gap-2 mt-2 cursor-pointer">
                     <input
@@ -1138,6 +1141,7 @@ export default function EditDeutzCommissioning({
                     showAllUsers
                     hideSignature
                   allowTyping
+                  lockIfDifferentUser
                   />
                   <SignaturePad
                     label="Acknowledged By Signature"

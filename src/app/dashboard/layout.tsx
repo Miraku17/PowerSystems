@@ -231,10 +231,23 @@ function DashboardLayoutInner({
       permission: { module: "dts_approval" },
     },
     {
+      name: "Reports",
+      icon: DocumentChartBarIcon,
+      href: "/dashboard/reports",
+      permission: { module: "reports" },
+    },
+    {
+      name: "Leaves",
+      icon: CalendarDaysIcon,
+      href: "/dashboard/leave-management",
+      permission: { module: "leave_approval" },
+    },
+    {
       name: "Audit Logs",
       icon: ClipboardDocumentCheckIcon,
       href: "/dashboard/audit-logs",
       section: "System",
+      permission: { module: "audit_logs", action: "read" },
     },
     // Permission Management — disabled for now. Re-enable when the
     // feature is ready to ship.
@@ -257,12 +270,6 @@ function DashboardLayoutInner({
       icon: TrashIcon,
       href: "/dashboard/trash",
       permission: { module: "form_records", action: "restore" },
-    },
-    {
-      name: "Reports",
-      icon: DocumentChartBarIcon,
-      href: "/dashboard/reports",
-      permission: { module: "reports" },
     },
   ];
 

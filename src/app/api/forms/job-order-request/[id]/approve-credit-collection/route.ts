@@ -17,10 +17,12 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       );
     }
 
-    // Fetch current record
+    // Fetch current record — include `approved_by_name` and `status` so we
+    // can detect whether the OTHER approval (Dept Head) is already present
+    // and auto-transition Pending → In-Progress when both are in place.
     const { data: currentRecord, error: fetchError } = await supabase
       .from("job_order_request_form")
-      .select("id, received_by_credit_collection_name, received_by_credit_collection_signature, deleted_at")
+      .select("id, received_by_credit_collection_name, received_by_credit_collection_signature, approved_by_name, status, deleted_at")
       .eq("id", id)
       .single();
 
@@ -70,15 +72,27 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       );
     }
 
-    // Update the record
+    // Auto-transition Pending → In-Progress when both approvals are in
+    // place. The Dept Head signature is `approved_by_name`; if it's already
+    // populated and the JO is still Pending, this approval completes the
+    // pair so we bump the status. Don't touch Close/Cancelled — admins
+    // override the auto-transition with manual status changes.
+    const deptHeadAlreadyApproved =
+      !!currentRecord.approved_by_name && currentRecord.approved_by_name.trim() !== "";
+    const shouldAutoAdvance =
+      deptHeadAlreadyApproved && currentRecord.status === "Pending";
+
+    const updatePayload: Record<string, unknown> = {
+      received_by_credit_collection_name: fullName,
+      received_by_credit_collection_signature: signatureUrl,
+      updated_by: user.id,
+      updated_at: new Date().toISOString(),
+    };
+    if (shouldAutoAdvance) updatePayload.status = "In-Progress";
+
     const { data, error } = await supabase
       .from("job_order_request_form")
-      .update({
-        received_by_credit_collection_name: fullName,
-        received_by_credit_collection_signature: signatureUrl,
-        updated_by: user.id,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", id)
       .select()
       .single();

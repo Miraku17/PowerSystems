@@ -1630,6 +1630,8 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
                     onSelect={(jo) => setFormData({
                       job_order_no: jo.shop_field_jo_number || "",
                       customer: jo.full_customer_name || "",
+                      // Spec #14: auto-populate engine identifier from JO.
+                      engine_model: jo.engine_model || "",
                     } as any)}
                     required
                   />

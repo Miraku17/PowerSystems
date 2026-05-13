@@ -193,6 +193,8 @@ export default function EngineTeardownForm() {
                 onSelect={(jo) => setFormData({
                   job_number: jo.shop_field_jo_number || "",
                   customer: jo.full_customer_name || "",
+                  // Spec #14: auto-populate engine identifier from the JO.
+                  engine_model: jo.engine_model || "",
                 })}
                 required
               />

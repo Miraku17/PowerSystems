@@ -195,6 +195,13 @@ export default function DeutzServiceForm() {
                 job_order: jo.shop_field_jo_number || "",
                 customer_name: jo.full_customer_name || "",
                 address: jo.address || "",
+                // Spec #14: equipment + engine identifiers auto-populate
+                // from the selected JO so the form filler doesn't re-type
+                // them. Admins update the JO when these change.
+                equipment_model: jo.equipment_model || "",
+                equipment_serial_no: jo.equipment_number || "",
+                engine_model: jo.engine_model || "",
+                engine_serial_no: jo.esn || "",
               })}
               required
             />

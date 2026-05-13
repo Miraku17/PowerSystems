@@ -446,6 +446,10 @@ export default function SubmersiblePumpTeardownForm() {
                 job_order: jo.shop_field_jo_number || "",
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
+                // Spec #14: pump identifiers from JO equipment. Teardown store
+                // uses `serial_number` (no `pump_` prefix).
+                pump_model: jo.equipment_model || "",
+                serial_number: jo.equipment_number || "",
               })}
               required
             />

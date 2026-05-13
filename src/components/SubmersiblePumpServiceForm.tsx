@@ -161,6 +161,10 @@ export default function SubmersiblePumpServiceForm() {
                 job_order: jo.shop_field_jo_number || "",
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
+                // Spec #14: pump_model + pump_serial_number map from the JO's
+                // equipment_model + equipment_number (pump IS the equipment).
+                pump_model: jo.equipment_model || "",
+                pump_serial_number: jo.equipment_number || "",
               })}
               required
             />

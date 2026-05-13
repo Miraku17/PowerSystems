@@ -157,6 +157,9 @@ export default function SubmersiblePumpCommissioningForm() {
                 job_order: jo.shop_field_jo_number || "",
                 customer: jo.full_customer_name || "",
                 address: jo.address || "",
+                // Spec #14: pump_model + pump_serial_number from JO equipment.
+                pump_model: jo.equipment_model || "",
+                pump_serial_number: jo.equipment_number || "",
               })}
               required
             />

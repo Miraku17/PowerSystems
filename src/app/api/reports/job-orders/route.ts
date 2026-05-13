@@ -36,6 +36,53 @@ function formatCost(val: number | string | null | undefined): string {
   return num.toFixed(2);
 }
 
+// Shared 17-column layout for the four JO-status reports (A-D in spec #14).
+// Mirrors the client's reference "Service Job Order" CSV. Machining /
+// Calibration and Running Hours have no source column on
+// job_order_request_form today — left blank in the output. They can be
+// backfilled once those fields exist on the JO record.
+const JO_REPORT_HEADERS: string[] = [
+  "Job Order",
+  "Charges Absorbed By",
+  "Date Opened",
+  "Date Closed",
+  "Customer",
+  "Equipment",
+  "Engine / Serial No.",
+  "Work Description",
+  "Quotation No.",
+  "Labor Charge",
+  "Parts",
+  "Machining / Calibration",
+  "Other Expenses",
+  "Total (VAT Inclusive)",
+  "Running Hours",
+  "Remarks",
+  "Attending Technician",
+];
+
+function buildJoReportRow(r: any): string[] {
+  return [
+    r.shop_field_jo_number || "",
+    r.charges_absorbed_by || "",
+    formatDate(r.date_prepared),
+    formatDate(r.date_job_completed_closed),
+    r.full_customer_name || "",
+    r.equipment_model || "",
+    [r.engine_model, r.esn].filter(Boolean).join(" / "),
+    [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
+    r.qtn_ref || "",
+    formatCost(r.labor_cost),
+    formatCost(r.parts_cost),
+    "", // Machining / Calibration — no JO column today.
+    formatCost(r.other_cost),
+    formatCost(r.total_cost),
+    "", // Running Hours — only lives on deutz_service_report.
+    r.remarks || "",
+    r.technicians_involved || "",
+  ];
+}
+
 export const GET = withAuth(async (request, { user }) => {
   try {
     const supabase = getServiceSupabase();
@@ -179,23 +226,7 @@ export const GET = withAuth(async (request, { user }) => {
         );
       }
 
-      const headers = [
-        "J.O. NO.",
-        "DATE OPEN",
-        "CUSTOMER",
-        "JOB DESCRIPTION",
-        "ENGINE/EQPMT MODEL",
-        "SERIAL NUMBER",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        r.full_customer_name || "",
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
-        r.esn || "",
-      ]);
-      csv = buildCsv(headers, rows);
+      csv = buildCsv(JO_REPORT_HEADERS, data.map(buildJoReportRow));
       filename = `pending_job_orders_${startDate}_to_${endDate}.csv`;
 
     // ---------------------------------------------------------------
@@ -226,25 +257,7 @@ export const GET = withAuth(async (request, { user }) => {
         );
       }
 
-      const headers = [
-        "J.O. NO.",
-        "DATE OPEN",
-        "CUSTOMER",
-        "JOB DESCRIPTION",
-        "ENGINE/EQPMT MODEL",
-        "SERIAL NUMBER",
-        "AMOUNT (TOTAL)",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        r.full_customer_name || "",
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
-        r.esn || "",
-        formatCost(r.total_cost),
-      ]);
-      csv = buildCsv(headers, rows);
+      csv = buildCsv(JO_REPORT_HEADERS, data.map(buildJoReportRow));
       filename = `work_in_progress_${startDate}_to_${endDate}.csv`;
 
     // ---------------------------------------------------------------
@@ -275,19 +288,7 @@ export const GET = withAuth(async (request, { user }) => {
         );
       }
 
-      const headers = [
-        "J.O. NO.",
-        "DATE OPEN",
-        "CUSTOMER",
-        "REASON FOR CANCELLATION",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        r.full_customer_name || "",
-        r.remarks || "",
-      ]);
-      csv = buildCsv(headers, rows);
+      csv = buildCsv(JO_REPORT_HEADERS, data.map(buildJoReportRow));
       filename = `cancelled_job_orders_${startDate}_to_${endDate}.csv`;
 
     // ---------------------------------------------------------------
@@ -318,35 +319,7 @@ export const GET = withAuth(async (request, { user }) => {
         );
       }
 
-      const headers = [
-        "J.O. NO.",
-        "DATE OPEN",
-        "DATE CLOSED",
-        "CUSTOMER",
-        "JOB DESCRIPTION",
-        "ENGINE/EQPMT MODEL",
-        "SERIAL NUMBER",
-        "PARTS",
-        "LABOR",
-        "OTHERS",
-        "TOTAL",
-        "COST ABSORBED BY",
-      ];
-      const rows = data.map((r: any) => [
-        r.shop_field_jo_number || "",
-        formatDate(r.date_prepared),
-        formatDate(r.date_job_completed_closed),
-        r.full_customer_name || "",
-        [r.complaints, r.work_to_be_done].filter(Boolean).join(" - "),
-        [r.engine_model, r.equipment_model].filter(Boolean).join(" / "),
-        r.esn || "",
-        formatCost(r.parts_cost),
-        formatCost(r.labor_cost),
-        formatCost(r.other_cost),
-        formatCost(r.total_cost),
-        r.charges_absorbed_by || "",
-      ]);
-      csv = buildCsv(headers, rows);
+      csv = buildCsv(JO_REPORT_HEADERS, data.map(buildJoReportRow));
       filename = `closed_job_orders_${startDate}_to_${endDate}.csv`;
 
     // ---------------------------------------------------------------

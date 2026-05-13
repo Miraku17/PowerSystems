@@ -110,7 +110,6 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
 
   const canApproveByDeptHead = hasPermission("jo_signatory", "approved_by");
   const canReceiveByServiceDept = hasPermission("jo_signatory", "service_dept");
-  const canReceiveByCreditCollection = hasPermission("jo_credit_collection_approval", "edit");
   const canEditRequestedBy = hasPermission("jo_signatory", "requested_by");
   const canEditVerifiedBy = hasPermission("jo_signatory", "verified_by");
   const canEditServiceUse = hasPermission("jo_service_use", "edit");
@@ -120,6 +119,14 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
     users.find((u: any) => u.id === currentUser?.id)?.position?.name || ""
   ).toLowerCase();
   const isSuperAdmin = currentUserPosition === "super admin";
+
+  // Credit & Collection edit access: positions that hold the approval perm
+  // (Super User / Super Admin) OR Finance, who signs as their own C&C rep
+  // on the JO Request. Finance is hardcoded by position so we don't also
+  // grant them the approval-side edit perm.
+  const canReceiveByCreditCollection =
+    hasPermission("jo_credit_collection_approval", "edit") ||
+    currentUserPosition === "finance";
 
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
@@ -386,6 +393,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     onSignatureChange={(sig) => handleFieldChange("received_by_credit_collection_signature", sig)}
                     users={users}
                     subtitle="Credit & Collection"
+                    autoFillForPositions={["Finance"]}
                   />
                 ) : (
                   <ReadOnlySignatory

@@ -95,7 +95,10 @@ export default function JobOrderRequestForm() {
   const canEditRequestedBy = hasPermission('jo_signatory', 'requested_by');
   const canApproveByDeptHead = hasPermission('jo_signatory', 'approved_by');
   const canReceiveByServiceDept = hasPermission('jo_signatory', 'service_dept');
-  const canReceiveByCreditCollection = ['super user', 'super admin'].includes(currentUserPosition);
+  // Credit & Collection eligibility: Super User + Super Admin (legacy) plus
+  // Finance, who signs as their own credit-&-collection rep on the JO Request
+  // (auto-filled + locked below so Finance can't pick another user's signature).
+  const canReceiveByCreditCollection = ['super user', 'super admin', 'finance'].includes(currentUserPosition);
   const canEditVerifiedBy = hasPermission('jo_signatory', 'verified_by');
   const canEditServiceUse = hasPermission('jo_service_use', 'edit');
   const isSuperAdmin = currentUserPosition === 'super admin';
@@ -380,6 +383,7 @@ export default function JobOrderRequestForm() {
                 onSignatureChange={(sig) => setFormData({ received_by_credit_collection_signature: sig })}
                 users={users}
                 subtitle="Credit & Collection"
+                autoFillForPositions={["Finance"]}
               />
             )}
           </div>

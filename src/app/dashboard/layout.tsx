@@ -152,6 +152,16 @@ function DashboardLayoutInner({
     }
   };
 
+  // "Reports" sidebar entry placement is position-dependent. Super Admin and
+  // Super User see it under SYSTEM (alongside Audit Logs); every other
+  // position with reports.access sees it under APPROVALS. Matches the
+  // client run-throughs ("Place 'Reports' under 'SYSTEM'" for Super User
+  // vs "Transfer 'Reports' under 'APPROVALS'" for Admin 2).
+  const hasSystemAccess =
+    isSuperAdmin ||
+    canRead("audit_logs") ||
+    userPosition.toLowerCase() === "super user";
+
   const allNavigation = [
     { name: "Overview", icon: HomeIcon, href: "/dashboard/overview" },
     { name: "Customers", icon: UsersIcon, href: "/dashboard/customers", permissionModule: "customer_management" },
@@ -230,12 +240,18 @@ function DashboardLayoutInner({
       href: "/dashboard/pending-dts",
       permission: { module: "dts_approval" },
     },
-    {
-      name: "Reports",
-      icon: DocumentChartBarIcon,
-      href: "/dashboard/reports",
-      permission: { module: "reports" },
-    },
+    // "Reports" placement is position-dependent. SYSTEM-eligible viewers
+    // (Super Admin / Super User) see it under SYSTEM alongside Audit Logs;
+    // everyone else (Admin 1 / Admin 2 / Finance / ...) sees it under
+    // APPROVALS, which matches the client run-throughs.
+    ...(!hasSystemAccess
+      ? [{
+          name: "Reports",
+          icon: DocumentChartBarIcon,
+          href: "/dashboard/reports",
+          permission: { module: "reports" },
+        }]
+      : []),
     {
       name: "Leaves",
       icon: CalendarDaysIcon,
@@ -249,6 +265,20 @@ function DashboardLayoutInner({
       section: "System",
       permission: { module: "audit_logs", action: "read" },
     },
+    // SYSTEM placement of Reports. The `section` prop is set only when the
+    // user can't see Audit Logs (otherwise Audit Logs anchors the SYSTEM
+    // header and a duplicate label would render here).
+    ...(hasSystemAccess
+      ? [{
+          name: "Reports",
+          icon: DocumentChartBarIcon,
+          href: "/dashboard/reports",
+          permission: { module: "reports" },
+          ...(canRead("audit_logs") || isSuperAdmin
+            ? {}
+            : { section: "System" }),
+        }]
+      : []),
     // Permission Management — disabled for now. Re-enable when the
     // feature is ready to ship.
     // {

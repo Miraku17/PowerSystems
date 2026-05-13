@@ -1,7 +1,22 @@
 import apiClient from "@/lib/axios";
 
 export interface ReportParams {
-  reportType: "generated" | "status" | "wip" | "cancelled" | "engine" | "manhour";
+  // New report types (spec #14):
+  //   pending-jo, work-in-progress, cancelled-jo, closed-jo, engine
+  // Legacy aliases (generated / status / wip / cancelled / manhour) are
+  // still accepted by the API and kept here so older callers keep
+  // type-checking.
+  reportType:
+    | "pending-jo"
+    | "work-in-progress"
+    | "cancelled-jo"
+    | "closed-jo"
+    | "engine"
+    | "manhour"
+    | "generated"
+    | "status"
+    | "wip"
+    | "cancelled";
   startDate?: string;
   endDate?: string;
   status?: string[];

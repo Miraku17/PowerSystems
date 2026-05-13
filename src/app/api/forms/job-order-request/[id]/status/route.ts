@@ -107,10 +107,60 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       performed_at: now,
     });
 
+    // Phase 3 cascade: when the JO is moved to 'Close', every filled-up
+    // service report that references this JO's shop_field_jo_number (or
+    // its UUID for daily_time_sheet) flips to status='Close' too. The
+    // status column was added to every form table by
+    // add_status_to_form_tables_and_cascade.sql.
+    let cascadeUpdates = 0;
+    if (status === "Close") {
+      const cascadeTargets: Array<{ table: string; column: string; value: string }> = [
+        { table: "components_teardown_measuring_report",     column: "job_order_no",          value: joRecord.shop_field_jo_number },
+        { table: "deutz_commissioning_report",               column: "job_order_no",          value: joRecord.shop_field_jo_number },
+        { table: "deutz_service_report",                     column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "electric_surface_pump_commissioning_report", column: "job_order",           value: joRecord.shop_field_jo_number },
+        { table: "electric_surface_pump_service_report",     column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "electric_surface_pump_teardown_report",    column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "engine_inspection_receiving_report",       column: "jo_number",             value: joRecord.shop_field_jo_number },
+        { table: "engine_surface_pump_commissioning_report", column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "engine_surface_pump_service_report",       column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "engine_teardown_reports",                  column: "job_number",            value: joRecord.shop_field_jo_number },
+        { table: "submersible_pump_commissioning_report",    column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "submersible_pump_service_report",          column: "job_order",             value: joRecord.shop_field_jo_number },
+        { table: "submersible_pump_teardown_report",         column: "job_order",             value: joRecord.shop_field_jo_number },
+        // Note: daily_time_sheet is intentionally NOT in the cascade list.
+        // Its `status` column was pre-existing and tracks the DTS approval
+        // workflow (Pending → Approved → Conditional / Rejected), which is
+        // separate from the JO close lifecycle. Overwriting that here would
+        // corrupt the leave-approval state.
+      ];
+
+      for (const target of cascadeTargets) {
+        if (!target.value) continue;
+        const { data: cascaded, error: cascadeErr } = await supabase
+          .from(target.table)
+          .update({ status: "Close", updated_at: now })
+          .eq(target.column, target.value)
+          .select("id");
+        if (cascadeErr) {
+          // Don't fail the whole status change — log + continue. The JO is
+          // still closed; admins can manually retry the cascade if needed.
+          console.error(`Cascade close failed for ${target.table}:`, cascadeErr);
+        } else if (cascaded) {
+          cascadeUpdates += cascaded.length;
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Status updated to ${status}`,
+      message: `Status updated to ${status}${
+        status === "Close" && cascadeUpdates > 0
+          ? ` (${cascadeUpdates} linked form${cascadeUpdates === 1 ? "" : "s"} also closed)`
+          : ""
+      }`,
       data: updatedRecord,
+      cascadeUpdates,
     });
   } catch (error: any) {
     console.error("Error updating JO request status:", error);

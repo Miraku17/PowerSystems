@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
 import { useUsers, useCustomers } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useCurrentUser } from "@/stores/authStore";
 import {
   buildMainBearingRadialClearanceData,
   buildCrankshaftMainJournalDiameterData,
@@ -49,8 +50,19 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
   const { data: users = [] } = useUsers();
   const { data: customers = [] } = useCustomers();
   const { hasPermission } = usePermissions();
+  const currentUser = useCurrentUser();
   const canEditTechnician = hasPermission('components_teardown_signatory', 'technician');
   const canEditCheckedBy = hasPermission('components_teardown_signatory', 'checked_by');
+
+  // Lock the Checked By field to the logged-in eligible user (mirror of the
+  // create form's behavior — see ComponentsTeardownMeasuringForm.tsx).
+  const lockedCheckedByName = React.useMemo(() => {
+    const me = users.find((u) => u.id === currentUser?.id);
+    const eligible = ["Admin 1", "Admin 2", "Super Admin"];
+    return me && eligible.includes(me.position?.name ?? "")
+      ? me.fullName
+      : undefined;
+  }, [users, currentUser?.id]);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [fullData, setFullData] = useState<any>(null);
@@ -468,6 +480,7 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
           onSelect={(user) => handleMeasurementMetaChange(metaKey, 'checked_by', user.fullName)}
           users={users}
           disabled={!canEditCheckedBy}
+          lockToCurrentUserName={lockedCheckedByName}
         />
       </div>
     );
@@ -893,12 +906,23 @@ interface UserAutocompleteEditProps {
   onSelect: (user: { id: string; fullName: string }) => void;
   users: Array<{ id: string; fullName: string }>;
   disabled?: boolean;
+  /** If provided, auto-fill when empty and lock the dropdown to that name. */
+  lockToCurrentUserName?: string;
 }
 
-const UserAutocompleteEdit = ({ label, value, onChange, onSelect, users, disabled = false }: UserAutocompleteEditProps) => {
+const UserAutocompleteEdit = ({ label, value, onChange, onSelect, users, disabled = false, lockToCurrentUserName }: UserAutocompleteEditProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const isLocked = !!lockToCurrentUserName && !disabled;
+
+  React.useEffect(() => {
+    if (isLocked && !value && lockToCurrentUserName) {
+      onChange(lockToCurrentUserName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocked, lockToCurrentUserName, value]);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -922,14 +946,15 @@ const UserAutocompleteEdit = ({ label, value, onChange, onSelect, users, disable
           ref={inputRef}
           type="text"
           value={value || ''}
-          onChange={(e) => { if (!disabled) { onChange(e.target.value); setShowDropdown(true); } }}
-          onFocus={() => { if (!disabled) setShowDropdown(true); }}
+          onChange={(e) => { if (!disabled && !isLocked) { onChange(e.target.value); setShowDropdown(true); } }}
+          onFocus={() => { if (!disabled && !isLocked) setShowDropdown(true); }}
           disabled={disabled}
-          className={`w-full border text-sm rounded-md p-2 pr-8 ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
+          readOnly={isLocked}
+          className={`w-full border text-sm rounded-md p-2 pr-8 ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : isLocked ? "bg-gray-50 border-gray-300 cursor-default" : "border-gray-300 focus:ring-blue-500 focus:border-blue-500"}`}
           placeholder={`Enter ${label.toLowerCase()}`}
           autoComplete="off"
         />
-        {!disabled && (
+        {!disabled && !isLocked && (
           <button
             type="button"
             tabIndex={-1}
@@ -939,7 +964,7 @@ const UserAutocompleteEdit = ({ label, value, onChange, onSelect, users, disable
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
           </button>
         )}
-        {!disabled && showDropdown && filteredUsers.length > 0 && (
+        {!disabled && !isLocked && showDropdown && filteredUsers.length > 0 && (
           <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
             {filteredUsers.map((user) => (
               <div

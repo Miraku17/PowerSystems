@@ -56,6 +56,17 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
     [users, currentUser?.id]
   );
 
+  // Checked By must auto-fill with the logged-in user's name (and lock) so an
+  // eligible Admin can't stamp another user's signature/name. Matches the JO
+  // Request "Verified By" auto-fill behaviour.
+  const lockedCheckedByName = React.useMemo(() => {
+    const me = users.find((u) => u.id === currentUser?.id);
+    const eligible = ["Admin 1", "Admin 2", "Super Admin"];
+    return me && eligible.includes(me.position?.name ?? "")
+      ? me.fullName
+      : undefined;
+  }, [users, currentUser?.id]);
+
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     header: true,
@@ -328,6 +339,7 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
         onSelect={(user) => updateMeta(metaKey, 'checked_by', user.fullName)}
         users={users}
         disabled={!canEditCheckedBy}
+        lockToCurrentUserName={lockedCheckedByName}
       />
     </div>
   );
@@ -1549,6 +1561,7 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
             onSelect={(user) => handleChange('checked_by', user.fullName)}
             users={users}
             disabled={!canEditCheckedBy}
+            lockToCurrentUserName={lockedCheckedByName}
           />
         </div>
       </div>
@@ -2495,13 +2508,29 @@ interface UserAutocompleteProps {
   onSelect: (user: { id: string; fullName: string }) => void;
   users: Array<{ id: string; fullName: string }>;
   disabled?: boolean;
+  /**
+   * If provided, the field auto-fills with this name (when empty) and locks
+   * the dropdown — preventing the filler from picking another user. Used by
+   * "Checked By" so eligible Admins can only stamp their own name.
+   */
+  lockToCurrentUserName?: string;
 }
 
-const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = false }: UserAutocompleteProps) => {
+const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = false, lockToCurrentUserName }: UserAutocompleteProps) => {
   const [showDropdown, setShowDropdown] = React.useState(false);
   const [isFocused, setIsFocused] = React.useState(false);
   const dropdownRef = React.useRef<HTMLDivElement>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
+
+  const isLocked = !!lockToCurrentUserName && !disabled;
+
+  // Auto-fill the field with the locked name when empty (e.g. fresh form).
+  React.useEffect(() => {
+    if (isLocked && !value && lockToCurrentUserName) {
+      onChange(lockToCurrentUserName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLocked, lockToCurrentUserName, value]);
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -2514,7 +2543,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = 
   }, []);
 
   const handleSelectUser = (user: { id: string; fullName: string }, e: React.MouseEvent) => {
-    if (disabled) return;
+    if (disabled || isLocked) return;
     e.preventDefault();
     e.stopPropagation();
     const scrollY = window.scrollY;
@@ -2526,7 +2555,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = 
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (disabled) return;
+    if (disabled || isLocked) return;
     const scrollY = window.scrollY;
     onChange(e.target.value);
     setShowDropdown(true);
@@ -2536,6 +2565,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = 
   };
 
   const handleFocus = () => {
+    if (isLocked) return;
     setIsFocused(true);
     setShowDropdown(true);
   };
@@ -2568,14 +2598,15 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = 
           type="text"
           value={value || ''}
           onChange={handleInputChange}
-          onFocus={() => { if (!disabled) handleFocus(); }}
+          onFocus={() => { if (!disabled && !isLocked) handleFocus(); }}
           onBlur={handleBlur}
           disabled={disabled}
-          className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"}`}
+          readOnly={isLocked}
+          className={`w-full px-3 py-2 pr-8 border rounded-lg text-sm ${disabled ? "bg-gray-100 border-gray-200 text-gray-500 cursor-not-allowed" : isLocked ? "bg-gray-50 border-gray-300 cursor-default" : "border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"}`}
           placeholder={`Enter ${label.toLowerCase()}`}
           autoComplete="off"
         />
-        {!disabled && (
+        {!disabled && !isLocked && (
         <button
           type="button"
           tabIndex={-1}
@@ -2585,7 +2616,7 @@ const UserAutocomplete = ({ label, value, onChange, onSelect, users, disabled = 
           <ChevronDownIcon className={`h-4 w-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} />
         </button>
         )}
-        {!disabled && showDropdown && filteredUsers.length > 0 && (
+        {!disabled && !isLocked && showDropdown && filteredUsers.length > 0 && (
           <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-auto">
             {filteredUsers.map((user) => (
               <div

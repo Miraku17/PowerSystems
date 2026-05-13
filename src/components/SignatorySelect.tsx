@@ -60,8 +60,13 @@ export default function SignatorySelect({
 
   // If current user's position is in autoFillForPositions, treat the field as
   // locked-to-current-user (auto-fill effect below handles the actual values).
+  // Super Admin is intentionally exempt: the role exists precisely to override
+  // signatory restrictions, so SA keeps the normal dropdown to pick any user.
   const currentUserRecord = currentUser ? users.find((u) => u.id === currentUser.id) : null;
+  const isCurrentUserSuperAdmin =
+    currentUserRecord?.position?.name?.toLowerCase() === "super admin";
   const isAutoFillEligible =
+    !isCurrentUserSuperAdmin &&
     !!autoFillForPositions &&
     autoFillForPositions.length > 0 &&
     !!currentUserRecord?.position?.name &&

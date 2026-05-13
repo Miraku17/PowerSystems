@@ -58,10 +58,12 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
 
   // Checked By must auto-fill with the logged-in user's name (and lock) so an
   // eligible Admin can't stamp another user's signature/name. Matches the JO
-  // Request "Verified By" auto-fill behaviour.
+  // Request "Verified By" auto-fill behaviour. Super Admin is exempt — the
+  // role exists precisely to bypass signatory restrictions and pick anyone.
   const lockedCheckedByName = React.useMemo(() => {
     const me = users.find((u) => u.id === currentUser?.id);
-    const eligible = ["Admin 1", "Admin 2", "Super Admin"];
+    if (me?.position?.name?.toLowerCase() === "super admin") return undefined;
+    const eligible = ["Admin 1", "Admin 2"];
     return me && eligible.includes(me.position?.name ?? "")
       ? me.fullName
       : undefined;

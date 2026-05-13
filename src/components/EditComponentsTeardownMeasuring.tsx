@@ -56,9 +56,11 @@ export default function EditComponentsTeardownMeasuring({ data, recordId, onClos
 
   // Lock the Checked By field to the logged-in eligible user (mirror of the
   // create form's behavior — see ComponentsTeardownMeasuringForm.tsx).
+  // Super Admin is exempt so they can stamp any user's signature.
   const lockedCheckedByName = React.useMemo(() => {
     const me = users.find((u) => u.id === currentUser?.id);
-    const eligible = ["Admin 1", "Admin 2", "Super Admin"];
+    if (me?.position?.name?.toLowerCase() === "super admin") return undefined;
+    const eligible = ["Admin 1", "Admin 2"];
     return me && eligible.includes(me.position?.name ?? "")
       ? me.fullName
       : undefined;

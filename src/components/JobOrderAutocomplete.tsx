@@ -139,8 +139,29 @@ const JobOrderAutocomplete = ({
                     </div>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500">
-                    No job orders found
+                  <div className="px-3 py-3 text-sm text-gray-600">
+                    {searchTerm ? (
+                      <>
+                        No In-Progress JOs match{" "}
+                        <span className="font-semibold">
+                          &ldquo;{searchTerm}&rdquo;
+                        </span>
+                        .
+                        <div className="mt-1 text-xs text-gray-500">
+                          Only JOs approved by both Department Head and Credit
+                          &amp; Collection appear here.
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        No In-Progress job orders available.
+                        <div className="mt-1 text-xs text-gray-500">
+                          A JO must be approved by both Department Head and
+                          Credit &amp; Collection before it can be used on a
+                          service report.
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

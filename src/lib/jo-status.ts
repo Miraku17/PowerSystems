@@ -59,7 +59,7 @@ export async function assertJoInProgress(
     return {
       ok: false,
       status: data.status,
-      reason: `Cannot fill out a form for JO "${value}" — its status is "${data.status}". Only JOs with status "In-Progress" can be used.`,
+      reason: `Cannot fill out a form for JO "${value}" — its status is "${data.status}". Only JOs with status "In-Progress" can be used. JOs reach In-Progress automatically once both Department Head and Credit & Collection have approved them.`,
     };
   }
 

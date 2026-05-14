@@ -16,6 +16,7 @@ export interface FormUser {
     description: string | null;
   };
   signature_url?: string | null;
+  signature_updated_at?: string | null;
   /**
    * Flat list of "module.action" keys derived from this user's position_permissions.
    * Used by SignatorySelect's `filterByPermission` prop to show only users whose
@@ -31,7 +32,7 @@ export function useUsers() {
       const res = await apiClient.get("/users");
       return res.data.data as FormUser[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 }
 

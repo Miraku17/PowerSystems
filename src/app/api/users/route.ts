@@ -13,7 +13,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     const { data: publicUsers, error: publicError } = await supabase
       .from("users")
-      .select("id, firstname, lastname, username, address, phone, position_id, positions(id, name, display_name, description), user_signatures(signature_url)");
+      .select("id, firstname, lastname, username, address, phone, position_id, positions(id, name, display_name, description), user_signatures(signature_url, updated_at)");
     if (publicError) throw publicError;
 
     // Create a map of public users for easy lookup
@@ -48,9 +48,11 @@ export const GET = withAuth(async (request, { user }) => {
       const lastname = publicUser?.lastname || '';
       const signatures = publicUser?.user_signatures as any;
       // Supabase may return an array (one-to-many) or object (one-to-one via UNIQUE)
-      const signature_url = Array.isArray(signatures)
-        ? (signatures.length > 0 ? signatures[0].signature_url : null)
-        : (signatures?.signature_url || null);
+      const sigRow = Array.isArray(signatures)
+        ? (signatures.length > 0 ? signatures[0] : null)
+        : (signatures || null);
+      const signature_url = sigRow?.signature_url || null;
+      const signature_updated_at = sigRow?.updated_at || null;
       return {
         id: authUser.id,
         email: authUser.email,
@@ -63,6 +65,7 @@ export const GET = withAuth(async (request, { user }) => {
         position_id: publicUser?.position_id || null,
         position: publicUser?.positions || null,
         signature_url,
+        signature_updated_at,
         permissions: publicUser?.position_id
           ? positionPermsMap.get(publicUser.position_id) ?? []
           : [],

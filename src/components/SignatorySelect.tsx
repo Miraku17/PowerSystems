@@ -163,6 +163,19 @@ export default function SignatorySelect({
   };
 
   const displaySignature = signatureValue || selectedUser?.signature_url || "";
+  // Append signature_updated_at as a cache-buster so a replaced signature (or a
+  // URL the browser previously cached as 404 during upload propagation) is
+  // refetched instead of served from the stale image cache. Only applied when
+  // we know the row's updated_at — i.e. the URL came from the live user record,
+  // not a value saved on a historical form record.
+  const sigVersion =
+    !signatureValue && selectedUser?.signature_url && selectedUser?.signature_updated_at
+      ? selectedUser.signature_updated_at
+      : null;
+  const versionedSignature =
+    sigVersion && displaySignature
+      ? `${displaySignature}${displaySignature.includes("?") ? "&" : "?"}v=${encodeURIComponent(sigVersion)}`
+      : displaySignature;
   const hasNoSignature = showAllUsers
     ? !!selectedUser && !displaySignature
     : isCurrentUserSelected && !displaySignature;
@@ -259,7 +272,7 @@ export default function SignatorySelect({
       {!hideSignature && value && displaySignature && (
         <div className="border border-gray-300 rounded-lg p-2 bg-gray-50 flex justify-center">
           <img
-            src={displaySignature}
+            src={versionedSignature}
             alt={`${value}'s signature`}
             className="max-h-24 object-contain"
           />

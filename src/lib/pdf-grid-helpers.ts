@@ -17,10 +17,8 @@ export function installTextSanitizer(doc: jsPDF): void {
   const original = doc.text.bind(doc) as (...args: any[]) => jsPDF;
   (doc as any).text = function patchedText(text: any, ...rest: any[]) {
     const clean = Array.isArray(text)
-      ? text.map((t) => (typeof t === "string" ? sanitizeLatin1(t) : t))
-      : typeof text === "string"
-      ? sanitizeLatin1(text)
-      : text;
+      ? text.map((t) => sanitizeLatin1(t))
+      : sanitizeLatin1(text);
     return original(clean, ...rest);
   };
   (doc as any).__textSanitized = true;

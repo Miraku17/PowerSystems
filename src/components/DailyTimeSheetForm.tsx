@@ -281,10 +281,23 @@ export default function DailyTimeSheetForm() {
       }
 
       // Step 2: Submit form data with URLs to API
+      // Service-office signatory fields are disabled in the UI for users who
+      // lack the matching dts_service_office.<action> permission, but stale
+      // values can survive in the persisted localStorage draft. Strip per
+      // field so the server's 403 check doesn't trip on values the user
+      // can't see or clear. (Same root cause as the JO Request fix.)
+      const sanitizedServiceOffice = {
+        ...(canEditCheckedBy ? {} : { checked_by: "" }),
+        ...(canEditServiceCoordinator ? {} : { service_coordinator: "" }),
+        ...(canEditApprovedBy ? {} : { approved_by_service: "" }),
+        ...(canEditServiceManager ? {} : { service_manager: "" }),
+      };
+
       await submit({
         formType: 'daily-time-sheet' as any,
         formData: {
           ...formData,
+          ...sanitizedServiceOffice,
           entries: JSON.stringify(entriesData),
           uploaded_attachments: JSON.stringify(uploadedData),
         } as unknown as Record<string, unknown>,

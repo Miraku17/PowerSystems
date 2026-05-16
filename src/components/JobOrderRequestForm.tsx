@@ -142,10 +142,37 @@ export default function JobOrderRequestForm() {
       }
 
       // Step 2: Submit form data with URLs to API
+      // Service Use Only fields are disabled in the UI for users without
+      // jo_service_use.edit, but stale values can survive in the persisted
+      // localStorage draft (e.g. from a prior account on a shared device, or
+      // from before the permission gate existed). Strip them so the server's
+      // SUO check doesn't 403 on values the user can no longer see or clear.
+      const sanitizedFormData = canEditServiceUse
+        ? formData
+        : {
+            ...formData,
+            estimated_repair_days: "",
+            technicians_involved: "",
+            date_job_started: "",
+            date_job_completed_closed: "",
+            parts_cost: "",
+            labor_cost: "",
+            other_cost: "",
+            total_cost: "",
+            date_of_invoice: "",
+            invoice_number: "",
+            remarks: "",
+            status: "Pending",
+          };
+      const sanitizedVerified = canEditVerifiedBy
+        ? {}
+        : { verified_by_name: "", verified_by_signature: "" };
+
       await submit({
         formType: 'job-order-request',
         formData: {
-          ...formData,
+          ...sanitizedFormData,
+          ...sanitizedVerified,
           uploaded_attachments: JSON.stringify(uploadedData),
         } as unknown as Record<string, unknown>,
         onSuccess: async () => {

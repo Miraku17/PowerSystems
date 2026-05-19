@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { sameBranch } from "@/lib/address";
 
 function escapeCsvField(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
@@ -186,7 +187,7 @@ export const GET = withAuth(async (request, { user }) => {
         .in("id", creatorIds);
 
       const creatorAddressMap = new Map((creators || []).map((u: any) => [u.id, u.address]));
-      return records.filter((r: any) => creatorAddressMap.get(r.created_by) === userData.address);
+      return records.filter((r: any) => sameBranch(creatorAddressMap.get(r.created_by), userData.address));
     }
 
     // Build query

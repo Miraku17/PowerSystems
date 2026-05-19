@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { sameBranch } from "@/lib/address";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -108,7 +109,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     // Filter by branch address if user has branch-scoped permission
     if (filterByAddress && userAddress) {
-      records = records.filter((r: any) => r.requester_address === userAddress);
+      records = records.filter((r: any) => sameBranch(r.requester_address, userAddress));
     }
 
     return NextResponse.json({

@@ -112,6 +112,14 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       .select(`
         performed_by_signature,
         approved_by_signature,
+        checked_by,
+        checked_by_signature,
+        service_coordinator,
+        service_coordinator_signature,
+        approved_by_service,
+        approved_by_service_signature,
+        service_manager,
+        service_manager_signature,
         deleted_at,
         created_by
       `)
@@ -145,7 +153,12 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       );
     }
 
-    // Validate service office field-level permissions
+    // Validate service office field-level permissions. Only trigger when the
+    // submitted value actually differs from what's already on the record — the
+    // edit form sends the entire formData on every save (including empty
+    // strings for fields the user never touched), so a strict `!== undefined`
+    // check would 403 any user without the matching permission even when
+    // they're only editing unrelated fields like date or manhours.
     const serviceOfficeFields = [
       { field: 'checked_by', action: 'checked_by', sigField: 'checked_by_signature' },
       { field: 'service_coordinator', action: 'service_coordinator', sigField: 'service_coordinator_signature' },
@@ -153,11 +166,17 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       { field: 'service_manager', action: 'service_manager', sigField: 'service_manager_signature' },
     ];
 
+    const normSig = (v: any) =>
+      v === null || v === undefined || v === '' ? null : String(v);
+
     for (const { field, action, sigField } of serviceOfficeFields) {
       const newValue = body[field];
       const newSigValue = body[sigField];
-      // Check if the user is trying to change a service office field
-      if (newValue !== undefined || newSigValue !== undefined) {
+      const nameChanged =
+        newValue !== undefined && normSig(newValue) !== normSig((currentRecord as any)[field]);
+      const sigChanged =
+        newSigValue !== undefined && normSig(newSigValue) !== normSig((currentRecord as any)[sigField]);
+      if (nameChanged || sigChanged) {
         const allowed = await hasPermission(serviceSupabase, user.id, 'dts_service_office', action);
         if (!allowed) {
           return NextResponse.json(

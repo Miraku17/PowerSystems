@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission, getPermissionScope } from "@/lib/permissions";
+import { sameBranch } from "@/lib/address";
 import { CREDIT_LEAVE_TYPES } from "@/types";
 
 // GET: List leave requests
@@ -63,7 +64,7 @@ export const GET = withAuth(async (request, { user }) => {
 
         if (currentUserData?.address) {
           result = result.filter(
-            (req: any) => req.user?.address === currentUserData.address
+            (req: any) => sameBranch(req.user?.address, currentUserData.address)
           );
         }
       }

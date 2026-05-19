@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { normalizeAddressForStorage } from "@/lib/address";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -124,7 +125,7 @@ export const POST = withAuth(async (request, { user }) => {
           firstname,
           lastname,
           username,
-          address,
+          address: normalizeAddressForStorage(address),
           phone,
           position_id: position_id || null,
           // role: role || 'user', // commented out - now using position_id

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { sameBranch } from './address';
 
 export type UserRole = 'user' | 'admin';
 
@@ -150,12 +151,7 @@ export async function checkRecordPermission(
           : Promise.resolve({ data: null }),
       ]);
 
-      const sameAddress =
-        !!currentUserData?.address &&
-        !!creatorData?.address &&
-        currentUserData.address === creatorData.address;
-
-      if (!sameAddress) {
+      if (!sameBranch(currentUserData?.address, creatorData?.address)) {
         return {
           allowed: false,
           isAdmin: false,
@@ -217,10 +213,12 @@ export async function getReadScopeFilter(
 
     if (!currentUser?.address) return [userId];
 
+    // Case-insensitive, whitespace-tolerant branch match (mirrors sameBranch).
+    const branchPattern = currentUser.address.trim().replace(/\s+/g, ' ');
     const { data: branchUsers } = await supabase
       .from('users')
       .select('id')
-      .eq('address', currentUser.address);
+      .ilike('address', branchPattern);
 
     if (!branchUsers || branchUsers.length === 0) return [userId];
 

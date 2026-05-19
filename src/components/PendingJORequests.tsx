@@ -11,6 +11,7 @@ import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/stores/authStore";
+import { sameBranch } from "@/lib/address";
 import { TableSkeleton } from "./Skeletons";
 import ViewJobOrderRequest from "./ViewJobOrderRequest";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -152,7 +153,7 @@ export default function PendingJORequests() {
   const canChangeStatusForRecord = (record: PendingJO): boolean => {
     if (!meta?.canEdit) return false;
     if (approvalScope !== "branch") return true;
-    return !!currentUser?.address && record.requester_address === currentUser.address;
+    return sameBranch(record.requester_address, currentUser?.address);
   };
 
   const handleApproveCreditCollection = async (id: string) => {

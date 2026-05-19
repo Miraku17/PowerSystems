@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { normalizeAddressForStorage } from "@/lib/address";
 
 // PUT handler for updating a user
 export const PUT = withAuth(async (request, { user, params }) => {
@@ -32,7 +33,15 @@ export const PUT = withAuth(async (request, { user, params }) => {
 
     const { data, error } = await supabase
       .from("users")
-      .update({ firstname, lastname, username, address, phone, position_id, role })
+      .update({
+        firstname,
+        lastname,
+        username,
+        address: normalizeAddressForStorage(address),
+        phone,
+        position_id,
+        role,
+      })
       .eq("id", id)
       .select();
 

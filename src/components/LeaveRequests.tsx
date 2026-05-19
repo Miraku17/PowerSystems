@@ -6,6 +6,7 @@ import apiClient from "@/lib/axios";
 import toast from "react-hot-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/stores/authStore";
+import { sameBranch } from "@/lib/address";
 import {
   CheckIcon,
   XMarkIcon,
@@ -71,7 +72,7 @@ export default function LeaveRequests({ refreshKey, showAll, onAction }: LeaveRe
   const canApproveRequest = (req: LeaveRequest): boolean => {
     if (!canApprove) return false;
     if (approvalScope !== "branch") return true;
-    return !!currentUser?.address && (req.user as any)?.address === currentUser.address;
+    return sameBranch((req.user as any)?.address, currentUser?.address);
   };
 
   useEffect(() => {

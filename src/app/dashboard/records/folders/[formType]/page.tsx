@@ -59,6 +59,7 @@ const ViewDailyTimeSheet = dynamic(() => import("@/components/ViewDailyTimeSheet
 const EditDailyTimeSheet = dynamic(() => import("@/components/EditDailyTimeSheet"), { loading: modalLoading });
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuthStore } from "@/stores/authStore";
+import { sameBranch } from "@/lib/address";
 
 interface FormRecord {
   id: string;
@@ -266,7 +267,7 @@ export default function FormRecordsPage() {
     if (!hasApprovalEdit) return false;
     if (approvalScope !== "branch") return true;
     // branch scope: only show dropdown if creator is from the same branch
-    return !!currentUser?.address && record.created_by_address === currentUser.address;
+    return sameBranch(record.created_by_address, currentUser?.address);
   };
 
   const canChangeStatus = isServiceReport;
@@ -277,7 +278,7 @@ export default function FormRecordsPage() {
   const canApproveCreditCollectionForRecord = (record: FormRecord): boolean => {
     if (!canApproveCreditCollection) return false;
     if (creditCollectionScope === "branch") {
-      return !!currentUser?.address && record.created_by_address === currentUser.address;
+      return sameBranch(record.created_by_address, currentUser?.address);
     }
     return true;
   };
@@ -287,7 +288,7 @@ export default function FormRecordsPage() {
   const canApproveDeptHeadForRecord = (record: FormRecord): boolean => {
     if (!canApproveDeptHead) return false;
     if (deptHeadScope === "branch") {
-      return !!currentUser?.address && record.created_by_address === currentUser.address;
+      return sameBranch(record.created_by_address, currentUser?.address);
     }
     return true;
   };
@@ -297,7 +298,7 @@ export default function FormRecordsPage() {
   const canApproveSvcManagerForRecord = (record: FormRecord): boolean => {
     if (!canApproveSvcManager) return false;
     if (svcManagerScope === "branch") {
-      return !!currentUser?.address && record.created_by_address === currentUser.address;
+      return sameBranch(record.created_by_address, currentUser?.address);
     }
     return true;
   };
@@ -312,7 +313,7 @@ export default function FormRecordsPage() {
     if (!canEditPermission("form_records")) return false;
     if (editScope === "all") return true;
     if (editScope === "branch") {
-      return !!currentUser?.address && record.created_by_address === currentUser.address;
+      return sameBranch(record.created_by_address, currentUser?.address);
     }
     // scope is "own" or unset — only allow editing own records
     return !!currentUser && record.created_by === currentUser.id;

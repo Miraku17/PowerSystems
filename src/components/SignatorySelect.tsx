@@ -86,7 +86,8 @@ export default function SignatorySelect({
   // user's name + signature instead of leaving the field empty until they
   // click their own (only) option. Makes "Service Technician" and similar
   // fields work for every position, not just an allow-list.
-  const isCurrentUserOnlyField = !showAllUsers && !!currentUserRecord;
+  // Super Admin is exempt: they see all users so the field is never "current user only".
+  const isCurrentUserOnlyField = !showAllUsers && !isCurrentUserSuperAdmin && !!currentUserRecord;
   const isAutoFillEligible = isPositionAutoFillEligible || isCurrentUserOnlyField;
 
   // Lock the field when it already holds another user's signature. Super Admin
@@ -131,7 +132,7 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  const baseUsers = showAllUsers
+  const baseUsers = showAllUsers || isCurrentUserSuperAdmin
     ? users
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
@@ -146,7 +147,7 @@ export default function SignatorySelect({
         ),
     );
   }
-  if (filterByPermission) {
+  if (filterByPermission && !isCurrentUserSuperAdmin) {
     filteredBase = filteredBase.filter((u) =>
       Array.isArray(u.permissions) && u.permissions.includes(filterByPermission),
     );

@@ -24,11 +24,22 @@ interface ViewEngineInspectionReceivingProps {
   onSignatoryChange?: (field: "noted_by" | "approved_by", checked: boolean) => void;
 }
 
+interface Attachment {
+  id: string;
+  file_url: string;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  description: string;
+  created_at: string;
+}
+
 export default function ViewEngineInspectionReceiving({ data, onClose, onExportPDF, onSignatoryChange }: ViewEngineInspectionReceivingProps) {
   const [auditInfo, setAuditInfo] = useState<{
     createdBy?: string;
     updatedBy?: string;
   }>({});
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const currentUser = useCurrentUser();
   const {
@@ -48,6 +59,20 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
   useEffect(() => {
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
   }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
+
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      try {
+        const response = await apiClient.get('/forms/engine-inspection-receiving/attachments', { params: { report_id: data.id } });
+        setAttachments(response.data.data || []);
+      } catch (error) {
+        console.error('Error fetching attachments:', error);
+      }
+    };
+    if (data.id) {
+      fetchAttachments();
+    }
+  }, [data.id]);
 
   // Build inspectionItems map from the joined engine_inspection_items array
   const inspectionItemsMap: Record<string, InspectionItemData> = {};
@@ -372,6 +397,38 @@ export default function ViewEngineInspectionReceiving({ data, onClose, onExportP
                   </div>
                 </div>
               </Section>
+
+              {/* Attachments */}
+              {attachments.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {attachments.map((attachment) => {
+                      const isImage = attachment.file_type?.startsWith('image/') || attachment.file_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                      return (
+                        <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                          <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="block">
+                            {isImage ? (
+                              <div className="aspect-video bg-gray-100 flex items-center justify-center overflow-hidden">
+                                <img src={attachment.file_url} alt={attachment.file_name} className="w-full h-full object-cover" />
+                              </div>
+                            ) : (
+                              <div className="aspect-video bg-gray-50 flex flex-col items-center justify-center">
+                                <svg className="w-12 h-12 text-red-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                <span className="text-xs text-blue-600">View PDF</span>
+                              </div>
+                            )}
+                          </a>
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-gray-900 truncate">{attachment.file_name}</p>
+                            {attachment.description && <p className="text-xs text-gray-500 mt-1">{attachment.description}</p>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

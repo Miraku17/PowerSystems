@@ -98,9 +98,23 @@ export const POST = withAuth(async (request, { user }) => {
       );
     }
 
-    const formData = await request.formData();
+    // Check content type to determine if it's new format (JSON) or old format (FormData)
+    const contentType = request.headers.get('content-type') || '';
+    const isNewFormat = contentType.includes('application/json');
 
-    const getString = (key: string) => (formData.get(key) as string) || '';
+    let formData: FormData | null = null;
+    let jsonBody: any = null;
+
+    if (isNewFormat) {
+      jsonBody = await request.json();
+    } else {
+      formData = await request.formData();
+    }
+
+    const getString = (key: string) => {
+      if (isNewFormat) return jsonBody[key] || '';
+      return formData!.get(key) as string || '';
+    };
 
     // Extract header fields
     const customer = getString('customer');
@@ -530,6 +544,24 @@ export const POST = withAuth(async (request, { user }) => {
     });
 
     await createApprovalRecord(supabase, 'components_teardown_measuring_report', reportId, user.id);
+
+    // Save attachments
+    const uploadedAttachmentsStr = getString('uploaded_attachments');
+    if (uploadedAttachmentsStr) {
+      try {
+        const uploadedAttachments = JSON.parse(uploadedAttachmentsStr);
+        for (const att of uploadedAttachments) {
+          await supabase.from('components_teardown_measuring_attachments').insert([{
+            report_id: reportId,
+            file_url: att.url,
+            file_name: att.fileName || att.title,
+            file_type: att.fileType || null,
+            file_size: att.fileSize || null,
+            description: att.title || '',
+          }]);
+        }
+      } catch (e) { console.error('Error saving attachments:', e); }
+    }
 
     return NextResponse.json(
       { message: "Components Teardown Measuring Report submitted successfully", data: mainData },

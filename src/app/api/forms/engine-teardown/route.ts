@@ -810,6 +810,24 @@ export const POST = withAuth(async (request, { user }) => {
 
     await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
 
+    // Save attachments
+    const uploadedAttachmentsStr = getString('uploaded_attachments');
+    if (uploadedAttachmentsStr) {
+      try {
+        const uploadedAttachments = JSON.parse(uploadedAttachmentsStr);
+        for (const att of uploadedAttachments) {
+          await supabase.from('engine_teardown_report_attachments').insert([{
+            report_id: report_id,
+            file_url: att.url,
+            file_name: att.fileName || att.title,
+            file_type: att.fileType || null,
+            file_size: att.fileSize || null,
+            description: att.title || '',
+          }]);
+        }
+      } catch (e) { console.error('Error saving attachments:', e); }
+    }
+
     return NextResponse.json({ success: true, data: completeReport }, { status: 201 });
   } catch (error: any) {
     console.error("API error creating engine teardown report:", error);

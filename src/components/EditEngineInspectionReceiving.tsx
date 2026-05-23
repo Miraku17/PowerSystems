@@ -4,9 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import apiClient from "@/lib/axios";
-import { compressImageIfNeeded } from "@/lib/imageCompression";
-import { useSupabaseUpload } from "@/hooks/useSupabaseUpload";
-import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import { useCurrentUser } from "@/stores/authStore";
 import { useUsers } from "@/hooks/useSharedQueries";
 import { useSignatoryApproval } from "@/hooks/useSignatoryApproval";
@@ -27,16 +24,6 @@ interface EditEngineInspectionReceivingProps {
   onClose: () => void;
   onSaved: () => void;
   onSignatoryChange?: (field: "noted_by" | "approved_by", checked: boolean) => void;
-}
-
-interface Attachment {
-  id: string;
-  file_url: string;
-  file_name: string;
-  file_type: string;
-  file_size: number;
-  description: string;
-  created_at: string;
 }
 
 const Input = ({ label, name, value, disabled = false, onChange }: { label: string; name: string; value: any; disabled?: boolean; onChange: (name: string, value: any) => void }) => (
@@ -96,12 +83,7 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
   const canEditServiceTechnician = hasPermission('service_report_signatory', 'service_technician');
   const canEditApprovedBy = hasPermission('service_report_signatory', 'approved_by');
   const canEditNotedBy = hasPermission('service_report_signatory', 'noted_by');
-  const { uploadFiles } = useSupabaseUpload();
-  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
   const [isSaving, setIsSaving] = useState(false);
-  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
-  const [attachmentsToDelete, setAttachmentsToDelete] = useState<string[]>([]);
-  const [newAttachments, setNewAttachments] = useState<{ file: File; description: string }[]>([]);
   const {
     notedByChecked,
     approvedByChecked,
@@ -118,18 +100,6 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
   useEffect(() => {
     initCheckedState(data.noted_by_checked || false, data.approved_by_checked || false);
   }, [data.noted_by_checked, data.approved_by_checked, initCheckedState]);
-
-  useEffect(() => {
-    const fetchAttachments = async () => {
-      try {
-        const response = await apiClient.get('/forms/engine-inspection-receiving/attachments', { params: { report_id: recordId } });
-        setExistingAttachments(response.data.data || []);
-      } catch (error) {
-        console.error('Error fetching attachments:', error);
-      }
-    };
-    fetchAttachments();
-  }, [recordId]);
 
   // Initialize form state from data
   const [formState, setFormState] = useState(() => {
@@ -211,40 +181,6 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
 
     try {
       await apiClient.patch(`/forms/engine-inspection-receiving?id=${recordId}`, formState);
-
-      // Save attachments
-      if (newAttachments.length > 0 || attachmentsToDelete.length > 0 || existingAttachments.length > 0) {
-        showUploadLoading();
-        try {
-          let uploadedNewAttachments: any[] = [];
-          if (newAttachments.length > 0) {
-            const results = await uploadFiles(
-              newAttachments.map(a => a.file),
-              { bucket: 'service-reports', pathPrefix: 'engine-inspection-receiving' }
-            );
-            uploadedNewAttachments = results
-              .filter(r => r.success && r.url)
-              .map((r, i) => ({
-                url: r.url,
-                title: newAttachments[i]?.description || '',
-                fileName: r.fileName,
-                fileType: newAttachments[i]?.file.type,
-                fileSize: newAttachments[i]?.file.size,
-              }));
-          }
-          await apiClient.post('/forms/engine-inspection-receiving/attachments', {
-            report_id: recordId,
-            attachments_to_delete: attachmentsToDelete,
-            existing_attachments: existingAttachments,
-            uploaded_new_attachments: uploadedNewAttachments,
-          });
-        } catch (error) {
-          console.error('Error saving attachments:', error);
-        } finally {
-          hideUploadLoading();
-        }
-      }
-
       toast.success('Report updated successfully!', { id: loadingToast });
       onSaved();
       onClose();
@@ -526,110 +462,6 @@ export default function EditEngineInspectionReceiving({ data, recordId, onClose,
                 </div>
               </div>
             </SectionHeader>
-
-            {/* Attachments */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Attachments</h3>
-              <span className="text-xs text-gray-400 mb-3 block">(max 20 photos only)</span>
-
-              {existingAttachments.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {existingAttachments.map((attachment) => {
-                    const isImage = attachment.file_type?.startsWith('image/') || attachment.file_url?.match(/\.(jpg|jpeg|png|gif|webp)$/i);
-                    return (
-                      <div key={attachment.id} className="px-4 py-3 border-2 border-gray-200 rounded-md bg-white shadow-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0">
-                            {isImage ? (
-                              <a href={attachment.file_url} target="_blank" rel="noopener noreferrer">
-                                <img src={attachment.file_url} alt={attachment.file_name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" />
-                              </a>
-                            ) : (
-                              <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
-                                <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              <p className="text-sm font-medium text-gray-900 truncate">{attachment.file_name}</p>
-                              <button type="button" onClick={() => { setAttachmentsToDelete([...attachmentsToDelete, attachment.id]); setExistingAttachments(existingAttachments.filter(a => a.id !== attachment.id)); }} className="ml-4 text-red-600 hover:text-red-800 flex-shrink-0">
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                              </button>
-                            </div>
-                            <input type="text" placeholder="Enter description" value={attachment.description || ''} onChange={(e) => setExistingAttachments(existingAttachments.map(a => a.id === attachment.id ? { ...a, description: e.target.value } : a))} className="mt-2 w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-2" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {newAttachments.length > 0 && (
-                <div className="space-y-3 mb-4">
-                  {newAttachments.map((attachment, index) => {
-                    const isImage = attachment.file.type.startsWith('image/');
-                    const previewUrl = isImage ? URL.createObjectURL(attachment.file) : null;
-                    return (
-                      <div key={index} className="px-4 py-3 border-2 border-blue-200 rounded-md bg-blue-50 shadow-sm">
-                        <div className="flex items-start gap-4">
-                          <div className="flex-shrink-0">
-                            {isImage && previewUrl ? (
-                              <img src={previewUrl} alt={attachment.file.name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" onLoad={() => URL.revokeObjectURL(previewUrl)} />
-                            ) : (
-                              <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
-                                <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between">
-                              <div><p className="text-sm font-medium text-gray-900 truncate">{attachment.file.name}</p><p className="text-xs text-gray-500">{(attachment.file.size / 1024).toFixed(2)} KB · New</p></div>
-                              <button type="button" onClick={() => setNewAttachments(newAttachments.filter((_, i) => i !== index))} className="ml-4 text-red-600 hover:text-red-800 flex-shrink-0">
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                              </button>
-                            </div>
-                            <input type="text" placeholder="Enter description" value={attachment.description} onChange={(e) => { const updated = [...newAttachments]; updated[index].description = e.target.value; setNewAttachments(updated); }} className="mt-2 w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md p-2" />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-                <div className="space-y-1 text-center">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  <div className="flex text-sm text-gray-600">
-                    <label htmlFor="edit-file-upload-engine-inspection" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
-                      <span>Upload a file</span>
-                      <input id="edit-file-upload-engine-inspection" type="file" accept="image/*,application/pdf" multiple className="sr-only" onChange={async (e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          const files = Array.from(e.target.files);
-                          const totalCount = existingAttachments.length + newAttachments.length + files.length;
-                          if (totalCount > 20) { toast.error('Maximum 20 files allowed'); e.target.value = ''; return; }
-                          const processed = [];
-                          for (const file of files) {
-                            const isImg = file.type.startsWith('image/');
-                            const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                            if (!isImg && !isPdf) { toast.error('Only images or PDFs are allowed'); continue; }
-                            const final = isImg ? await compressImageIfNeeded(file) : file;
-                            processed.push({ file: final, description: '' });
-                          }
-                          if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);
-                          e.target.value = '';
-                        }
-                      }} />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
-                  </div>
-                  <p className={`text-xs ${(existingAttachments.length + newAttachments.length) >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF, PDF up to 10MB ({existingAttachments.length + newAttachments.length}/20 files)</p>
-                </div>
-              </div>
-            </div>
-
           </div>
         </div>
 

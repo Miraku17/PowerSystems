@@ -13,9 +13,6 @@ import {
   type SectionItem,
 } from '@/stores/engineInspectionReceivingFormStore';
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
-import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
-import { useUploadLoadingStore } from '@/stores/uploadLoadingStore';
-import { compressImageIfNeeded } from '@/lib/imageCompression';
 import JobOrderAutocomplete from './JobOrderAutocomplete';
 import { useUsers, useCustomers } from '@/hooks/useSharedQueries';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -33,10 +30,6 @@ export default function EngineInspectionReceivingForm() {
 
   // Offline-aware submission
   const { submit, isSubmitting, isOnline } = useOfflineSubmit();
-  const { uploadFiles } = useSupabaseUpload();
-  const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
-
-  const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
   const { data: users = [] } = useUsers();
 
   const { data: customers = [] } = useCustomers();
@@ -78,58 +71,17 @@ export default function EngineInspectionReceivingForm() {
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    try {
-      // Prepare form data with inspection items as JSON string
-      const submissionData: Record<string, unknown> = { ...formData };
-      submissionData.inspectionItems = JSON.stringify(formData.inspectionItems);
+    // Prepare form data with inspection items as JSON string
+    const submissionData: Record<string, unknown> = { ...formData };
+    submissionData.inspectionItems = JSON.stringify(formData.inspectionItems);
 
-      // Upload attachments if any
-      const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
-
-      if (attachments.length > 0) {
-        showUploadLoading('Uploading images...');
-        const results = await uploadFiles(
-          attachments.map(a => a.file),
-          { bucket: 'service-reports', pathPrefix: 'engine-inspection-receiving' }
-        );
-
-        const failedUploads = results.filter(r => !r.success);
-        if (failedUploads.length > 0) {
-          console.error('Some files failed to upload:', failedUploads);
-          hideUploadLoading();
-          toast.error(`Failed to upload ${failedUploads.length} file(s)`, { duration: 5000 });
-        }
-
-        results.forEach((r, i) => {
-          if (r.success && r.url) {
-            uploadedData.push({
-              url: r.url,
-              title: attachments[i].title,
-              fileName: attachments[i].file.name,
-              fileType: attachments[i].file.type,
-              fileSize: attachments[i].file.size,
-            });
-          }
-        });
-
-        hideUploadLoading();
-      }
-
-      submissionData.uploaded_attachments = JSON.stringify(uploadedData);
-
-      await submit({
-        formType: 'engine-inspection-receiving',
-        formData: submissionData,
-        onSuccess: () => {
-          setAttachments([]);
-          resetFormData();
-        },
-      });
-    } catch (error) {
-      console.error('Upload error:', error);
-      hideUploadLoading();
-      toast.error('Failed to upload images. Please try again.');
-    }
+    await submit({
+      formType: 'engine-inspection-receiving',
+      formData: submissionData,
+      onSuccess: () => {
+        resetFormData();
+      },
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -537,88 +489,11 @@ export default function EngineInspectionReceivingForm() {
           </div>
         </div>
 
-        {/* Section: Attachments */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Attachments</h3>
-            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(max 20 files: images or PDFs)</span>
-          </div>
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <label className="block text-xs font-bold text-gray-700 uppercase mb-2">Supporting Documents / Photos</label>
-            {attachments.length > 0 && (
-              <div className="space-y-3 mb-4">
-                {attachments.map((attachment, index) => {
-                  const isImage = attachment.file.type.startsWith('image/');
-                  const previewUrl = isImage ? URL.createObjectURL(attachment.file) : null;
-                  return (
-                    <div key={index} className="px-6 py-4 border-2 border-gray-300 rounded-md bg-white shadow-sm">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-shrink-0">
-                          {isImage && previewUrl ? (
-                            <img src={previewUrl} alt={attachment.file.name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" onLoad={() => URL.revokeObjectURL(previewUrl)} />
-                          ) : (
-                            <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
-                              <svg className="w-12 h-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">{attachment.file.name}</p>
-                              <p className="text-xs text-gray-500">{(attachment.file.size / 1024).toFixed(2)} KB</p>
-                            </div>
-                            <button type="button" onClick={() => setAttachments(attachments.filter((_, i) => i !== index))} className="ml-4 text-red-600 hover:text-red-800 transition-colors flex-shrink-0">
-                              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                            </button>
-                          </div>
-                          <div className="mt-3">
-                            <input type="text" placeholder="Enter document title/description" value={attachment.title} onChange={(e) => { const newAttachments = [...attachments]; newAttachments[index].title = e.target.value; setAttachments(newAttachments); }} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:bg-gray-50 transition-colors cursor-pointer">
-              <div className="space-y-1 text-center">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48"><path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                <div className="flex text-sm text-gray-600">
-                  <label htmlFor="file-upload-engine-inspection" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500">
-                    <span>Upload a file</span>
-                    <input id="file-upload-engine-inspection" type="file" accept="image/*,application/pdf" multiple className="sr-only" onChange={async (e) => {
-                      if (e.target.files && e.target.files.length > 0) {
-                        const files = Array.from(e.target.files);
-                        if (attachments.length + files.length > 20) { toast.error('Maximum 20 files allowed'); e.target.value = ''; return; }
-                        const newFiles = [];
-                        for (const file of files) {
-                          const isImage = file.type.startsWith('image/');
-                          const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-                          if (!isImage && !isPdf) { toast.error('Only images or PDFs are allowed'); continue; }
-                          const processed = isImage ? await compressImageIfNeeded(file) : file;
-                          newFiles.push({ file: processed, title: '' });
-                        }
-                        if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);
-                        e.target.value = '';
-                      }
-                    }} />
-                  </label>
-                  <p className="pl-1">or drag and drop</p>
-                </div>
-                <p className={`text-xs ${attachments.length >= 20 ? 'text-red-500 font-medium' : 'text-gray-500'}`}>PNG, JPG, GIF, PDF up to 10MB ({attachments.length}/20 files)</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Submit Button */}
         <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
           <button
             type="button"
-            onClick={() => { resetFormData(); setAttachments([]); }}
+            onClick={() => { resetFormData(); }}
             className="px-6 py-3 bg-white text-gray-700 font-bold rounded-lg border border-gray-300 shadow-sm hover:bg-gray-50 transition-colors"
           >
             Clear Form

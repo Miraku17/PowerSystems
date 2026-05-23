@@ -63,7 +63,7 @@ export default function ComponentsTeardownMeasuringForm({ kind = 'teardown' }: C
   const lockedCheckedByName = React.useMemo(() => {
     const me = users.find((u) => u.id === currentUser?.id);
     if (me?.position?.name?.toLowerCase() === "super admin") return undefined;
-    const eligible = ["Admin 1", "Admin 2"];
+    const eligible: string[] = [];
     return me && eligible.includes(me.position?.name ?? "")
       ? me.fullName
       : undefined;

@@ -67,12 +67,13 @@ export default function SignatorySelect({
 
   // If current user's position is in autoFillForPositions, treat the field as
   // locked-to-current-user (auto-fill effect below handles the actual values).
-  // Super Admin is intentionally exempt: the role exists precisely to override
-  // signatory restrictions, so SA keeps the normal dropdown to pick any user.
+  // Super Admin is intentionally exempt from the position-based path: the role
+  // exists precisely to override signatory restrictions, so SA keeps the normal
+  // dropdown to pick any user.
   const currentUserRecord = currentUser ? users.find((u) => u.id === currentUser.id) : null;
   const isCurrentUserSuperAdmin =
     currentUserRecord?.position?.name?.toLowerCase() === "super admin";
-  const isAutoFillEligible =
+  const isPositionAutoFillEligible =
     !isCurrentUserSuperAdmin &&
     !!autoFillForPositions &&
     autoFillForPositions.length > 0 &&
@@ -80,6 +81,14 @@ export default function SignatorySelect({
     autoFillForPositions.some(
       (p) => p.toLowerCase() === currentUserRecord!.position!.name.toLowerCase(),
     );
+  // When the dropdown is restricted to the current user (no `showAllUsers`),
+  // there is literally nothing else to pick — auto-fill with the logged-in
+  // user's name + signature instead of leaving the field empty until they
+  // click their own (only) option. Makes "Service Technician" and similar
+  // fields work for every position, not just an allow-list.
+  // Super Admin is exempt: they see all users so the field is never "current user only".
+  const isCurrentUserOnlyField = !showAllUsers && !isCurrentUserSuperAdmin && !!currentUserRecord;
+  const isAutoFillEligible = isPositionAutoFillEligible || isCurrentUserOnlyField;
 
   // Lock the field when it already holds another user's signature. Super Admin
   // bypasses this so they can correct/replace any signature. A missing
@@ -94,8 +103,12 @@ export default function SignatorySelect({
   const isLocked =
     (lockedToCurrentUser || isAutoFillEligible || isDifferentUserLocked) && !disabled;
 
-  // Auto-populate when eligible and the field is still empty.
+  // Auto-populate when eligible and the field is still empty. Skip when the
+  // field is disabled — writing a value into a permission-gated field would
+  // trip the server-side permission check on submit even though the user
+  // never interacted with it.
   useEffect(() => {
+    if (disabled) return;
     if (!isAutoFillEligible || !currentUserRecord) return;
     if (value) return;
     onChange(name, currentUserRecord.fullName);
@@ -103,7 +116,7 @@ export default function SignatorySelect({
     // We intentionally exclude onChange/onSignatureChange from deps to avoid
     // re-firing when callers create new closures every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAutoFillEligible, currentUserRecord?.id, value, name]);
+  }, [isAutoFillEligible, currentUserRecord?.id, value, name, disabled]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -119,7 +132,7 @@ export default function SignatorySelect({
   const selectedUser = value ? users.find((u) => u.fullName === value) : null;
   const isCurrentUserSelected = !!currentUser && !!selectedUser && selectedUser.id === currentUser.id;
 
-  const baseUsers = showAllUsers
+  const baseUsers = showAllUsers || isCurrentUserSuperAdmin
     ? users
     : currentUser
     ? users.filter((u) => u.id === currentUser.id)
@@ -134,7 +147,7 @@ export default function SignatorySelect({
         ),
     );
   }
-  if (filterByPermission) {
+  if (filterByPermission && !isCurrentUserSuperAdmin) {
     filteredBase = filteredBase.filter((u) =>
       Array.isArray(u.permissions) && u.permissions.includes(filterByPermission),
     );

@@ -38,8 +38,8 @@ export default function DailyTimeSheetForm() {
   const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
 
   // Whole "FOR SERVICE OFFICE ONLY" section is locked unless the user has at
-  // least one of the service-office signatory permissions (i.e. they're an
-  // Admin 1/2, Super User, or Super Admin per the dashboard config).
+  // least one of the service-office signatory permissions (i.e. Admin 1/2 or
+  // Super Admin per the dashboard config).
   const canEncodeServiceOffice =
     canEditCheckedBy || canEditServiceCoordinator || canEditApprovedBy || canEditServiceManager;
 
@@ -671,7 +671,7 @@ export default function DailyTimeSheetForm() {
             <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
             <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.checked_by"} autoFillForPositions={["Admin 2", "Super Admin"]} />
             <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_coordinator"} autoFillForPositions={["Admin 2", "Super Admin"]} />
-            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"} autoFillForPositions={["Super Admin", "Super User"]} />
+            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"} autoFillForPositions={["Super Admin"]} />
             <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_manager"} autoFillForPositions={["Admin 1", "Super Admin"]} />
             <div className="lg:col-span-4">
               <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} disabled={!canEncodeServiceOffice && !isSuperAdmin} />

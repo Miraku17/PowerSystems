@@ -395,6 +395,7 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     onChange={handleFieldChange}
                     onSignatureChange={(sig) => handleFieldChange("received_by_credit_collection_signature", sig)}
                     users={users}
+                    showAllUsers={isSuperAdmin}
                     subtitle="Credit & Collection"
                     autoFillForPositions={["Finance"]}
                     lockIfDifferentUser

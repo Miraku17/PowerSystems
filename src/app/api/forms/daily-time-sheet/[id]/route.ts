@@ -67,7 +67,7 @@ export const GET = withAuth(async (request, { params, user }) => {
 
     const { data, error } = await supabase
       .from("daily_time_sheet")
-      .select("*, daily_time_sheet_entries(*)")
+      .select("*, daily_time_sheet_entries(*, daily_time_sheet_expense_items(*))")
       .eq("id", id)
       .is("deleted_at", null)
       .single();
@@ -106,20 +106,15 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     const body = await request.json();
     const serviceSupabase = supabase;
 
-    // Fetch the current record
+    // Fetch the current record (three-signatory shape)
     const { data: currentRecord, error: fetchError } = await supabase
       .from("daily_time_sheet")
       .select(`
         performed_by_signature,
-        approved_by_signature,
         checked_by,
         checked_by_signature,
-        service_coordinator,
-        service_coordinator_signature,
         approved_by_service,
         approved_by_service_signature,
-        service_manager,
-        service_manager_signature,
         deleted_at,
         created_by
       `)
@@ -160,10 +155,8 @@ export const PATCH = withAuth(async (request, { params, user }) => {
     // check would 403 any user without the matching permission even when
     // they're only editing unrelated fields like date or manhours.
     const serviceOfficeFields = [
-      { field: 'checked_by', action: 'checked_by', sigField: 'checked_by_signature' },
-      { field: 'service_coordinator', action: 'service_coordinator', sigField: 'service_coordinator_signature' },
+      { field: 'checked_by',          action: 'checked_by',  sigField: 'checked_by_signature' },
       { field: 'approved_by_service', action: 'approved_by', sigField: 'approved_by_service_signature' },
-      { field: 'service_manager', action: 'service_manager', sigField: 'service_manager_signature' },
     ];
 
     const normSig = (v: any) =>
@@ -187,7 +180,7 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       }
     }
 
-    // Extract form fields from JSON body
+    // Extract form fields from JSON body (three-signatory redesign)
     const {
       job_number,
       job_order_request_id,
@@ -197,53 +190,42 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       total_manhours,
       grand_total_manhours,
       performed_by_name,
-      approved_by_name,
       performed_by_signature: rawPerformedBySignature,
-      approved_by_signature: rawApprovedBySignature,
-      total_srt,
-      actual_manhour,
-      performance,
-      total_service_manhours,
-      service_office_note,
-      available_manhour,
-      leave_hours,
-      daily_average_utilization,
       checked_by,
-      service_coordinator,
+      checked_by_signature: rawCheckedBySignature,
       approved_by_service,
-      service_manager,
+      approved_by_service_signature: rawApprovedBySignature,
       status = 'Pending',
       entries,
     } = body;
 
-    // Process Signatures
+    // Process signatures
     const timestamp = Date.now();
     const performed_by_signature = await uploadSignature(
-      serviceSupabase,
-      rawPerformedBySignature || '',
+      serviceSupabase, rawPerformedBySignature || '',
       `daily-time-sheet/performed-by-${timestamp}.png`
     );
-    const approved_by_signature = await uploadSignature(
-      serviceSupabase,
-      rawApprovedBySignature || '',
+    const checked_by_signature = await uploadSignature(
+      serviceSupabase, rawCheckedBySignature || '',
+      `daily-time-sheet/checked-by-${timestamp}.png`
+    );
+    const approved_by_service_signature = await uploadSignature(
+      serviceSupabase, rawApprovedBySignature || '',
       `daily-time-sheet/approved-by-${timestamp}.png`
     );
 
-    // Delete old signatures if replaced
-    if (currentRecord.performed_by_signature) {
-      if (rawPerformedBySignature === "" || rawPerformedBySignature === null) {
-        await deleteSignature(serviceSupabase, currentRecord.performed_by_signature);
-      } else if (performed_by_signature && performed_by_signature !== currentRecord.performed_by_signature) {
-        await deleteSignature(serviceSupabase, currentRecord.performed_by_signature);
+    // Delete prior signatures if replaced
+    const maybeDelete = async (existing: string | null, incomingRaw: any, incomingNew: string) => {
+      if (!existing) return;
+      if (incomingRaw === '' || incomingRaw === null) {
+        await deleteSignature(serviceSupabase, existing);
+      } else if (incomingNew && incomingNew !== existing) {
+        await deleteSignature(serviceSupabase, existing);
       }
-    }
-    if (currentRecord.approved_by_signature) {
-      if (rawApprovedBySignature === "" || rawApprovedBySignature === null) {
-        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
-      } else if (approved_by_signature && approved_by_signature !== currentRecord.approved_by_signature) {
-        await deleteSignature(serviceSupabase, currentRecord.approved_by_signature);
-      }
-    }
+    };
+    await maybeDelete(currentRecord.performed_by_signature,        rawPerformedBySignature, performed_by_signature);
+    await maybeDelete(currentRecord.checked_by_signature,          rawCheckedBySignature,   checked_by_signature);
+    await maybeDelete(currentRecord.approved_by_service_signature, rawApprovedBySignature,  approved_by_service_signature);
 
     // Construct update object
     const updateData: any = {
@@ -255,30 +237,19 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       total_manhours: total_manhours ? parseFloat(total_manhours) : null,
       grand_total_manhours: grand_total_manhours ? parseFloat(grand_total_manhours) : null,
       performed_by_name: performed_by_name || '',
-      approved_by_name: approved_by_name || '',
-      total_srt: total_srt ? parseFloat(total_srt) : null,
-      actual_manhour: actual_manhour ? parseFloat(actual_manhour) : null,
-      performance: performance ? parseFloat(performance) : null,
-      total_service_manhours: total_service_manhours ? parseFloat(total_service_manhours) : null,
-      service_office_note: service_office_note || '',
-      available_manhour: available_manhour ? parseFloat(available_manhour) : null,
-      leave_hours: leave_hours ? parseFloat(leave_hours) : null,
-      daily_average_utilization: daily_average_utilization ? parseFloat(daily_average_utilization) : null,
       checked_by: checked_by || '',
-      service_coordinator: service_coordinator || '',
       approved_by_service: approved_by_service || '',
-      service_manager: service_manager || '',
       status,
       updated_by: user.id,
       updated_at: new Date().toISOString(),
     };
 
-    // Handle signature updates
     if (performed_by_signature) updateData.performed_by_signature = performed_by_signature;
-    else if (rawPerformedBySignature === "" || rawPerformedBySignature === null) updateData.performed_by_signature = null;
-
-    if (approved_by_signature) updateData.approved_by_signature = approved_by_signature;
-    else if (rawApprovedBySignature === "" || rawApprovedBySignature === null) updateData.approved_by_signature = null;
+    else if (rawPerformedBySignature === '' || rawPerformedBySignature === null) updateData.performed_by_signature = null;
+    if (checked_by_signature) updateData.checked_by_signature = checked_by_signature;
+    else if (rawCheckedBySignature === '' || rawCheckedBySignature === null) updateData.checked_by_signature = null;
+    if (approved_by_service_signature) updateData.approved_by_service_signature = approved_by_service_signature;
+    else if (rawApprovedBySignature === '' || rawApprovedBySignature === null) updateData.approved_by_service_signature = null;
 
     const { data, error } = await supabase
       .from("daily_time_sheet")
@@ -292,51 +263,64 @@ export const PATCH = withAuth(async (request, { params, user }) => {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Update time entries
+    // Update time entries + expense items
     if (entries && Array.isArray(entries)) {
-      // Delete existing entries
+      // CASCADE on the FK will drop expense_items when we delete entries.
       await supabase
         .from("daily_time_sheet_entries")
         .delete()
         .eq("daily_time_sheet_id", id);
 
-      // Insert new entries
       if (entries.length > 0) {
-        const entryRecords = entries.map((entry: any, index: number) => ({
+        const entryRows = entries.map((entry: any, index: number) => ({
           daily_time_sheet_id: id,
-          entry_date: entry.entry_date || null,
-          start_time: entry.start_time || null,
-          stop_time: entry.stop_time || null,
-          total_hours: entry.total_hours ? parseFloat(entry.total_hours) : null,
-          job_description: entry.job_description || '',
-          sort_order: entry.sort_order ?? index,
-          expense_breakfast: entry.expense_breakfast ? parseFloat(entry.expense_breakfast) : 0,
-          expense_lunch: entry.expense_lunch ? parseFloat(entry.expense_lunch) : 0,
-          expense_dinner: entry.expense_dinner ? parseFloat(entry.expense_dinner) : 0,
-          expense_transport: entry.expense_transport ? parseFloat(entry.expense_transport) : 0,
-          expense_lodging: entry.expense_lodging ? parseFloat(entry.expense_lodging) : 0,
-          expense_others: entry.expense_others ? parseFloat(entry.expense_others) : 0,
-          expense_total: entry.expense_total ? parseFloat(entry.expense_total) : 0,
-          expense_remarks: entry.expense_remarks || '',
-          travel_hours: entry.travel_hours ? parseFloat(entry.travel_hours) : 0,
-          travel_time_from: entry.travel_time_from || '',
-          travel_time_to: entry.travel_time_to || '',
-          travel_time_depart: entry.travel_time_depart || null,
-          travel_time_arrived: entry.travel_time_arrived || null,
-          travel_time_hours: entry.travel_time_hours ? parseFloat(entry.travel_time_hours) : 0,
-          travel_distance_from: entry.travel_distance_from || '',
-          travel_distance_to: entry.travel_distance_to || '',
-          travel_departure_odo: entry.travel_departure_odo ? parseFloat(entry.travel_departure_odo) : 0,
-          travel_arrival_odo: entry.travel_arrival_odo ? parseFloat(entry.travel_arrival_odo) : 0,
-          travel_distance_km: entry.travel_distance_km ? parseFloat(entry.travel_distance_km) : 0,
+          entry_date:       entry.entry_date || null,
+          start_time:       entry.start_time || null,
+          stop_time:        entry.stop_time  || null,
+          total_hours:      entry.total_hours ? parseFloat(entry.total_hours) : null,
+          initial_location: entry.initial_location || '',
+          final_location:   entry.final_location || '',
+          is_travel:        !!entry.is_travel,
+          sort_order:       entry.sort_order ?? index,
+          job_description: '',
         }));
 
-        const { error: entriesError } = await supabase
+        const { data: insertedEntries, error: entriesError } = await supabase
           .from("daily_time_sheet_entries")
-          .insert(entryRecords);
+          .insert(entryRows)
+          .select('id, sort_order');
 
         if (entriesError) {
-          console.error("Error updating entries:", entriesError);
+          console.error("Error inserting entries:", entriesError);
+        } else if (insertedEntries) {
+          const idBySort = new Map<number, string>();
+          insertedEntries.forEach((r: any) => idBySort.set(r.sort_order, r.id));
+
+          const expenseRows: any[] = [];
+          entries.forEach((entry: any, index: number) => {
+            const newEntryId = idBySort.get(entry.sort_order ?? index);
+            if (!newEntryId) return;
+            (entry.expense_items || []).forEach((item: any, i: number) => {
+              expenseRows.push({
+                daily_time_sheet_entry_id: newEntryId,
+                type: item.type,
+                amount:        item.amount        ? parseFloat(item.amount)        : null,
+                departure_odo: item.departure_odo ? parseFloat(item.departure_odo) : null,
+                arrival_odo:   item.arrival_odo   ? parseFloat(item.arrival_odo)   : null,
+                job_description: item.job_description || '',
+                sort_order: item.sort_order ?? i,
+              });
+            });
+          });
+
+          if (expenseRows.length > 0) {
+            const { error: expenseError } = await supabase
+              .from('daily_time_sheet_expense_items')
+              .insert(expenseRows);
+            if (expenseError) {
+              console.error('Error inserting expense items:', expenseError);
+            }
+          }
         }
       }
     }

@@ -358,29 +358,88 @@ export const GET = withAuth(async (request, { user, params }) => {
         yPos += 5;
       }
 
-      // Three-signatory footer (new layout)
+      // Three-signatory footer (new layout) with embedded signature images
       yPos += 8;
-      if (yPos + 30 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+      if (yPos + 40 > pageHeight - 20) { doc.addPage(); yPos = 20; }
       const colW = contentWidth / 3;
-      const sigNames = [
-        ['PREPARED BY:',  record.performed_by_name],
-        ['CHECKED BY:',   record.checked_by],
-        ['APPROVED BY:',  record.approved_by_service],
+      const sigSlots: Array<{
+        label: string;
+        name: string | null;
+        sigUrl: string | null;
+      }> = [
+        {
+          label: 'PREPARED BY:',
+          name: record.performed_by_name,
+          sigUrl: await resolveSignature(record.performed_by_signature, record.performed_by_name),
+        },
+        {
+          label: 'CHECKED BY:',
+          name: record.checked_by,
+          sigUrl: await resolveSignature(record.checked_by_signature, record.checked_by),
+        },
+        {
+          label: 'APPROVED BY:',
+          name: record.approved_by_service,
+          sigUrl: await resolveSignature(record.approved_by_service_signature, record.approved_by_service),
+        },
       ];
+
+      // Labels
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
-      sigNames.forEach(([label], i) => {
+      sigSlots.forEach((slot, i) => {
         const cx = leftMargin + colW * i + colW / 2;
-        doc.text(label, cx, yPos, { align: 'center' });
+        doc.text(slot.label, cx, yPos, { align: 'center' });
       });
+
+      // Signature images (embed if available)
+      const sigBoxH = 16;
+      const sigBoxW = colW - 20;
+      const sigBoxTop = yPos + 3;
+      for (let i = 0; i < sigSlots.length; i++) {
+        const slot = sigSlots[i];
+        if (!slot.sigUrl) continue;
+        try {
+          const imgResponse = await fetch(slot.sigUrl);
+          if (!imgResponse.ok) continue;
+          let contentType = imgResponse.headers.get('content-type') || 'image/png';
+          const arrayBuffer = await imgResponse.arrayBuffer();
+          const imgBase64 = Buffer.from(arrayBuffer).toString('base64');
+
+          const urlPath = slot.sigUrl.split('?')[0].toLowerCase();
+          let fmt: 'JPEG' | 'PNG' | 'GIF' | 'WEBP' = 'PNG';
+          if (urlPath.endsWith('.jpg') || urlPath.endsWith('.jpeg')) { fmt = 'JPEG'; contentType = 'image/jpeg'; }
+          else if (urlPath.endsWith('.png')) { fmt = 'PNG'; contentType = 'image/png'; }
+          else if (urlPath.endsWith('.gif')) { fmt = 'GIF'; contentType = 'image/gif'; }
+          else if (urlPath.endsWith('.webp')) { fmt = 'WEBP'; contentType = 'image/webp'; }
+          else if (contentType.includes('jpeg')) fmt = 'JPEG';
+          else if (contentType.includes('png'))  fmt = 'PNG';
+
+          const boxX = leftMargin + colW * i + 10;
+          doc.addImage(
+            `data:${contentType};base64,${imgBase64}`,
+            fmt,
+            boxX,
+            sigBoxTop,
+            sigBoxW,
+            sigBoxH,
+            undefined,
+            'FAST'
+          );
+        } catch (err) {
+          console.error(`Error loading signature for ${slot.label}:`, err);
+        }
+      }
+
+      // Underline + name
+      const lineY = sigBoxTop + sigBoxH + 2;
       doc.setFont("helvetica", "normal");
-      sigNames.forEach(([, name], i) => {
+      sigSlots.forEach((slot, i) => {
         const cx = leftMargin + colW * i + colW / 2;
-        const lineY = yPos + 16;
         doc.line(leftMargin + colW * i + 10, lineY, leftMargin + colW * (i + 1) - 10, lineY);
-        doc.text(name || '', cx, lineY + 4, { align: 'center' });
+        doc.text(slot.name || '', cx, lineY + 4, { align: 'center' });
       });
-      yPos += 26;
+      yPos = lineY + 10;
 
       // Form number at bottom left
       doc.setFontSize(7);

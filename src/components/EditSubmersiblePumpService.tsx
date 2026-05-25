@@ -419,7 +419,15 @@ export default function EditSubmersiblePumpService({
                     <div className="space-y-3">
                       <div className="flex items-start gap-4">
                         <div className="shrink-0">
-                          <img src={attachment.file_url} alt={attachment.file_name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" />
+                          {/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_url || '') ? (
+                            <img src={attachment.file_url} alt={attachment.file_name} className="w-24 h-24 object-cover rounded-md border-2 border-gray-200" />
+                          ) : (
+                            <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
+                              <svg className="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between">
@@ -459,18 +467,27 @@ export default function EditSubmersiblePumpService({
 
                 {/* New Attachments */}
                 {newAttachments.map((attachment, index) => {
-                  const previewUrl = URL.createObjectURL(attachment.file);
+                  const isNewImage = attachment.file.type.startsWith('image/');
+                  const previewUrl = isNewImage ? URL.createObjectURL(attachment.file) : '';
                   return (
                     <div key={`new-${index}`} className="px-6 py-4 border-2 border-blue-300 rounded-md bg-blue-50 shadow-sm">
                       <div className="space-y-3">
                         <div className="flex items-start gap-4">
                           <div className="shrink-0">
-                            <img
-                              src={previewUrl}
-                              alt={attachment.file.name}
-                              className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
-                              onLoad={() => URL.revokeObjectURL(previewUrl)}
-                            />
+                            {isNewImage ? (
+                              <img
+                                src={previewUrl}
+                                alt={attachment.file.name}
+                                className="w-24 h-24 object-cover rounded-md border-2 border-gray-200"
+                                onLoad={() => URL.revokeObjectURL(previewUrl)}
+                              />
+                            ) : (
+                              <div className="w-24 h-24 bg-gray-100 rounded-md border-2 border-gray-200 flex items-center justify-center">
+                                <svg className="w-12 h-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between">

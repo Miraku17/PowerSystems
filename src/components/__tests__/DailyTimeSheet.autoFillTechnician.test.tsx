@@ -27,10 +27,7 @@ describe('Daily Time Sheet — auto-fill Prepared By for User 1/2', () => {
     expect(block!).toMatch(/autoFillForPositions=\{\[\s*"User 1"\s*,\s*"User 2"\s*\]\}/);
   });
 
-  // TODO(Task 6): re-enable once EditDailyTimeSheet is rewritten with the
-  // new three-signatory layout. Currently the edit form still uses the
-  // legacy "Service Technician/Engineer" label.
-  it.skip('edit form: Prepared By SignatorySelect has autoFillForPositions=["User 1","User 2"]', () => {
+  it('edit form: Prepared By SignatorySelect has autoFillForPositions=["User 1","User 2"]', () => {
     const block = technicianBlock(read('EditDailyTimeSheet.tsx'));
     expect(block).not.toBeNull();
     expect(block!).toMatch(/label="Prepared By"/);

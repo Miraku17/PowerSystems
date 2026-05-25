@@ -36,9 +36,7 @@ describe('DTS — Checked By / Approved By use filterByPermission', () => {
     });
   });
 
-  // TODO(Task 6): re-enable once EditDailyTimeSheet is rewritten with the
-  // new three-signatory layout.
-  describe.skip('EditDailyTimeSheet.tsx', () => {
+  describe('EditDailyTimeSheet.tsx', () => {
     const src = read('EditDailyTimeSheet.tsx');
 
     it('Checked By → filterByPermission="dts_service_office.checked_by"', () => {

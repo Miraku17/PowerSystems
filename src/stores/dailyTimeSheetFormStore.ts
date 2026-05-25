@@ -1,35 +1,34 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export type ExpenseItemType =
+  | 'breakfast'
+  | 'lunch'
+  | 'dinner'
+  | 'car_odo'
+  | 'hotel_others';
+
+export interface ExpenseItem {
+  id: string;
+  type: ExpenseItemType;
+  amount: string;
+  job_description: string;
+  departure_odo: string;   // car_odo only
+  arrival_odo: string;     // car_odo only
+  sort_order: number;
+}
+
 export interface TimeSheetEntry {
   id: string;
   entry_date: string;
   start_time: string;
   stop_time: string;
   total_hours: string;
-  job_description: string;
   has_date: boolean;
-  expense_breakfast: string;
-  expense_lunch: string;
-  expense_dinner: string;
-  expense_transport: string;
-  expense_lodging: string;
-  expense_others: string;
-  expense_total: string;
-  expense_remarks: string;
-  travel_hours: string;
-  // Travel Time fields
-  travel_time_from: string;
-  travel_time_to: string;
-  travel_time_depart: string;
-  travel_time_arrived: string;
-  travel_time_hours: string;
-  // Travel Distance fields
-  travel_distance_from: string;
-  travel_distance_to: string;
-  travel_departure_odo: string;
-  travel_arrival_odo: string;
-  travel_distance_km: string;
+  initial_location: string;
+  final_location: string;
+  is_travel: boolean;
+  expense_items: ExpenseItem[];
 }
 
 interface DailyTimeSheetFormData {
@@ -45,35 +44,17 @@ interface DailyTimeSheetFormData {
   // Time Entries
   entries: TimeSheetEntry[];
 
-  // Totals
+  // Totals (kept for API submission — derived from entries)
   total_manhours: string;
   grand_total_manhours: string;
 
-  // Performed By
+  // Three signatories
+  performed_by_name: string;        // Prepared By
   performed_by_signature: string;
-  performed_by_name: string;
-
-  // Approved By
-  approved_by_signature: string;
-  approved_by_name: string;
-
-  // For Service Office Only
-  total_srt: string;
-  actual_manhour: string;
-  performance: string;
-  total_service_manhours: string;
-  service_office_note: string;
-  available_manhour: string;
-  leave_hours: string;
-  daily_average_utilization: string;
-  checked_by: string;
+  checked_by: string;               // Checked By (Admin 2)
   checked_by_signature: string;
-  service_coordinator: string;
-  service_coordinator_signature: string;
-  approved_by_service: string;
+  approved_by_service: string;      // Approved By (Admin 1 / SuperAdmin)
   approved_by_service_signature: string;
-  service_manager: string;
-  service_manager_signature: string;
 
   // Status
   status: string;
@@ -87,37 +68,25 @@ interface DailyTimeSheetFormStore {
   addDateRow: () => void;
   updateEntry: (id: string, data: Partial<TimeSheetEntry>) => void;
   removeEntry: (id: string) => void;
+  addExpenseItem: (entryId: string, type: ExpenseItemType) => void;
+  updateExpenseItem: (entryId: string, itemId: string, data: Partial<ExpenseItem>) => void;
+  removeExpenseItem: (entryId: string, itemId: string) => void;
 }
 
 const generateEntryId = () => `entry-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+const generateExpenseId = () => `expense-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-const createEntry = (hasDate: boolean): TimeSheetEntry => ({
+export const createEntry = (hasDate: boolean): TimeSheetEntry => ({
   id: generateEntryId(),
   entry_date: '',
   start_time: '',
   stop_time: '',
   total_hours: '',
-  job_description: '',
   has_date: hasDate,
-  expense_breakfast: '',
-  expense_lunch: '',
-  expense_dinner: '',
-  expense_transport: '',
-  expense_lodging: '',
-  expense_others: '',
-  expense_total: '',
-  expense_remarks: '',
-  travel_hours: '',
-  travel_time_from: '',
-  travel_time_to: '',
-  travel_time_depart: '',
-  travel_time_arrived: '',
-  travel_time_hours: '',
-  travel_distance_from: '',
-  travel_distance_to: '',
-  travel_departure_odo: '',
-  travel_arrival_odo: '',
-  travel_distance_km: '',
+  initial_location: '',
+  final_location: '',
+  is_travel: false,
+  expense_items: [],
 });
 
 const initialFormData: DailyTimeSheetFormData = {
@@ -129,38 +98,105 @@ const initialFormData: DailyTimeSheetFormData = {
   entries: [createEntry(true)],
   total_manhours: '',
   grand_total_manhours: '',
-  performed_by_signature: '',
   performed_by_name: '',
-  approved_by_signature: '',
-  approved_by_name: '',
-  total_srt: '',
-  actual_manhour: '',
-  performance: '',
-  total_service_manhours: '',
-  service_office_note: '',
-  available_manhour: '',
-  leave_hours: '',
-  daily_average_utilization: '',
+  performed_by_signature: '',
   checked_by: '',
   checked_by_signature: '',
-  service_coordinator: '',
-  service_coordinator_signature: '',
   approved_by_service: '',
   approved_by_service_signature: '',
-  service_manager: '',
-  service_manager_signature: '',
   status: 'Pending',
 };
+
+export interface DailyTimeSheetSummary {
+  totalRegularHours: number;
+  totalOvertimeHours: number;
+  totalTravelHours: number;
+  grandTotalManhours: number;
+  totalMealAllowance: number;
+  totalFareExpense: number;
+  totalHotelOthers: number;
+  grandTotalExpense: number;
+  totalDistanceTravelKm: number;
+}
+
+const parseHHMM = (s: string): number | null => {
+  if (!s) return null;
+  const [h, m] = s.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+};
+
+const computeEntryWorkedMinutes = (entry: TimeSheetEntry) => {
+  const startMin = parseHHMM(entry.start_time);
+  const stopMinRaw = parseHHMM(entry.stop_time);
+  if (startMin === null || stopMinRaw === null) return { totalMin: 0, regMin: 0 };
+  let stopMin = stopMinRaw;
+  if (stopMin <= startMin) stopMin += 24 * 60;
+  const totalMin = stopMin - startMin;
+  const workStart = 8 * 60;
+  const workEnd = 17 * 60;
+  const overlapStart = Math.max(startMin, workStart);
+  const overlapEnd = Math.min(stopMin, workEnd);
+  const regMin = Math.max(0, overlapEnd - overlapStart);
+  return { totalMin, regMin };
+};
+
+export function computeSummary(entries: TimeSheetEntry[]): DailyTimeSheetSummary {
+  let regMin = 0;
+  let otMin = 0;
+  let travelMin = 0;
+  let mealAllowance = 0;
+  let fareExpense = 0;
+  let hotelOthers = 0;
+  let distanceKm = 0;
+
+  for (const entry of entries) {
+    const { totalMin, regMin: r } = computeEntryWorkedMinutes(entry);
+    if (entry.is_travel) {
+      travelMin += totalMin;
+    } else {
+      regMin += r;
+      otMin += totalMin - r;
+    }
+
+    for (const item of entry.expense_items) {
+      const amt = parseFloat(item.amount) || 0;
+      if (item.type === 'breakfast' || item.type === 'lunch' || item.type === 'dinner') {
+        mealAllowance += amt;
+      } else if (item.type === 'car_odo') {
+        fareExpense += amt;
+        const dep = parseFloat(item.departure_odo);
+        const arr = parseFloat(item.arrival_odo);
+        if (!Number.isNaN(dep) && !Number.isNaN(arr) && arr > dep) {
+          distanceKm += arr - dep;
+        }
+      } else if (item.type === 'hotel_others') {
+        hotelOthers += amt;
+      }
+    }
+  }
+
+  return {
+    totalRegularHours: regMin / 60,
+    totalOvertimeHours: otMin / 60,
+    totalTravelHours: travelMin / 60,
+    grandTotalManhours: (regMin + otMin + travelMin) / 60,
+    totalMealAllowance: mealAllowance,
+    totalFareExpense: fareExpense,
+    totalHotelOthers: hotelOthers,
+    grandTotalExpense: mealAllowance + fareExpense + hotelOthers,
+    totalDistanceTravelKm: distanceKm,
+  };
+}
 
 export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
   persist(
     (set) => ({
       formData: { ...initialFormData, entries: [createEntry(true)] },
       setFormData: (data) =>
-        set((state) => ({
-          formData: { ...state.formData, ...data },
-        })),
-      resetFormData: () => set({ formData: { ...initialFormData, entries: [createEntry(true)] } }),
+        set((state) => ({ formData: { ...state.formData, ...data } })),
+      resetFormData: () =>
+        set({ formData: { ...initialFormData, entries: [createEntry(true)] } }),
       addRow: () =>
         set((state) => ({
           formData: {
@@ -179,8 +215,8 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
         set((state) => ({
           formData: {
             ...state.formData,
-            entries: state.formData.entries.map((entry) =>
-              entry.id === id ? { ...entry, ...data } : entry
+            entries: state.formData.entries.map((e) =>
+              e.id === id ? { ...e, ...data } : e
             ),
           },
         })),
@@ -188,61 +224,74 @@ export const useDailyTimeSheetFormStore = create<DailyTimeSheetFormStore>()(
         set((state) => ({
           formData: {
             ...state.formData,
-            entries: state.formData.entries.filter((entry) => entry.id !== id),
+            entries: state.formData.entries.filter((e) => e.id !== id),
+          },
+        })),
+      addExpenseItem: (entryId, type) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            entries: state.formData.entries.map((e) =>
+              e.id === entryId
+                ? {
+                    ...e,
+                    expense_items: [
+                      ...e.expense_items,
+                      {
+                        id: generateExpenseId(),
+                        type,
+                        amount: '',
+                        job_description: '',
+                        departure_odo: '',
+                        arrival_odo: '',
+                        sort_order: e.expense_items.length,
+                      },
+                    ],
+                  }
+                : e
+            ),
+          },
+        })),
+      updateExpenseItem: (entryId, itemId, data) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            entries: state.formData.entries.map((e) =>
+              e.id === entryId
+                ? {
+                    ...e,
+                    expense_items: e.expense_items.map((i) =>
+                      i.id === itemId ? { ...i, ...data } : i
+                    ),
+                  }
+                : e
+            ),
+          },
+        })),
+      removeExpenseItem: (entryId, itemId) =>
+        set((state) => ({
+          formData: {
+            ...state.formData,
+            entries: state.formData.entries.map((e) =>
+              e.id === entryId
+                ? {
+                    ...e,
+                    expense_items: e.expense_items.filter((i) => i.id !== itemId),
+                  }
+                : e
+            ),
           },
         })),
     }),
     {
       name: 'psi-daily-time-sheet-form-draft',
-      version: 5,
-      migrate: (persistedState: any, version: number) => {
-        const state = persistedState as any;
-        if (state.formData) {
-          // Migrate entries: ensure has_date field exists, remove date_section_id
-          const entries = (state.formData.entries || []).map((entry: any) => ({
-            id: entry.id,
-            entry_date: entry.entry_date || '',
-            start_time: entry.start_time || '',
-            stop_time: entry.stop_time || '',
-            total_hours: entry.total_hours || '',
-            job_description: entry.job_description || '',
-            has_date: entry.has_date !== undefined ? entry.has_date : true,
-            expense_breakfast: entry.expense_breakfast || '',
-            expense_lunch: entry.expense_lunch || '',
-            expense_dinner: entry.expense_dinner || '',
-            expense_transport: entry.expense_transport || '',
-            expense_lodging: entry.expense_lodging || '',
-            expense_others: entry.expense_others || '',
-            expense_total: entry.expense_total || '',
-            expense_remarks: entry.expense_remarks || '',
-            travel_hours: entry.travel_hours || '',
-            travel_time_from: entry.travel_time_from || '',
-            travel_time_to: entry.travel_time_to || '',
-            travel_time_depart: entry.travel_time_depart || '',
-            travel_time_arrived: entry.travel_time_arrived || '',
-            travel_time_hours: entry.travel_time_hours || '',
-            travel_distance_from: entry.travel_distance_from || '',
-            travel_distance_to: entry.travel_distance_to || '',
-            travel_departure_odo: entry.travel_departure_odo || '',
-            travel_arrival_odo: entry.travel_arrival_odo || '',
-            travel_distance_km: entry.travel_distance_km || '',
-          }));
-
-          // Remove dateSections if it exists
-          const { dateSections, ...restFormData } = state.formData;
-
-          return {
-            ...state,
-            formData: {
-              ...restFormData,
-              entries: entries.length > 0 ? entries : [createEntry(true)],
-              available_manhour: restFormData.available_manhour || '',
-              leave_hours: restFormData.leave_hours || '',
-              daily_average_utilization: restFormData.daily_average_utilization || '',
-            },
-          };
-        }
-        return persistedState;
+      version: 6,
+      migrate: (_persistedState: any, _version: number) => {
+        // v6 redesign — schema changed fundamentally. Reset to a clean draft;
+        // there is no clean 1:1 mapping from legacy persisted state.
+        return {
+          formData: { ...initialFormData, entries: [createEntry(true)] },
+        };
       },
     }
   )

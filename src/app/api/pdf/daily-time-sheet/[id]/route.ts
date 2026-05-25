@@ -16,10 +16,10 @@ export const GET = withAuth(async (request, { user, params }) => {
       );
     }
 
-    // Fetch the record with entries from Supabase
+    // Fetch the record with entries + expense items from Supabase
     const { data: record, error } = await supabase
       .from("daily_time_sheet")
-      .select("*, daily_time_sheet_entries(*)")
+      .select("*, daily_time_sheet_entries(*, daily_time_sheet_expense_items(*))")
       .eq("id", id)
       .single();
 
@@ -72,6 +72,59 @@ export const GET = withAuth(async (request, { user, params }) => {
     const entries = (record.daily_time_sheet_entries || []).sort(
       (a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)
     );
+
+    // Detect whether this record was saved with the new schema (2026-05-25
+    // redesign). Legacy records render via the original block; new records
+    // render via the photo-style block further down.
+    const hasNewShape =
+      entries.some((e: any) => (e.daily_time_sheet_expense_items?.length ?? 0) > 0) ||
+      entries.some((e: any) => !!e.initial_location || !!e.final_location || e.is_travel === true);
+
+    // Inline summary computation for the new layout (mirrors computeSummary
+    // in the store but kept here to avoid importing browser-tinted code into
+    // the API route).
+    const newSummary = (() => {
+      let regMin = 0, otMin = 0, travelMin = 0;
+      let meal = 0, fare = 0, hotel = 0, dist = 0;
+      const toMin = (s: any) => {
+        if (!s) return null;
+        const [h, m] = String(s).split(':').map(Number);
+        if (Number.isNaN(h) || Number.isNaN(m)) return null;
+        return h * 60 + m;
+      };
+      for (const e of entries) {
+        const start = toMin(e.start_time);
+        const stopRaw = toMin(e.stop_time);
+        if (start != null && stopRaw != null) {
+          let stop = stopRaw;
+          if (stop <= start) stop += 24 * 60;
+          const total = stop - start;
+          if (e.is_travel) {
+            travelMin += total;
+          } else {
+            const overlapStart = Math.max(start, 8 * 60);
+            const overlapEnd = Math.min(stop, 17 * 60);
+            const reg = Math.max(0, overlapEnd - overlapStart);
+            regMin += reg;
+            otMin += total - reg;
+          }
+        }
+        for (const item of (e.daily_time_sheet_expense_items || [])) {
+          const amt = Number(item.amount) || 0;
+          if (['breakfast','lunch','dinner'].includes(item.type)) meal += amt;
+          else if (item.type === 'car_odo') {
+            fare += amt;
+            const dep = Number(item.departure_odo), arr = Number(item.arrival_odo);
+            if (!isNaN(dep) && !isNaN(arr) && arr > dep) dist += arr - dep;
+          } else if (item.type === 'hotel_others') hotel += amt;
+        }
+      }
+      return {
+        reg: regMin / 60, ot: otMin / 60, travel: travelMin / 60,
+        grand: (regMin + otMin + travelMin) / 60,
+        meal, fare, hotel, grandExpense: meal + fare + hotel, distKm: dist,
+      };
+    })();
 
     // Helper function to get value or empty
     const getValue = (value: any) => value || "";
@@ -194,6 +247,146 @@ export const GET = withAuth(async (request, { user, params }) => {
     // Table headers
     yPos += 6;
 
+    if (hasNewShape) {
+      // ============ NEW LAYOUT (2026-05-25 redesign) ============
+      const W = {
+        date: 18, start: 12, initial: 24, stop: 12, final: 24,
+        total: 11, travel: 9, type: 20, amount: 22, desc: 0,
+      };
+      W.desc = contentWidth - (W.date + W.start + W.initial + W.stop + W.final + W.total + W.travel + W.type + W.amount);
+
+      const rowH = 6;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(7);
+      doc.setFillColor(lightGray[0], lightGray[1], lightGray[2]);
+      doc.rect(leftMargin, yPos, contentWidth, rowH, "F");
+
+      let cx = leftMargin;
+      const headers: [keyof typeof W, string][] = [
+        ['date','DATE'],['start','START'],['initial','INITIAL LOC'],
+        ['stop','STOP'],['final','FINAL LOC'],['total','TOTAL'],
+        ['travel','TRVL'],['type','EXPENSE TYPE'],['amount','AMOUNT'],['desc','JOB DESCRIPTION'],
+      ];
+      for (const [k, label] of headers) {
+        doc.rect(cx, yPos, W[k], rowH);
+        doc.text(label, cx + W[k] / 2, yPos + 4, { align: 'center' });
+        cx += W[k];
+      }
+      yPos += rowH;
+
+      // Data rows
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(7);
+      const typeLabel: Record<string, string> = {
+        breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner',
+        car_odo: 'Car ODO', hotel_others: 'Hotel & Others',
+      };
+      for (const entry of entries) {
+        const items = ((entry.daily_time_sheet_expense_items || []) as any[])
+          .slice()
+          .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        const blockRows = Math.max(1, items.length);
+        const blockH = rowH * blockRows;
+
+        // Page break check
+        if (yPos + blockH > pageHeight - 30) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Time/location/total/travel cells (span blockH)
+        let bx = leftMargin;
+        const drawSpan = (w: number, text: string) => {
+          doc.rect(bx, yPos, w, blockH);
+          if (text) doc.text(text, bx + w / 2, yPos + 4, { align: 'center' });
+          bx += w;
+        };
+        drawSpan(W.date,    formatDate(entry.entry_date));
+        drawSpan(W.start,   formatTime(entry.start_time));
+        drawSpan(W.initial, entry.initial_location || '');
+        drawSpan(W.stop,    formatTime(entry.stop_time));
+        drawSpan(W.final,   entry.final_location || '');
+        drawSpan(W.total,   entry.total_hours != null ? String(entry.total_hours) : '');
+        drawSpan(W.travel,  entry.is_travel ? 'Y' : '');
+
+        // Expense sub-rows
+        const exStartX = bx;
+        for (let i = 0; i < blockRows; i++) {
+          const item = items[i];
+          const ry = yPos + i * rowH;
+          doc.rect(exStartX, ry, W.type, rowH);
+          doc.rect(exStartX + W.type, ry, W.amount, rowH);
+          doc.rect(exStartX + W.type + W.amount, ry, W.desc, rowH);
+          if (item) {
+            doc.text(typeLabel[item.type] || item.type, exStartX + W.type / 2, ry + 4, { align: 'center' });
+            const amountText = item.type === 'car_odo'
+              ? `${item.departure_odo ?? ''}/${item.arrival_odo ?? ''}`
+              : (item.amount != null ? `P${Number(item.amount).toFixed(2)}` : '');
+            doc.text(amountText, exStartX + W.type + W.amount / 2, ry + 4, { align: 'center' });
+            const descLines = doc.splitTextToSize(item.job_description || '', W.desc - 2);
+            doc.text(descLines.slice(0, 1), exStartX + W.type + W.amount + 1, ry + 4);
+          }
+        }
+        yPos += blockH;
+      }
+
+      // Summary block
+      yPos += 6;
+      if (yPos + 60 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("SUMMARY", leftMargin, yPos);
+      yPos += 4;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      const summaryRows: [string, string][] = [
+        ['Total Overtime',        `${newSummary.ot.toFixed(2)} hours`],
+        ['Total Regular Hours',   `${newSummary.reg.toFixed(2)} hours`],
+        ['Total Travel Hours',    `${newSummary.travel.toFixed(2)} hours`],
+        ['Grand Total Manhours',  `${newSummary.grand.toFixed(2)} hours`],
+        ['Total Meal Allowance',  `P${newSummary.meal.toFixed(2)}`],
+        ['Total Fare Expense',    `P${newSummary.fare.toFixed(2)}`],
+        ['Total Hotel & Others',  `P${newSummary.hotel.toFixed(2)}`],
+        ['Grand Total Expense',   `P${newSummary.grandExpense.toFixed(2)}`],
+        ['Total Distance Travel', `${newSummary.distKm.toFixed(0)} km`],
+      ];
+      const labelX = leftMargin;
+      const valueX = leftMargin + 60;
+      for (const [label, value] of summaryRows) {
+        doc.text(label, labelX, yPos);
+        doc.text(value, valueX, yPos);
+        yPos += 5;
+      }
+
+      // Three-signatory footer (new layout)
+      yPos += 8;
+      if (yPos + 30 > pageHeight - 20) { doc.addPage(); yPos = 20; }
+      const colW = contentWidth / 3;
+      const sigNames = [
+        ['PREPARED BY:',  record.performed_by_name],
+        ['CHECKED BY:',   record.checked_by],
+        ['APPROVED BY:',  record.approved_by_service],
+      ];
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      sigNames.forEach(([label], i) => {
+        const cx = leftMargin + colW * i + colW / 2;
+        doc.text(label, cx, yPos, { align: 'center' });
+      });
+      doc.setFont("helvetica", "normal");
+      sigNames.forEach(([, name], i) => {
+        const cx = leftMargin + colW * i + colW / 2;
+        const lineY = yPos + 16;
+        doc.line(leftMargin + colW * i + 10, lineY, leftMargin + colW * (i + 1) - 10, lineY);
+        doc.text(name || '', cx, lineY + 4, { align: 'center' });
+      });
+      yPos += 26;
+
+      // Form number at bottom left
+      doc.setFontSize(7);
+      doc.text("SF-AOM0999", leftMargin, pageHeight - 15);
+    } else {
+    // ============ LEGACY LAYOUT (pre-2026-05-25 records) ============
     // Column widths for manhours table
     const dateColWidth = 24;
     const startColWidth = 16;
@@ -591,6 +784,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
     // Update yPos after signatures
     yPos = labelY + 10;
+    } // end legacy layout branch
 
     // Fetch and display attachments
     const { data: attachments } = await supabase

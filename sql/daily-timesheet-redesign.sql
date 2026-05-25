@@ -30,4 +30,14 @@ ALTER TABLE daily_time_sheet_entries
   ADD COLUMN IF NOT EXISTS final_location   text,
   ADD COLUMN IF NOT EXISTS is_travel        boolean NOT NULL DEFAULT false;
 
+-- 3. New signature columns on daily_time_sheet for the redesigned 3-signatory
+-- layout. The existing schema only had performed_by_signature and
+-- approved_by_signature (Supervisor); the redesign uses three signatories:
+--   Prepared By  → performed_by_name / performed_by_signature (existing)
+--   Checked By   → checked_by (existing) / checked_by_signature (NEW)
+--   Approved By  → approved_by_service (existing) / approved_by_service_signature (NEW)
+ALTER TABLE daily_time_sheet
+  ADD COLUMN IF NOT EXISTS checked_by_signature          text,
+  ADD COLUMN IF NOT EXISTS approved_by_service_signature text;
+
 COMMIT;

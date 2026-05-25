@@ -124,14 +124,23 @@ export default function KnowledgeBaseFormModal({
       const newPreviews: ImagePreview[] = [];
 
       for (const file of files) {
-        const compressed = await imageCompression(file, compressionOptions);
-        const previewUrl = URL.createObjectURL(compressed);
-        newPreviews.push({
-          file: compressed as File,
-          url: previewUrl,
-          fileName: file.name,
-          isExisting: false,
-        });
+        if (file.type === 'application/pdf') {
+          newPreviews.push({
+            file,
+            url: '',
+            fileName: file.name,
+            isExisting: false,
+          });
+        } else {
+          const compressed = await imageCompression(file, compressionOptions);
+          const previewUrl = URL.createObjectURL(compressed);
+          newPreviews.push({
+            file: compressed as File,
+            url: previewUrl,
+            fileName: file.name,
+            isExisting: false,
+          });
+        }
       }
 
       setImages((prev) => [...prev, ...newPreviews]);
@@ -431,7 +440,7 @@ export default function KnowledgeBaseFormModal({
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/*,application/pdf"
               multiple
               onChange={handleImageSelect}
               className="hidden"

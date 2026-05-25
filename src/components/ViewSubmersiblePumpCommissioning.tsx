@@ -360,22 +360,35 @@ export default function ViewSubmersiblePumpCommissioning({ data, onClose, onExpo
                     <h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">Image Attachments</h4>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {attachments.map((attachment) => (
-                      <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                        <div className="aspect-video bg-gray-100 relative">
-                          <img
-                            src={attachment.file_url}
-                            alt={attachment.file_name || 'Attachment'}
-                            className="w-full h-full object-cover"
-                          />
+                    {attachments.map((attachment) => {
+                      const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_url || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name || '');
+                      return (
+                        <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          {isImage ? (
+                            <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="block">
+                              <div className="aspect-video bg-gray-100 relative">
+                                <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                              </div>
+                            </a>
+                          ) : (
+                            <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="block aspect-video bg-gray-50 flex items-center justify-center">
+                              <div className="text-center p-4">
+                                <svg className="mx-auto h-12 w-12 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                                <p className="mt-2 text-sm font-medium text-gray-600">PDF Document</p>
+                                <p className="text-xs text-blue-600 mt-1">Click to view</p>
+                              </div>
+                            </a>
+                          )}
+                          {attachment.file_name && (
+                            <div className="p-3 bg-white">
+                              <p className="text-sm font-medium text-gray-900">{attachment.file_name}</p>
+                            </div>
+                          )}
                         </div>
-                        {attachment.file_name && (
-                          <div className="p-3 bg-white">
-                            <p className="text-sm font-medium text-gray-900">{attachment.file_name}</p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

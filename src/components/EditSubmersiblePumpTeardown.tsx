@@ -481,7 +481,7 @@ export default function EditSubmersiblePumpTeardown({
               <input
                 id={inputId}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 multiple
                 className="sr-only"
                 onChange={async (e) => {
@@ -489,8 +489,8 @@ export default function EditSubmersiblePumpTeardown({
                     if (existingAttachments.length + newAttachments.length + e.target.files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
                     const files = Array.from(e.target.files);
                     const validFiles = files.filter(file => {
-                      if (!file.type.startsWith('image/')) {
-                        toast.error(`${file.name} is not an image file`);
+                      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                        toast.error(`${file.name} is not a supported file (use images or PDF)`);
                         return false;
                       }
                       if (file.size > 10 * 1024 * 1024) {
@@ -505,7 +505,9 @@ export default function EditSubmersiblePumpTeardown({
                     const processedFiles: { file: File; title: string }[] = [];
 
                     for (const file of validFiles) {
-                      if (file.size > compressionThreshold) {
+                      if (file.type === 'application/pdf') {
+                        processedFiles.push({ file, title: '' });
+                      } else if (file.size > compressionThreshold) {
                         try {
                           const compressedFile = await compressImage(file);
                           processedFiles.push({ file: compressedFile, title: '' });

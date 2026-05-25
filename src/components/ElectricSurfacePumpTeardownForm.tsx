@@ -314,7 +314,7 @@ export default function ElectricSurfacePumpTeardownForm() {
               <input
                 id={inputId}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 multiple
                 className="sr-only"
                 onChange={async (e) => {
@@ -327,8 +327,8 @@ export default function ElectricSurfacePumpTeardownForm() {
                     const newFiles: { file: File; title: string }[] = [];
 
                     for (const file of files) {
-                      if (!file.type.startsWith('image/')) {
-                        toast.error(`${file.name} is not an image file`);
+                      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                        toast.error(`${file.name} is not a supported file (use images or PDF)`);
                         continue;
                       }
                       if (file.size > maxSize) {
@@ -336,7 +336,9 @@ export default function ElectricSurfacePumpTeardownForm() {
                         continue;
                       }
 
-                      if (file.size > compressionThreshold) {
+                      if (file.type === 'application/pdf') {
+                        newFiles.push({ file, title: '' });
+                      } else if (file.size > compressionThreshold) {
                         try {
                           const compressedFile = await compressImage(file);
                           newFiles.push({ file: compressedFile, title: '' });

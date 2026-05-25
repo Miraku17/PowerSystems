@@ -26,7 +26,7 @@ export const GET = withAuth(async (request, { user }) => {
 
     let query = supabase
       .from("daily_time_sheet")
-      .select("*, daily_time_sheet_entries(*)")
+      .select("*, daily_time_sheet_entries(*, daily_time_sheet_expense_items(*))")
       .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
@@ -142,37 +142,24 @@ export const POST = withAuth(async (request, { user }) => {
       return formData!.get(key) as string || '';
     };
 
-    // Extract all fields
-    const job_number = getString('job_number');
-    const date = getString('date');
-    const customer = getString('customer');
-    const address = getString('address');
-    const total_manhours = getString('total_manhours');
-    const grand_total_manhours = getString('grand_total_manhours');
-    const performed_by_name = getString('performed_by_name');
-    const approved_by_name = getString('approved_by_name');
-    const total_srt = getString('total_srt');
-    const actual_manhour = getString('actual_manhour');
-    const performance = getString('performance');
-    const total_service_manhours = getString('total_service_manhours');
-    const service_office_note = getString('service_office_note');
-    const available_manhour = getString('available_manhour');
-    const leave_hours = getString('leave_hours');
-    const daily_average_utilization = getString('daily_average_utilization');
-    const checked_by = getString('checked_by');
-    const service_coordinator = getString('service_coordinator');
-    const approved_by_service = getString('approved_by_service');
-    const service_manager = getString('service_manager');
+    // Extract fields (three-signatory redesign — see 2026-05-25-daily-timesheet-redesign spec)
+    const job_number              = getString('job_number');
+    const date                    = getString('date');
+    const customer                = getString('customer');
+    const address                 = getString('address');
+    const total_manhours          = getString('total_manhours');
+    const grand_total_manhours    = getString('grand_total_manhours');
+    const performed_by_name       = getString('performed_by_name');
+    const checked_by              = getString('checked_by');
+    const approved_by_service     = getString('approved_by_service');
 
     // Validate service office field-level permissions
-    const serviceOfficeFieldChecks = [
-      { value: checked_by, action: 'checked_by', label: 'checked by' },
-      { value: service_coordinator, action: 'service_coordinator', label: 'service coordinator' },
-      { value: approved_by_service, action: 'approved_by', label: 'approved by service' },
-      { value: service_manager, action: 'service_manager', label: 'service manager' },
+    const serviceOfficeChecks = [
+      { value: checked_by,          action: 'checked_by',  label: 'checked by' },
+      { value: approved_by_service, action: 'approved_by', label: 'approved by' },
     ];
 
-    for (const { value, action, label } of serviceOfficeFieldChecks) {
+    for (const { value, action, label } of serviceOfficeChecks) {
       if (value) {
         const allowed = await hasPermission(supabase, user.id, 'dts_service_office', action);
         if (!allowed) {
@@ -194,9 +181,10 @@ export const POST = withAuth(async (request, { user }) => {
     const status = getString('status') || 'Pending';
     const entriesJson = isNewFormat ? (jsonBody.entries || '') : getString('entries');
 
-    // Signatures
+    // Signatures (three-signatory redesign)
     const rawPerformedBySignature = getString('performed_by_signature');
-    const rawApprovedBySignature = getString('approved_by_signature');
+    const rawCheckedBySignature   = getString('checked_by_signature');
+    const rawApprovedBySignature  = getString('approved_by_service_signature');
 
     // Handle Attachment Uploads
     const attachmentFiles = !isNewFormat ? formData!.getAll('attachment_files') as File[] : [];
@@ -205,13 +193,15 @@ export const POST = withAuth(async (request, { user }) => {
     // Process Signatures
     const timestamp = Date.now();
     const performed_by_signature = await uploadSignature(
-      serviceSupabase,
-      rawPerformedBySignature,
+      serviceSupabase, rawPerformedBySignature,
       `daily-time-sheet/performed-by-${timestamp}.png`
     );
-    const approved_by_signature = await uploadSignature(
-      serviceSupabase,
-      rawApprovedBySignature,
+    const checked_by_signature = await uploadSignature(
+      serviceSupabase, rawCheckedBySignature,
+      `daily-time-sheet/checked-by-${timestamp}.png`
+    );
+    const approved_by_service_signature = await uploadSignature(
+      serviceSupabase, rawApprovedBySignature,
       `daily-time-sheet/approved-by-${timestamp}.png`
     );
 
@@ -228,21 +218,11 @@ export const POST = withAuth(async (request, { user }) => {
           total_manhours: total_manhours ? parseFloat(total_manhours) : null,
           grand_total_manhours: grand_total_manhours ? parseFloat(grand_total_manhours) : null,
           performed_by_name,
-          performed_by_signature,
-          approved_by_name,
-          approved_by_signature,
-          total_srt: total_srt ? parseFloat(total_srt) : null,
-          actual_manhour: actual_manhour ? parseFloat(actual_manhour) : null,
-          performance: performance ? parseFloat(performance) : null,
-          total_service_manhours: total_service_manhours ? parseFloat(total_service_manhours) : null,
-          service_office_note,
-          available_manhour: available_manhour ? parseFloat(available_manhour) : null,
-          leave_hours: leave_hours ? parseFloat(leave_hours) : null,
-          daily_average_utilization: daily_average_utilization ? parseFloat(daily_average_utilization) : null,
+          performed_by_signature: performed_by_signature || null,
           checked_by,
-          service_coordinator,
+          checked_by_signature: checked_by_signature || null,
           approved_by_service,
-          service_manager,
+          approved_by_service_signature: approved_by_service_signature || null,
           status,
           created_by: user.id,
         },
@@ -254,46 +234,63 @@ export const POST = withAuth(async (request, { user }) => {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Insert time entries if any
+    // Insert time entries + expense items
     if (data && data[0] && entriesJson) {
       try {
         const entries = Array.isArray(entriesJson) ? entriesJson : JSON.parse(entriesJson);
         if (Array.isArray(entries) && entries.length > 0) {
           const entryRecords = entries.map((entry: any, index: number) => ({
             daily_time_sheet_id: data[0].id,
-            entry_date: entry.entry_date || null,
-            start_time: entry.start_time || null,
-            stop_time: entry.stop_time || null,
-            total_hours: entry.total_hours ? parseFloat(entry.total_hours) : null,
-            job_description: entry.job_description || '',
-            sort_order: index,
-            expense_breakfast: entry.expense_breakfast ? parseFloat(entry.expense_breakfast) : 0,
-            expense_lunch: entry.expense_lunch ? parseFloat(entry.expense_lunch) : 0,
-            expense_dinner: entry.expense_dinner ? parseFloat(entry.expense_dinner) : 0,
-            expense_transport: entry.expense_transport ? parseFloat(entry.expense_transport) : 0,
-            expense_lodging: entry.expense_lodging ? parseFloat(entry.expense_lodging) : 0,
-            expense_others: entry.expense_others ? parseFloat(entry.expense_others) : 0,
-            expense_total: entry.expense_total ? parseFloat(entry.expense_total) : 0,
-            expense_remarks: entry.expense_remarks || '',
-            travel_hours: entry.travel_hours ? parseFloat(entry.travel_hours) : 0,
-            travel_time_from: entry.travel_time_from || '',
-            travel_time_to: entry.travel_time_to || '',
-            travel_time_depart: entry.travel_time_depart || null,
-            travel_time_arrived: entry.travel_time_arrived || null,
-            travel_time_hours: entry.travel_time_hours ? parseFloat(entry.travel_time_hours) : 0,
-            travel_distance_from: entry.travel_distance_from || '',
-            travel_distance_to: entry.travel_distance_to || '',
-            travel_departure_odo: entry.travel_departure_odo ? parseFloat(entry.travel_departure_odo) : 0,
-            travel_arrival_odo: entry.travel_arrival_odo ? parseFloat(entry.travel_arrival_odo) : 0,
-            travel_distance_km: entry.travel_distance_km ? parseFloat(entry.travel_distance_km) : 0,
+            entry_date:       entry.entry_date || null,
+            start_time:       entry.start_time || null,
+            stop_time:        entry.stop_time  || null,
+            total_hours:      entry.total_hours ? parseFloat(entry.total_hours) : null,
+            initial_location: entry.initial_location || '',
+            final_location:   entry.final_location || '',
+            is_travel:        !!entry.is_travel,
+            sort_order:       entry.sort_order ?? index,
+            // Legacy job_description column not used in new design — write empty
+            job_description: '',
           }));
 
-          const { error: entriesError } = await supabase
+          const { data: insertedEntries, error: entriesError } = await supabase
             .from("daily_time_sheet_entries")
-            .insert(entryRecords);
+            .insert(entryRecords)
+            .select('id, sort_order');
 
           if (entriesError) {
             console.error("Error inserting entries:", entriesError);
+          } else if (insertedEntries) {
+            // Map inserted entries back to their source by sort_order so we
+            // know which expense_items belong to which new row.
+            const idBySort = new Map<number, string>();
+            insertedEntries.forEach((r: any) => idBySort.set(r.sort_order, r.id));
+
+            const expenseRows: any[] = [];
+            entries.forEach((entry: any, index: number) => {
+              const newEntryId = idBySort.get(entry.sort_order ?? index);
+              if (!newEntryId) return;
+              (entry.expense_items || []).forEach((item: any, i: number) => {
+                expenseRows.push({
+                  daily_time_sheet_entry_id: newEntryId,
+                  type: item.type,
+                  amount:        item.amount        ? parseFloat(item.amount)        : null,
+                  departure_odo: item.departure_odo ? parseFloat(item.departure_odo) : null,
+                  arrival_odo:   item.arrival_odo   ? parseFloat(item.arrival_odo)   : null,
+                  job_description: item.job_description || '',
+                  sort_order: item.sort_order ?? i,
+                });
+              });
+            });
+
+            if (expenseRows.length > 0) {
+              const { error: expenseError } = await supabase
+                .from('daily_time_sheet_expense_items')
+                .insert(expenseRows);
+              if (expenseError) {
+                console.error('Error inserting expense items:', expenseError);
+              }
+            }
           }
         }
       } catch (e) {

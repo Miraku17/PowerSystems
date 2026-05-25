@@ -377,7 +377,7 @@ export default function ElectricSurfacePumpCommissioningForm() {
                     <input
                       id="file-upload-electric"
                       type="file"
-                      accept="image/*"
+                      accept="image/*,application/pdf"
                       multiple
                       className="sr-only"
                       onChange={async (e) => {
@@ -386,11 +386,11 @@ export default function ElectricSurfacePumpCommissioningForm() {
                           if (attachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
                           const newFiles = [];
                           for (const file of files) {
-                            if (!file.type.startsWith('image/')) {
-                              toast.error('Please select only image files');
+                            if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                              toast.error('Please select image or PDF files');
                               continue;
                             }
-                            const compressed = await compressImageIfNeeded(file);
+                            const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
                             newFiles.push({ file: compressed, title: '' });
                           }
                           if (newFiles.length > 0) setAttachments([...attachments, ...newFiles]);

@@ -1026,7 +1026,7 @@ export default function EditDeutzCommissioning({
                           id="file-upload-edit"
                           name="file-upload-edit"
                           type="file"
-                          accept="image/*"
+                          accept="image/*,application/pdf"
                           multiple
                           className="sr-only"
                           onChange={async (e) => {
@@ -1035,11 +1035,11 @@ export default function EditDeutzCommissioning({
                               if (existingAttachments.length + newAttachments.length + files.length > 20) { toast.error('Maximum 20 photos allowed'); e.target.value = ''; return; }
                               const processed = [];
                               for (const file of files) {
-                                if (!file.type.startsWith('image/')) {
-                                  toast.error('Please select only image files (PNG, JPG, etc.)');
+                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                                  toast.error('Please select image or PDF files (PNG, JPG, etc.)');
                                   continue;
                                 }
-                                const compressed = await compressImageIfNeeded(file);
+                                const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
                                 processed.push({ file: compressed, title: '' });
                               }
                               if (processed.length > 0) setNewAttachments([...newAttachments, ...processed]);

@@ -23,6 +23,16 @@ interface Attachment {
   created_at: string;
 }
 
+interface ExpenseItemRow {
+  id: string;
+  type: 'breakfast' | 'lunch' | 'dinner' | 'car_odo' | 'hotel_others';
+  amount: number | null;
+  job_description: string | null;
+  departure_odo: number | null;
+  arrival_odo: number | null;
+  sort_order: number;
+}
+
 interface TimeSheetEntry {
   id: string;
   entry_date: string;
@@ -31,25 +41,31 @@ interface TimeSheetEntry {
   total_hours: number;
   job_description: string;
   sort_order: number;
-  expense_breakfast: number;
-  expense_lunch: number;
-  expense_dinner: number;
-  expense_transport: number;
-  expense_lodging: number;
-  expense_others: number;
-  expense_total: number;
-  expense_remarks: string;
-  travel_hours: number;
-  travel_time_from: string;
-  travel_time_to: string;
-  travel_time_depart: string;
-  travel_time_arrived: string;
-  travel_time_hours: number;
-  travel_distance_from: string;
-  travel_distance_to: string;
-  travel_departure_odo: number;
-  travel_arrival_odo: number;
-  travel_distance_km: number;
+  // New columns (2026-05-25 redesign)
+  initial_location?: string;
+  final_location?: string;
+  is_travel?: boolean;
+  daily_time_sheet_expense_items?: ExpenseItemRow[];
+  // Legacy flat fields (still present on old records)
+  expense_breakfast?: number;
+  expense_lunch?: number;
+  expense_dinner?: number;
+  expense_transport?: number;
+  expense_lodging?: number;
+  expense_others?: number;
+  expense_total?: number;
+  expense_remarks?: string;
+  travel_hours?: number;
+  travel_time_from?: string;
+  travel_time_to?: string;
+  travel_time_depart?: string;
+  travel_time_arrived?: string;
+  travel_time_hours?: number;
+  travel_distance_from?: string;
+  travel_distance_to?: string;
+  travel_departure_odo?: number;
+  travel_arrival_odo?: number;
+  travel_distance_km?: number;
 }
 
 export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewDailyTimeSheetProps) {
@@ -76,7 +92,7 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
       try {
         const { data: entriesData, error } = await supabase
           .from('daily_time_sheet_entries')
-          .select('*')
+          .select('*, daily_time_sheet_expense_items(*)')
           .eq('daily_time_sheet_id', data.id)
           .order('sort_order', { ascending: true });
 
@@ -207,6 +223,64 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
   const resolvedApprovedByServiceSig = resolveSignature(data.approved_by_service_signature, data.approved_by_service);
   const resolvedServiceManagerSig = resolveSignature(data.service_manager_signature, data.service_manager);
 
+  // Detect whether this record was saved with the new schema. We check for
+  // any signal that's only set by the new code path: expense_items rows,
+  // location fields, or is_travel.
+  const hasNewShape =
+    entries.some(e => (e.daily_time_sheet_expense_items?.length ?? 0) > 0) ||
+    entries.some(e => !!e.initial_location || !!e.final_location || e.is_travel === true);
+
+  const newSummary = React.useMemo(() => {
+    let regMin = 0, otMin = 0, travelMin = 0;
+    let meal = 0, fare = 0, hotel = 0, dist = 0;
+    const toMin = (s: string | null | undefined) => {
+      if (!s) return null;
+      const [h, m] = s.split(':').map(Number);
+      if (Number.isNaN(h) || Number.isNaN(m)) return null;
+      return h * 60 + m;
+    };
+    for (const e of entries) {
+      const start = toMin(e.start_time);
+      const stopRaw = toMin(e.stop_time);
+      if (start != null && stopRaw != null) {
+        let stop = stopRaw;
+        if (stop <= start) stop += 24 * 60;
+        const total = stop - start;
+        if (e.is_travel) {
+          travelMin += total;
+        } else {
+          const overlapStart = Math.max(start, 8 * 60);
+          const overlapEnd = Math.min(stop, 17 * 60);
+          const reg = Math.max(0, overlapEnd - overlapStart);
+          regMin += reg;
+          otMin += total - reg;
+        }
+      }
+      for (const item of (e.daily_time_sheet_expense_items || [])) {
+        const amt = Number(item.amount) || 0;
+        if (item.type === 'breakfast' || item.type === 'lunch' || item.type === 'dinner') meal += amt;
+        else if (item.type === 'car_odo') {
+          fare += amt;
+          const dep = Number(item.departure_odo), arr = Number(item.arrival_odo);
+          if (!isNaN(dep) && !isNaN(arr) && arr > dep) dist += arr - dep;
+        } else if (item.type === 'hotel_others') hotel += amt;
+      }
+    }
+    return {
+      reg: regMin / 60, ot: otMin / 60, travel: travelMin / 60,
+      grand: (regMin + otMin + travelMin) / 60,
+      meal, fare, hotel, grandExpense: meal + fare + hotel, distKm: dist,
+    };
+  }, [entries]);
+
+  const formatPeso = (n: number) =>
+    n === 0 ? '—' : `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatHrs = (n: number) => `${n.toFixed(2)} hours`;
+  const expenseTypeLabel: Record<string, string> = {
+    breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner',
+    car_odo: 'Car ODO', hotel_others: 'Hotel & Others',
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0, 0, 0, 0.5)", backdropFilter: "blur(4px)" }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col animate-slideUp overflow-hidden">
@@ -269,7 +343,89 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
               </div>
             </div>
 
-            {/* Manhours & Job Descriptions Table */}
+            {/* Manhours & Expenses (new layout for records with expense_items) */}
+            {hasNewShape ? (
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Manhours & Expenses</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm border-collapse border border-gray-300">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-700">
+                        <th className="border border-gray-300 px-2 py-2 text-left">Date</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Start</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Initial Location</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Stop</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Final Location</th>
+                        <th className="border border-gray-300 px-2 py-2 text-center">Total</th>
+                        <th className="border border-gray-300 px-2 py-2 text-center">Travel</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Expense Type</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Amount</th>
+                        <th className="border border-gray-300 px-2 py-2 text-left">Job Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.map((entry) => {
+                        const items = (entry.daily_time_sheet_expense_items || [])
+                          .slice()
+                          .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+                        const rowSpan = Math.max(1, items.length);
+                        return (
+                          <React.Fragment key={entry.id}>
+                            <tr>
+                              <td className="border border-gray-300 px-2 py-2 align-top" rowSpan={rowSpan}>{formatDate(entry.entry_date)}</td>
+                              <td className="border border-gray-300 px-2 py-2 align-top" rowSpan={rowSpan}>{formatTime(entry.start_time)}</td>
+                              <td className="border border-gray-300 px-2 py-2 align-top" rowSpan={rowSpan}>{entry.initial_location || '-'}</td>
+                              <td className="border border-gray-300 px-2 py-2 align-top" rowSpan={rowSpan}>{formatTime(entry.stop_time)}</td>
+                              <td className="border border-gray-300 px-2 py-2 align-top" rowSpan={rowSpan}>{entry.final_location || '-'}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center align-top font-semibold" rowSpan={rowSpan}>{formatNumber(entry.total_hours)}</td>
+                              <td className="border border-gray-300 px-2 py-2 text-center align-top" rowSpan={rowSpan}>{entry.is_travel ? '✓' : ''}</td>
+                              {items[0] ? (
+                                <>
+                                  <td className="border border-gray-300 px-2 py-2 align-top">{expenseTypeLabel[items[0].type] || items[0].type}</td>
+                                  <td className="border border-gray-300 px-2 py-2 align-top">
+                                    {items[0].type === 'car_odo'
+                                      ? `Dep ${formatNumber(items[0].departure_odo)} → Arr ${formatNumber(items[0].arrival_odo)}`
+                                      : (items[0].amount != null ? `₱${formatNumber(items[0].amount)}` : '-')}
+                                  </td>
+                                  <td className="border border-gray-300 px-2 py-2 align-top">{items[0].job_description || '-'}</td>
+                                </>
+                              ) : (
+                                <td className="border border-gray-300 px-2 py-2 italic text-gray-400" colSpan={3}>No expenses</td>
+                              )}
+                            </tr>
+                            {items.slice(1).map((item) => (
+                              <tr key={item.id}>
+                                <td className="border border-gray-300 px-2 py-2 align-top">{expenseTypeLabel[item.type] || item.type}</td>
+                                <td className="border border-gray-300 px-2 py-2 align-top">
+                                  {item.type === 'car_odo'
+                                    ? `Dep ${formatNumber(item.departure_odo)} → Arr ${formatNumber(item.arrival_odo)}`
+                                    : (item.amount != null ? `₱${formatNumber(item.amount)}` : '-')}
+                                </td>
+                                <td className="border border-gray-300 px-2 py-2 align-top">{item.job_description || '-'}</td>
+                              </tr>
+                            ))}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Summary tiles (new layout) */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <Field label="Total Overtime"        value={formatHrs(newSummary.ot)} />
+                  <Field label="Total Regular Hours"   value={formatHrs(newSummary.reg)} />
+                  <Field label="Total Travel Hours"    value={formatHrs(newSummary.travel)} />
+                  <Field label="Grand Total Manhours"  value={formatHrs(newSummary.grand)} />
+                  <Field label="Total Meal Allowance"  value={formatPeso(newSummary.meal)} />
+                  <Field label="Total Fare Expense"    value={formatPeso(newSummary.fare)} />
+                  <Field label="Total Hotel & Others"  value={formatPeso(newSummary.hotel)} />
+                  <Field label="Grand Total Expense"   value={formatPeso(newSummary.grandExpense)} />
+                  <Field label="Total Distance Travel" value={`${newSummary.distKm.toFixed(0)} km`} />
+                </div>
+              </div>
+            ) : (
+            /* Legacy layout (unchanged) for pre-redesign records */
             <div className="mb-6">
               <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Manhours & Job Descriptions</h3>
               <div>
@@ -426,62 +582,85 @@ export default function ViewDailyTimeSheet({ data, onClose, onExportPDF }: ViewD
                 <Field label="Grand Total Manhours (REG. + O.T.)" value={formatNumber(data.grand_total_manhours)} />
               </div>
             </div>
+            )}
 
-            {/* Performed By */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Performed By</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <Field label="Service Technician/Engineer" value={data.performed_by_name} />
-                  {resolvedPerformedBySig && (
-                    <div className="mt-2">
-                      <img src={resolvedPerformedBySig} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Field label="Supervisor" value={data.approved_by_name} />
-                  {/* Signature box commented out for now
-                  {resolvedApprovedBySig && (
-                    <div className="mt-2">
-                      <img src={resolvedApprovedBySig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" />
-                    </div>
-                  )}
-                  */}
+            {/* Signatories — new layout for redesigned records, legacy block for old ones */}
+            {hasNewShape ? (
+              <div className="mb-6">
+                <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Signatories</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <Field label="Prepared By" value={data.performed_by_name} />
+                    {resolvedPerformedBySig && (
+                      <div className="mt-2"><img src={resolvedPerformedBySig} alt="Prepared By Signature" className="h-16 border border-gray-300 rounded" /></div>
+                    )}
+                  </div>
+                  <div>
+                    <Field label="Checked By" value={data.checked_by} />
+                    {resolvedCheckedBySig && (
+                      <div className="mt-2"><img src={resolvedCheckedBySig} alt="Checked By Signature" className="h-16 border border-gray-300 rounded" /></div>
+                    )}
+                  </div>
+                  <div>
+                    <Field label="Approved By" value={data.approved_by_service} />
+                    {resolvedApprovedByServiceSig && (
+                      <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" /></div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Performed By (legacy) */}
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-gray-800 mb-3 pb-2 border-b border-gray-200 uppercase">Performed By</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <Field label="Service Technician/Engineer" value={data.performed_by_name} />
+                      {resolvedPerformedBySig && (
+                        <div className="mt-2">
+                          <img src={resolvedPerformedBySig} alt="Performed By Signature" className="h-16 border border-gray-300 rounded" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Field label="Supervisor" value={data.approved_by_name} />
+                    </div>
+                  </div>
+                </div>
 
-            {/* For Service Office Only */}
-            <div className="mb-6">
-              <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">For Service Office Only</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-4 rounded-lg">
-                <Field label="Total Overtime" value={formatNumber(data.total_srt)} />
-                <Field label="Total Regular Hours" value={formatNumber(data.actual_manhour)} />
-                <Field label="Total Travel Hours" value={formatNumber(data.performance)} />
-                <Field label="Total ManHours" value={formatNumber(data.total_service_manhours)} />
-                <div>
-                  <Field label="Checked By" value={data.checked_by} />
-                  {resolvedCheckedBySig && <div className="mt-2"><img src={resolvedCheckedBySig} alt="Checked By Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                {/* For Service Office Only (legacy) */}
+                <div className="mb-6">
+                  <h3 className="text-base font-bold text-red-700 mb-3 pb-2 border-b border-red-300 uppercase">For Service Office Only</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-red-50 p-4 rounded-lg">
+                    <Field label="Total Overtime" value={formatNumber(data.total_srt)} />
+                    <Field label="Total Regular Hours" value={formatNumber(data.actual_manhour)} />
+                    <Field label="Total Travel Hours" value={formatNumber(data.performance)} />
+                    <Field label="Total ManHours" value={formatNumber(data.total_service_manhours)} />
+                    <div>
+                      <Field label="Checked By" value={data.checked_by} />
+                      {resolvedCheckedBySig && <div className="mt-2"><img src={resolvedCheckedBySig} alt="Checked By Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                    </div>
+                    <div>
+                      <Field label="Service Coordinator" value={data.service_coordinator} />
+                      {resolvedServiceCoordinatorSig && <div className="mt-2"><img src={resolvedServiceCoordinatorSig} alt="Service Coordinator Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                    </div>
+                    <div>
+                      <Field label="Approved By" value={data.approved_by_service} />
+                      {resolvedApprovedByServiceSig && <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                    </div>
+                    <div>
+                      <Field label="Service Manager" value={data.service_manager} />
+                      {resolvedServiceManagerSig && <div className="mt-2"><img src={resolvedServiceManagerSig} alt="Service Manager Signature" className="h-16 border border-gray-300 rounded" /></div>}
+                    </div>
+                    <div className="md:col-span-4">
+                      <Field label="Note" value={data.service_office_note} />
+                    </div>
+                    <Field label="Daily Average Utilization (%)" value={data.daily_average_utilization ? `${parseFloat(data.daily_average_utilization).toFixed(2)}%` : '-'} />
+                  </div>
                 </div>
-                <div>
-                  <Field label="Service Coordinator" value={data.service_coordinator} />
-                  {resolvedServiceCoordinatorSig && <div className="mt-2"><img src={resolvedServiceCoordinatorSig} alt="Service Coordinator Signature" className="h-16 border border-gray-300 rounded" /></div>}
-                </div>
-                <div>
-                  <Field label="Approved By" value={data.approved_by_service} />
-                  {resolvedApprovedByServiceSig && <div className="mt-2"><img src={resolvedApprovedByServiceSig} alt="Approved By Signature" className="h-16 border border-gray-300 rounded" /></div>}
-                </div>
-                <div>
-                  <Field label="Service Manager" value={data.service_manager} />
-                  {resolvedServiceManagerSig && <div className="mt-2"><img src={resolvedServiceManagerSig} alt="Service Manager Signature" className="h-16 border border-gray-300 rounded" /></div>}
-                </div>
-                <div className="md:col-span-4">
-                  <Field label="Note" value={data.service_office_note} />
-                </div>
-                <Field label="Daily Average Utilization (%)" value={data.daily_average_utilization ? `${parseFloat(data.daily_average_utilization).toFixed(2)}%` : '-'} />
-              </div>
-            </div>
+              </>
+            )}
 
             {/* Attachments */}
             {attachments.length > 0 && (

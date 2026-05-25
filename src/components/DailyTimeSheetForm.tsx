@@ -2,46 +2,57 @@
 
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/axios';
 import SignatorySelect from './SignatorySelect';
 import ConfirmationModal from "./ConfirmationModal";
 import ReportHeader from "./ReportHeader";
-import { ChevronDownIcon, PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useDailyTimeSheetFormStore, TimeSheetEntry } from "@/stores/dailyTimeSheetFormStore";
+import { PlusIcon, TrashIcon, CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import {
+  useDailyTimeSheetFormStore,
+  TimeSheetEntry,
+  ExpenseItem,
+  ExpenseItemType,
+  computeSummary,
+} from "@/stores/dailyTimeSheetFormStore";
 import { useOfflineSubmit } from '@/hooks/useOfflineSubmit';
 import { compressImageIfNeeded } from '@/lib/imageCompression';
 import { useSupabaseUpload } from '@/hooks/useSupabaseUpload';
 import { useUploadLoadingStore } from "@/stores/uploadLoadingStore";
 import JobOrderAutocomplete from './JobOrderAutocomplete';
-import { useUsers, useCustomers, FormUser } from "@/hooks/useSharedQueries";
+import { useUsers, FormUser } from "@/hooks/useSharedQueries";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useCurrentUser } from "@/stores/authStore";
 
+const EXPENSE_TYPE_OPTIONS: { value: ExpenseItemType; label: string }[] = [
+  { value: 'breakfast',    label: 'Breakfast' },
+  { value: 'lunch',        label: 'Lunch' },
+  { value: 'dinner',       label: 'Dinner' },
+  { value: 'car_odo',      label: 'Car ODO' },
+  { value: 'hotel_others', label: 'Hotel & Others' },
+];
+
+const formatPeso = (n: number) =>
+  n === 0 ? '—' : `₱${n.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+const formatHours = (n: number) => `${n.toFixed(2)} hours`;
+
 export default function DailyTimeSheetForm() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { formData, setFormData, resetFormData, addRow, addDateRow, updateEntry, removeEntry } = useDailyTimeSheetFormStore();
+  const {
+    formData, setFormData, resetFormData, addRow, addDateRow,
+    updateEntry, removeEntry,
+    addExpenseItem, updateExpenseItem, removeExpenseItem,
+  } = useDailyTimeSheetFormStore();
 
-  // Offline-aware submission
-  const { submit, isSubmitting, isOnline } = useOfflineSubmit();
+  const { submit, isSubmitting } = useOfflineSubmit();
   const { uploadFiles } = useSupabaseUpload();
   const { showUploadLoading, hideUploadLoading } = useUploadLoadingStore();
 
   const { data: users = [] } = useUsers();
-  const { data: customers = [] } = useCustomers();
   const [attachments, setAttachments] = useState<{ file: File; title: string }[]>([]);
 
-  // Service office field permissions
   const { hasPermission } = usePermissions();
-  const canEditCheckedBy = hasPermission('dts_service_office', 'checked_by');
-  const canEditServiceCoordinator = hasPermission('dts_service_office', 'service_coordinator');
+  const canEditCheckedBy  = hasPermission('dts_service_office', 'checked_by');
   const canEditApprovedBy = hasPermission('dts_service_office', 'approved_by');
-  const canEditServiceManager = hasPermission('dts_service_office', 'service_manager');
-
-  // Whole "FOR SERVICE OFFICE ONLY" section is locked unless the user has at
-  // least one of the service-office signatory permissions (i.e. Admin 1/2 or
-  // Super Admin per the dashboard config).
-  const canEncodeServiceOffice =
-    canEditCheckedBy || canEditServiceCoordinator || canEditApprovedBy || canEditServiceManager;
 
   const currentUser = useCurrentUser();
   const currentUserPosition = (
@@ -49,140 +60,35 @@ export default function DailyTimeSheetForm() {
   ).toLowerCase();
   const isSuperAdmin = currentUserPosition === 'super admin';
 
-  // SVC. CO'RDNTR: no auto-populate — logged-in user can choose from dropdown
+  const summary = React.useMemo(() => computeSummary(formData.entries), [formData.entries]);
 
-  // Calculate regular and OT hours for an entry based on 8AM-5PM work schedule
-  const calculateRegularAndOT = (startTime: string, stopTime: string) => {
-    if (!startTime || !stopTime) return { regular: 0, ot: 0 };
-
-    const [startHour, startMin] = startTime.split(':').map(Number);
-    const [stopHour, stopMin] = stopTime.split(':').map(Number);
-
-    const startMinutes = startHour * 60 + startMin;
-    let stopMinutes = stopHour * 60 + stopMin;
-    if (stopMinutes <= startMinutes) stopMinutes += 24 * 60; // overnight
-
-    const workStart = 8 * 60;  // 8:00 AM
-    const workEnd = 17 * 60;   // 5:00 PM
-
-    // Regular hours = overlap between [startMinutes, stopMinutes] and [8:00, 17:00]
-    const overlapStart = Math.max(startMinutes, workStart);
-    const overlapEnd = Math.min(stopMinutes, workEnd);
-    const regularMinutes = Math.max(0, overlapEnd - overlapStart);
-
-    // OT hours = total worked - regular
-    const totalWorkedMinutes = stopMinutes - startMinutes;
-    const otMinutes = totalWorkedMinutes - regularMinutes;
-
-    return {
-      regular: regularMinutes / 60,
-      ot: otMinutes / 60,
-    };
-  };
-
-  // Auto-calculate total manhours (regular) and grand total (reg + OT) when entries change
+  // Push the two totals into form state for API submission.
   useEffect(() => {
-    let totalRegular = 0;
-    let totalOT = 0;
+    const tm  = (summary.totalRegularHours + summary.totalTravelHours).toFixed(2);
+    const gtm = summary.grandTotalManhours.toFixed(2);
+    if (formData.total_manhours !== tm) setFormData({ total_manhours: tm });
+    if (formData.grand_total_manhours !== gtm) setFormData({ grand_total_manhours: gtm });
+  }, [summary.totalRegularHours, summary.totalTravelHours, summary.grandTotalManhours]);
 
-    let totalTravel = 0;
-
-    formData.entries.forEach((entry) => {
-      const { regular, ot } = calculateRegularAndOT(entry.start_time, entry.stop_time);
-      totalRegular += regular;
-      totalOT += ot;
-      totalTravel += parseFloat(entry.travel_time_hours || '0') || 0;
-    });
-
-    const regStr = totalRegular.toFixed(2);
-    const grandStr = (totalRegular + totalOT).toFixed(2);
-    const otStr = totalOT.toFixed(2);
-    const travelStr = totalTravel.toFixed(2);
-
-    if (formData.total_manhours !== regStr) {
-      setFormData({ total_manhours: regStr });
-    }
-    if (formData.grand_total_manhours !== grandStr) {
-      setFormData({ grand_total_manhours: grandStr });
-    }
-    if (formData.total_service_manhours !== grandStr) {
-      setFormData({ total_service_manhours: grandStr });
-    }
-    if (formData.actual_manhour !== regStr) {
-      setFormData({ actual_manhour: regStr });
-    }
-    if (formData.total_srt !== otStr) {
-      setFormData({ total_srt: otStr });
-    }
-    if (formData.performance !== travelStr) {
-      setFormData({ performance: travelStr });
-    }
-  }, [formData.entries]);
-
-  // Auto-check approved leave on date change
-  useEffect(() => {
-    if (!formData.date) {
-      setFormData({ leave_hours: '0' });
-      return;
-    }
-
-    const checkLeave = async () => {
-      try {
-        const res = await apiClient.get(`/leave-requests/check?date=${formData.date}`);
-        setFormData({ leave_hours: res.data.hasLeave ? '8' : '0' });
-      } catch {
-        setFormData({ leave_hours: '0' });
+  const handleEntryChange = (entryId: string, field: keyof TimeSheetEntry, value: any) => {
+    updateEntry(entryId, { [field]: value });
+    if (field === 'start_time' || field === 'stop_time') {
+      const entry = formData.entries.find(e => e.id === entryId);
+      if (!entry) return;
+      const next = { ...entry, [field]: value } as TimeSheetEntry;
+      if (next.start_time && next.stop_time) {
+        const [sh, sm] = next.start_time.split(':').map(Number);
+        const [eh, em] = next.stop_time.split(':').map(Number);
+        let m = (eh * 60 + em) - (sh * 60 + sm);
+        if (m < 0) m += 24 * 60;
+        setTimeout(() => updateEntry(entryId, { total_hours: (m / 60).toFixed(2) }), 0);
       }
-    };
-
-    checkLeave();
-  }, [formData.date]);
-
-  // Auto-calculate daily average utilization
-  // Formula: Actual Available Manhour = 24 - Leave, Utilization = Total Manhour / Actual Available Manhour × 100
-  useEffect(() => {
-    const totalManhours = parseFloat(formData.total_service_manhours) || 0;
-    const leave = parseFloat(formData.leave_hours) || 0;
-    const actualAvailable = 24 - leave;
-
-    const availableStr = actualAvailable.toFixed(2);
-    if (formData.available_manhour !== availableStr) {
-      setFormData({ available_manhour: availableStr });
-    }
-
-    let utilization = '';
-    if (actualAvailable > 0 && totalManhours > 0) {
-      utilization = ((totalManhours / actualAvailable) * 100).toFixed(2) + '%';
-    }
-
-    if (formData.daily_average_utilization !== utilization) {
-      setFormData({ daily_average_utilization: utilization });
-    }
-  }, [formData.total_service_manhours, formData.leave_hours]);
-
-  // Calculate total hours for an entry when start/stop time changes
-  const calculateTotalHours = (entry: TimeSheetEntry) => {
-    if (entry.start_time && entry.stop_time) {
-      const [startHour, startMin] = entry.start_time.split(':').map(Number);
-      const [stopHour, stopMin] = entry.stop_time.split(':').map(Number);
-
-      let totalMinutes = (stopHour * 60 + stopMin) - (startHour * 60 + startMin);
-      if (totalMinutes < 0) totalMinutes += 24 * 60; // Handle overnight
-
-      const hours = (totalMinutes / 60).toFixed(2);
-      updateEntry(entry.id, { total_hours: hours });
     }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData({ [name]: value });
-  };
-
-  const handleCustomerSelect = (customer: any) => {
-    setFormData({
-      customer: customer.customer || "",
-    });
   };
 
   const handleJobOrderSelect = (jo: any) => {
@@ -198,57 +104,19 @@ export default function DailyTimeSheetForm() {
     setFormData({ [name]: value });
   };
 
-  const handleEntryChange = (entryId: string, field: keyof TimeSheetEntry, value: string) => {
-    const entry = formData.entries.find(e => e.id === entryId);
-    if (entry) {
-      updateEntry(entryId, { [field]: value });
-
-      // Recalculate total hours if time changed
-      if (field === 'start_time' || field === 'stop_time') {
-        const updatedEntry = { ...entry, [field]: value };
-        setTimeout(() => calculateTotalHours(updatedEntry), 0);
-      }
-
-      // Recalculate expense total if any expense field changed
-      const expenseFields = ['expense_breakfast', 'expense_lunch', 'expense_dinner', 'expense_transport', 'expense_lodging', 'expense_others'] as const;
-      if (expenseFields.includes(field as any)) {
-        const updatedEntry = { ...entry, [field]: value };
-        const total = expenseFields.reduce((sum, f) => sum + (parseFloat(updatedEntry[f]) || 0), 0);
-        setTimeout(() => updateEntry(entryId, { expense_total: total.toFixed(2) }), 0);
-      }
-
-      // Auto-calculate travel time hours
-      if (field === 'travel_time_depart' || field === 'travel_time_arrived') {
-        const updatedEntry = { ...entry, [field]: value };
-        if (updatedEntry.travel_time_depart && updatedEntry.travel_time_arrived) {
-          const [dH, dM] = updatedEntry.travel_time_depart.split(':').map(Number);
-          const [aH, aM] = updatedEntry.travel_time_arrived.split(':').map(Number);
-          let diffMin = (aH * 60 + aM) - (dH * 60 + dM);
-          if (diffMin < 0) diffMin += 24 * 60;
-          setTimeout(() => updateEntry(entryId, { travel_time_hours: (diffMin / 60).toFixed(2) }), 0);
-        }
-      }
-
-      // Auto-calculate travel distance
-      if (field === 'travel_departure_odo' || field === 'travel_arrival_odo') {
-        const updatedEntry = { ...entry, [field]: value };
-        const dep = parseFloat(updatedEntry.travel_departure_odo);
-        const arr = parseFloat(updatedEntry.travel_arrival_odo);
-        if (!isNaN(dep) && !isNaN(arr) && arr >= dep) {
-          setTimeout(() => updateEntry(entryId, { travel_distance_km: (arr - dep).toFixed(0) }), 0);
-        }
-      }
-    }
-  };
-
   const handleConfirmSubmit = async () => {
     setIsModalOpen(false);
 
-    // Prepare entries data for submission (strip client-only fields)
-    const entriesData = formData.entries.map(({ id, has_date, ...rest }) => rest);
+    const entriesData = formData.entries.map(({ id, has_date, expense_items, ...rest }, idx) => ({
+      ...rest,
+      sort_order: idx,
+      expense_items: expense_items.map(({ id: _id, ...item }, i) => ({
+        ...item,
+        sort_order: i,
+      })),
+    }));
 
     try {
-      // Step 1: Upload all images to Supabase Storage
       const uploadedData: Array<{ url: string; title: string; fileName: string; fileType: string; fileSize: number }> = [];
 
       if (attachments.length > 0) {
@@ -280,17 +148,9 @@ export default function DailyTimeSheetForm() {
         hideUploadLoading();
       }
 
-      // Step 2: Submit form data with URLs to API
-      // Service-office signatory fields are disabled in the UI for users who
-      // lack the matching dts_service_office.<action> permission, but stale
-      // values can survive in the persisted localStorage draft. Strip per
-      // field so the server's 403 check doesn't trip on values the user
-      // can't see or clear. (Same root cause as the JO Request fix.)
       const sanitizedServiceOffice = {
-        ...(canEditCheckedBy ? {} : { checked_by: "" }),
-        ...(canEditServiceCoordinator ? {} : { service_coordinator: "" }),
-        ...(canEditApprovedBy ? {} : { approved_by_service: "" }),
-        ...(canEditServiceManager ? {} : { service_manager: "" }),
+        ...(canEditCheckedBy  ? {} : { checked_by: "",          checked_by_signature: "" }),
+        ...(canEditApprovedBy ? {} : { approved_by_service: "", approved_by_service_signature: "" }),
       };
 
       await submit({
@@ -320,7 +180,6 @@ export default function DailyTimeSheetForm() {
       toast.error('Job Number is required');
       return;
     }
-
     if (!formData.customer || formData.customer.trim() === '') {
       toast.error('Customer is required');
       return;
@@ -331,11 +190,10 @@ export default function DailyTimeSheetForm() {
 
   return (
     <div className="bg-white shadow-xl rounded-lg p-4 md:p-8 max-w-6xl mx-auto border border-gray-200 print:shadow-none print:border-none">
-      {/* Header */}
       <ReportHeader title="Daily Time Sheet" />
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Section: Header Information */}
+        {/* Section: Basic Information */}
         <div>
           <div className="flex items-center mb-4">
             <div className="w-1 h-6 bg-blue-600 mr-2"></div>
@@ -351,332 +209,242 @@ export default function DailyTimeSheetForm() {
             />
             <Input label="Date" name="date" type="date" value={formData.date} onChange={handleChange} />
             <div className="md:col-span-2">
-              <Input
-                label="Customer"
-                name="customer"
-                value={formData.customer}
-                onChange={handleChange}
-                disabled
-                required
-              />
+              <Input label="Customer" name="customer" value={formData.customer} onChange={handleChange} disabled required />
             </div>
             <div className="md:col-span-2">
-              <Input
-                label="Location of Unit"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-              />
+              <Input label="Location of Unit" name="address" value={formData.address} onChange={handleChange} />
             </div>
           </div>
         </div>
 
-        {/* Section: Time Entries Table */}
+        {/* Section: Manhours & Expenses */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center">
-              <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-              <h3 className="text-lg font-bold text-gray-800 uppercase">Manhours & Job Descriptions</h3>
-            </div>
-            <div className="flex items-center gap-2">
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2" />
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Manhours & Expenses</h3>
+          </div>
+
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr className="bg-gray-200 text-gray-700">
+                  <th className="border border-gray-300 px-2 py-2 text-left w-[110px]">Date</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left w-[90px]">Start Time</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">Initial Location</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left w-[90px]">Stop Time</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">Final Location</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center w-[70px]">Total</th>
+                  <th className="border border-gray-300 px-2 py-2 text-center w-[60px]">Travel</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left w-[140px]">Expense Type</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left w-[160px]">Amount</th>
+                  <th className="border border-gray-300 px-2 py-2 text-left">Job Description</th>
+                  <th className="border border-gray-300 px-2 py-2 w-[40px]"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.entries.map((entry) => {
+                  const rowSpan = Math.max(1, entry.expense_items.length);
+                  return (
+                    <React.Fragment key={entry.id}>
+                      <tr>
+                        <td className="border border-gray-300 px-1 py-1 align-top" rowSpan={rowSpan}>
+                          {entry.has_date ? (
+                            <input
+                              type="date"
+                              value={entry.entry_date}
+                              onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
+                              className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+                            />
+                          ) : null}
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top" rowSpan={rowSpan}>
+                          <input
+                            type="time"
+                            value={entry.start_time}
+                            onChange={(e) => handleEntryChange(entry.id, 'start_time', e.target.value)}
+                            className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top" rowSpan={rowSpan}>
+                          <input
+                            type="text"
+                            value={entry.initial_location}
+                            onChange={(e) => handleEntryChange(entry.id, 'initial_location', e.target.value)}
+                            placeholder="e.g. PSI Caloocan"
+                            className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top" rowSpan={rowSpan}>
+                          <input
+                            type="time"
+                            value={entry.stop_time}
+                            onChange={(e) => handleEntryChange(entry.id, 'stop_time', e.target.value)}
+                            className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 align-top" rowSpan={rowSpan}>
+                          <input
+                            type="text"
+                            value={entry.final_location}
+                            onChange={(e) => handleEntryChange(entry.id, 'final_location', e.target.value)}
+                            placeholder="e.g. Philex"
+                            className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 text-center align-top" rowSpan={rowSpan}>
+                          <input
+                            type="text"
+                            value={entry.total_hours}
+                            readOnly
+                            className="w-full bg-gray-100 border border-gray-300 rounded-md text-sm p-1 text-center font-semibold"
+                          />
+                        </td>
+                        <td className="border border-gray-300 px-1 py-1 text-center align-top" rowSpan={rowSpan}>
+                          <input
+                            type="checkbox"
+                            checked={entry.is_travel}
+                            onChange={(e) => handleEntryChange(entry.id, 'is_travel', e.target.checked)}
+                            className="h-4 w-4"
+                            title="Mark this entry as Travel time"
+                          />
+                        </td>
+                        {entry.expense_items[0] ? (
+                          <ExpenseCells
+                            entryId={entry.id}
+                            item={entry.expense_items[0]}
+                            onChange={updateExpenseItem}
+                            onRemove={removeExpenseItem}
+                          />
+                        ) : (
+                          <td className="border border-gray-300 px-2 py-2 italic text-gray-400" colSpan={4}>
+                            No expenses — click "Add Expense" below
+                          </td>
+                        )}
+                        <td className="border border-gray-300 px-1 py-1 text-center align-top" rowSpan={rowSpan}>
+                          {formData.entries.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeEntry(entry.id)}
+                              className="p-1 text-red-500 hover:bg-red-50 rounded"
+                              title="Remove this time row"
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                      {entry.expense_items.slice(1).map((item) => (
+                        <tr key={item.id}>
+                          <ExpenseCells
+                            entryId={entry.id}
+                            item={item}
+                            onChange={updateExpenseItem}
+                            onRemove={removeExpenseItem}
+                          />
+                        </tr>
+                      ))}
+                      <tr>
+                        <td colSpan={11} className="border border-gray-300 px-2 py-1 bg-orange-50">
+                          <button
+                            type="button"
+                            onClick={() => addExpenseItem(entry.id, 'breakfast')}
+                            className="text-orange-700 hover:text-orange-900 text-xs font-semibold"
+                          >
+                            + Add Expense to this time entry
+                          </button>
+                        </td>
+                      </tr>
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="mt-3 flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={addRow}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-1 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm rounded-md"
               >
-                <PlusIcon className="h-4 w-4" />
-                Add Row
+                <PlusIcon className="h-4 w-4" /> Add New Time
               </button>
               <button
                 type="button"
                 onClick={addDateRow}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-1 px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-md"
               >
-                <CalendarDaysIcon className="h-4 w-4" />
-                Add New Date
+                <CalendarDaysIcon className="h-4 w-4" /> Add New Date
               </button>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 p-6 rounded-lg border border-gray-100">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2 border-gray-300">
-                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[120px]">Date</th>
-                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Start</th>
-                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[100px]">Stop</th>
-                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2 w-[80px]">Total</th>
-                  <th className="text-left text-xs font-bold text-gray-600 uppercase py-3 px-2">Job Descriptions<br/><span className="font-normal text-gray-500">(Pls. indicate specific component & Eng. Model)</span></th>
-                  <th className="w-[50px]"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.entries.map((entry) => (
-                  <React.Fragment key={entry.id}>
-                    <tr className="border-b border-gray-100">
-                      <td className="pt-2 pb-1 px-2">
-                        {entry.has_date ? (
-                          <input
-                            type="date"
-                            value={entry.entry_date}
-                            onChange={(e) => handleEntryChange(entry.id, 'entry_date', e.target.value)}
-                            className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                          />
-                        ) : (
-                          <div className="w-full h-10"></div>
-                        )}
-                      </td>
-                      <td className="pt-2 pb-1 px-2">
-                        <input
-                          type="time"
-                          value={entry.start_time}
-                          onChange={(e) => handleEntryChange(entry.id, 'start_time', e.target.value)}
-                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                        />
-                      </td>
-                      <td className="pt-2 pb-1 px-2">
-                        <input
-                          type="time"
-                          value={entry.stop_time}
-                          onChange={(e) => handleEntryChange(entry.id, 'stop_time', e.target.value)}
-                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                        />
-                      </td>
-                      <td className="pt-2 pb-1 px-2">
-                        <input
-                          type="text"
-                          value={entry.total_hours}
-                          className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2"
-                          readOnly
-                        />
-                      </td>
-                      <td className="pt-2 pb-1 px-2">
-                        <input
-                          type="text"
-                          value={entry.job_description}
-                          onChange={(e) => handleEntryChange(entry.id, 'job_description', e.target.value)}
-                          placeholder="Enter job description"
-                          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-2"
-                        />
-                      </td>
-                      <td className="pt-2 pb-1 px-2" rowSpan={4}>
-                        {formData.entries.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeEntry(entry.id)}
-                            className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                    <tr className="bg-gray-50/50">
-                      <td colSpan={5} className="pt-1 pb-2 px-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Expenses</span>
-                          <div className="flex-1 border-t border-gray-200"></div>
-                        </div>
-                        <div className="grid grid-cols-8 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Breakfast</label>
-                            <input type="number" step="0.01" value={entry.expense_breakfast} onChange={(e) => handleEntryChange(entry.id, 'expense_breakfast', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lunch</label>
-                            <input type="number" step="0.01" value={entry.expense_lunch} onChange={(e) => handleEntryChange(entry.id, 'expense_lunch', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Dinner</label>
-                            <input type="number" step="0.01" value={entry.expense_dinner} onChange={(e) => handleEntryChange(entry.id, 'expense_dinner', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Transport</label>
-                            <input type="number" step="0.01" value={entry.expense_transport} onChange={(e) => handleEntryChange(entry.id, 'expense_transport', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Lodging</label>
-                            <input type="number" step="0.01" value={entry.expense_lodging} onChange={(e) => handleEntryChange(entry.id, 'expense_lodging', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Others</label>
-                            <input type="number" step="0.01" value={entry.expense_others} onChange={(e) => handleEntryChange(entry.id, 'expense_others', e.target.value)} placeholder="0.00" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Total</label>
-                            <div className="relative">
-                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₱</span>
-                              <input type="text" value={entry.expense_total} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 pl-5 font-bold" />
-                            </div>
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Remarks</label>
-                            <input type="text" value={entry.expense_remarks} onChange={(e) => handleEntryChange(entry.id, 'expense_remarks', e.target.value)} placeholder="Remarks" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    {/* Travel Time */}
-                    <tr className="bg-gray-50/50">
-                      <td colSpan={5} className="pt-1 pb-2 px-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Time</span>
-                          <div className="flex-1 border-t border-gray-200"></div>
-                        </div>
-                        <div className="grid grid-cols-5 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">From</label>
-                            <input type="text" value={entry.travel_time_from} onChange={(e) => handleEntryChange(entry.id, 'travel_time_from', e.target.value)} placeholder="e.g. Office" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">To Destination</label>
-                            <input type="text" value={entry.travel_time_to} onChange={(e) => handleEntryChange(entry.id, 'travel_time_to', e.target.value)} placeholder="e.g. Job Site" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Time Depart</label>
-                            <input type="time" value={entry.travel_time_depart} onChange={(e) => handleEntryChange(entry.id, 'travel_time_depart', e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Time Arrived</label>
-                            <input type="time" value={entry.travel_time_arrived} onChange={(e) => handleEntryChange(entry.id, 'travel_time_arrived', e.target.value)} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Travel Hours</label>
-                            <input type="text" value={entry.travel_time_hours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-1.5 font-bold" />
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    {/* Travel Distance */}
-                    <tr className="border-b border-gray-300 bg-gray-50/50">
-                      <td colSpan={5} className="pt-1 pb-2 px-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Travel Distance</span>
-                          <div className="flex-1 border-t border-gray-200"></div>
-                        </div>
-                        <div className="grid grid-cols-5 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">From</label>
-                            <input type="text" value={entry.travel_distance_from} onChange={(e) => handleEntryChange(entry.id, 'travel_distance_from', e.target.value)} placeholder="e.g. Office" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">To Destination</label>
-                            <input type="text" value={entry.travel_distance_to} onChange={(e) => handleEntryChange(entry.id, 'travel_distance_to', e.target.value)} placeholder="e.g. Job Site" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Departure ODO</label>
-                            <input type="number" value={entry.travel_departure_odo} onChange={(e) => handleEntryChange(entry.id, 'travel_departure_odo', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Arrival ODO</label>
-                            <input type="number" value={entry.travel_arrival_odo} onChange={(e) => handleEntryChange(entry.id, 'travel_arrival_odo', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-0.5">Distance Travel</label>
-                            <div className="relative">
-                              <input type="number" value={entry.travel_distance_km} onChange={(e) => handleEntryChange(entry.id, 'travel_distance_km', e.target.value)} placeholder="0" className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 p-1.5 pr-8" />
-                              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">KM</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr className="border-t-2 border-gray-400">
-                  <td colSpan={3} className="py-3 px-2 text-right font-bold text-gray-700 uppercase">Total Manhours</td>
-                  <td className="py-3 px-2">
-                    <input
-                      type="text"
-                      value={formData.total_manhours}
-                      className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2 font-bold"
-                      readOnly
-                    />
-                  </td>
-                  <td colSpan={2}></td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div className="mt-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex flex-col w-full">
-                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Regular Hours (8AM - 5PM)</label>
-                <input type="text" value={formData.total_manhours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
-              </div>
-              <div className="flex flex-col w-full">
-                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Overtime Hours</label>
-                <input
-                  type="text"
-                  value={
-                    (parseFloat(formData.grand_total_manhours || '0') - parseFloat(formData.total_manhours || '0')).toFixed(2)
-                  }
-                  readOnly
-                  className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold"
-                />
-              </div>
-              <div className="flex flex-col w-full">
-                <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">Grand Total Manhours (REG. + O.T.)</label>
-                <input type="text" value={formData.grand_total_manhours} readOnly className="w-full bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-md p-2.5 font-bold" />
-              </div>
             </div>
           </div>
         </div>
 
-        {/* Section: Performed By */}
+        {/* Section: Summary (locked) */}
         <div>
           <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-blue-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">Performed By</h3>
+            <div className="w-1 h-6 bg-blue-600 mr-2" />
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Summary</h3>
+            <span className="ml-2 text-xs font-normal text-gray-400 normal-case">(auto-calculated, locked)</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-gray-50 p-6 rounded-lg border border-gray-100">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <SummaryTile label="Total Overtime"        value={formatHours(summary.totalOvertimeHours)} />
+            <SummaryTile label="Total Regular Hours"   value={formatHours(summary.totalRegularHours)} />
+            <SummaryTile label="Total Travel Hours"    value={formatHours(summary.totalTravelHours)} />
+            <SummaryTile label="Grand Total Manhours"  value={formatHours(summary.grandTotalManhours)} highlight />
+            <SummaryTile label="Total Meal Allowance"  value={formatPeso(summary.totalMealAllowance)} />
+            <SummaryTile label="Total Fare Expense"    value={formatPeso(summary.totalFareExpense)} />
+            <SummaryTile label="Total Hotel & Others"  value={formatPeso(summary.totalHotelOthers)} />
+            <SummaryTile label="Grand Total Expense"   value={formatPeso(summary.grandTotalExpense)} highlight />
+            <SummaryTile label="Total Distance Travel" value={`${summary.totalDistanceTravelKm.toFixed(0)} km`} />
+          </div>
+        </div>
+
+        {/* Section: Signatories */}
+        <div>
+          <div className="flex items-center mb-4">
+            <div className="w-1 h-6 bg-blue-600 mr-2" />
+            <h3 className="text-lg font-bold text-gray-800 uppercase">Signatories</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-gray-50 p-6 rounded-lg border border-gray-100">
             <SignatorySelect
-              label="Service Technician/Engineer"
+              label="Prepared By"
               name="performed_by_name"
               value={formData.performed_by_name}
               signatureValue={formData.performed_by_signature}
               onChange={handleSignatoryChange}
               onSignatureChange={(sig) => setFormData({ performed_by_signature: sig })}
               users={users as FormUser[]}
-              subtitle="Performed By"
+              subtitle="Logged-in User"
               autoFillForPositions={["User 1", "User 2"]}
             />
-            {/* <SignatorySelect
-              label="Supervisor"
-              name="approved_by_name"
-              value={formData.approved_by_name}
-              signatureValue={formData.approved_by_signature}
+            <SignatorySelect
+              label="Checked By"
+              name="checked_by"
+              value={formData.checked_by}
+              signatureValue={formData.checked_by_signature}
               onChange={handleSignatoryChange}
-              onSignatureChange={(sig) => setFormData({ approved_by_signature: sig })}
+              onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })}
               users={users as FormUser[]}
-              subtitle="Approved By (Supervisor)"
-              hideSignature
-            /> */}
-          </div>
-        </div>
-
-        {/* Section: For Service Office Only */}
-        <div>
-          <div className="flex items-center mb-4">
-            <div className="w-1 h-6 bg-red-600 mr-2"></div>
-            <h3 className="text-lg font-bold text-gray-800 uppercase">For Service Office Only</h3>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4 bg-red-50 p-6 rounded-lg border border-red-200">
-            <Input label="Total Overtime" name="total_srt" type="number" step="0.01" value={formData.total_srt} onChange={handleChange} disabled placeholder=" " />
-            <Input label="Total Regular Hours" name="actual_manhour" type="number" step="0.01" value={formData.actual_manhour} onChange={handleChange} disabled placeholder=" " />
-            <Input label="Total Travel Hours" name="performance" type="number" step="0.01" value={formData.performance} onChange={handleChange} disabled placeholder=" " />
-            <Input label="Total ManHours" name="total_service_manhours" type="number" step="0.01" value={formData.total_service_manhours} onChange={handleChange} disabled placeholder=" " />
-            <SignatorySelect label="Checked By" name="checked_by" value={formData.checked_by} signatureValue={formData.checked_by_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ checked_by_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditCheckedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.checked_by"} autoFillForPositions={["Super Admin"]} />
-            <SignatorySelect label="Service Coordinator" name="service_coordinator" value={formData.service_coordinator} signatureValue={formData.service_coordinator_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_coordinator_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceCoordinator} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_coordinator"} autoFillForPositions={["Super Admin"]} />
-            <SignatorySelect label="Approved By" name="approved_by_service" value={formData.approved_by_service} signatureValue={formData.approved_by_service_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditApprovedBy} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"} autoFillForPositions={["Super Admin"]} />
-            <SignatorySelect label="Service Manager" name="service_manager" value={formData.service_manager} signatureValue={formData.service_manager_signature} onChange={handleSignatoryChange} onSignatureChange={(sig) => setFormData({ service_manager_signature: sig })} users={users as FormUser[]} showAllUsers disabled={!canEditServiceManager} filterByPermission={isSuperAdmin ? undefined : "dts_service_office.service_manager"} autoFillForPositions={["Super Admin"]} />
-            <div className="lg:col-span-4">
-              <TextArea label="Note" name="service_office_note" value={formData.service_office_note} onChange={handleChange} rows={2} disabled={!canEncodeServiceOffice && !isSuperAdmin} />
-            </div>
-            <Input label="Daily Average Utilization (%)" name="daily_average_utilization" type="text" value={formData.daily_average_utilization} onChange={() => {}} disabled placeholder=" " />
+              showAllUsers
+              subtitle="Admin 2"
+              disabled={!canEditCheckedBy}
+              filterByPermission={isSuperAdmin ? undefined : "dts_service_office.checked_by"}
+              autoFillForPositions={["Super Admin"]}
+            />
+            <SignatorySelect
+              label="Approved By"
+              name="approved_by_service"
+              value={formData.approved_by_service}
+              signatureValue={formData.approved_by_service_signature}
+              onChange={handleSignatoryChange}
+              onSignatureChange={(sig) => setFormData({ approved_by_service_signature: sig })}
+              users={users as FormUser[]}
+              showAllUsers
+              subtitle="Admin 1 or Super Admin"
+              disabled={!canEditApprovedBy}
+              filterByPermission={isSuperAdmin ? undefined : "dts_service_office.approved_by"}
+              autoFillForPositions={["Super Admin"]}
+            />
           </div>
         </div>
 
@@ -815,7 +583,93 @@ export default function DailyTimeSheetForm() {
   );
 }
 
-// Helper Components
+interface ExpenseCellsProps {
+  entryId: string;
+  item: ExpenseItem;
+  onChange: (entryId: string, itemId: string, data: Partial<ExpenseItem>) => void;
+  onRemove: (entryId: string, itemId: string) => void;
+}
+
+const ExpenseCells = ({ entryId, item, onChange, onRemove }: ExpenseCellsProps) => (
+  <>
+    <td className="border border-gray-300 px-1 py-1 align-top">
+      <select
+        value={item.type}
+        onChange={(e) => onChange(entryId, item.id, { type: e.target.value as ExpenseItemType })}
+        className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+      >
+        {EXPENSE_TYPE_OPTIONS.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </td>
+    <td className="border border-gray-300 px-1 py-1 align-top">
+      {item.type === 'car_odo' ? (
+        <div className="grid grid-cols-2 gap-1">
+          <input
+            type="number"
+            value={item.departure_odo}
+            onChange={(e) => onChange(entryId, item.id, { departure_odo: e.target.value })}
+            placeholder="Departure"
+            className="w-full bg-white border border-gray-300 rounded-md text-xs p-1"
+          />
+          <input
+            type="number"
+            value={item.arrival_odo}
+            onChange={(e) => onChange(entryId, item.id, { arrival_odo: e.target.value })}
+            placeholder="Arrival"
+            className="w-full bg-white border border-gray-300 rounded-md text-xs p-1"
+          />
+        </div>
+      ) : (
+        <div className="relative">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">₱</span>
+          <input
+            type="number"
+            step="0.01"
+            value={item.amount}
+            onChange={(e) => onChange(entryId, item.id, { amount: e.target.value })}
+            placeholder="0.00"
+            className="w-full bg-white border border-gray-300 rounded-md text-sm p-1 pl-5"
+          />
+        </div>
+      )}
+    </td>
+    <td className="border border-gray-300 px-1 py-1 align-top">
+      <input
+        type="text"
+        value={item.job_description}
+        onChange={(e) => onChange(entryId, item.id, { job_description: e.target.value })}
+        placeholder="e.g. Travel from PSI Caloocan to Philex"
+        className="w-full bg-white border border-gray-300 rounded-md text-sm p-1"
+      />
+    </td>
+    <td className="border border-gray-300 px-1 py-1 text-center align-top">
+      <button
+        type="button"
+        onClick={() => onRemove(entryId, item.id)}
+        className="p-1 text-red-500 hover:bg-red-50 rounded"
+        title="Remove this expense"
+      >
+        <XMarkIcon className="h-4 w-4" />
+      </button>
+    </td>
+  </>
+);
+
+interface SummaryTileProps {
+  label: string;
+  value: string;
+  highlight?: boolean;
+}
+
+const SummaryTile = ({ label, value, highlight }: SummaryTileProps) => (
+  <div className={`flex flex-col rounded-md border p-3 ${highlight ? 'bg-blue-100 border-blue-300' : 'bg-white border-blue-100'}`}>
+    <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wide">{label}</span>
+    <span className={`mt-1 ${highlight ? 'text-lg font-bold text-blue-900' : 'text-base font-semibold text-gray-900'}`}>{value}</span>
+  </div>
+);
+
 interface InputProps {
   label: string;
   name: string;
@@ -846,172 +700,3 @@ const Input = ({ label, name, value, onChange, type = "text", required = false, 
     />
   </div>
 );
-
-interface TextAreaProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  rows?: number;
-  disabled?: boolean;
-}
-
-const TextArea = ({ label, name, value, onChange, rows = 3, disabled = false }: TextAreaProps) => (
-  <div className="flex flex-col w-full">
-    <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-    <textarea
-      name={name}
-      value={value}
-      onChange={onChange}
-      rows={rows}
-      disabled={disabled}
-      className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm resize-none disabled:bg-gray-100 disabled:cursor-not-allowed"
-      placeholder={`Enter ${label.toLowerCase()}`}
-    />
-  </div>
-);
-
-interface SelectProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  options: string[];
-}
-
-const Select = ({ label, name, value, onChange, options }: SelectProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleSelectOption = (option: string) => {
-    const syntheticEvent = { target: { name, value: option } } as React.ChangeEvent<HTMLInputElement>;
-    onChange(syntheticEvent);
-    setShowDropdown(false);
-  };
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          onChange={onChange}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 transition-colors pr-16"
-          placeholder="Select or type a name"
-        />
-        {value && (
-          <button
-            type="button"
-            onClick={() => {
-              const syntheticEvent = { target: { name, value: '' } } as React.ChangeEvent<HTMLInputElement>;
-              onChange(syntheticEvent);
-            }}
-            className="absolute inset-y-0 right-10 flex items-center px-1 text-gray-400 hover:text-gray-600 focus:outline-none"
-          >
-            <XMarkIcon className="h-4 w-4" />
-          </button>
-        )}
-        <button type="button" onClick={() => setShowDropdown(!showDropdown)} className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600">
-          <ChevronDownIcon className={`h-5 w-5 transition-transform ${showDropdown ? "rotate-180" : ""}`} />
-        </button>
-        {showDropdown && options.length > 0 && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-            {options.map((opt: string) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => handleSelectOption(opt)}
-                className={`w-full px-4 py-2 text-left transition-colors ${opt === value ? "bg-[#2B4C7E] text-white font-medium" : "text-gray-900 hover:bg-[#2B4C7E] hover:text-white"}`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-
-interface CustomerAutocompleteProps {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
-  onSelect: (customer: any) => void;
-  customers: any[];
-  searchKey?: string;
-  required?: boolean;
-}
-
-const CustomerAutocomplete = ({ label, name, value, onChange, onSelect, customers, searchKey = "customer", required = false }: CustomerAutocompleteProps) => {
-  const [showDropdown, setShowDropdown] = React.useState(false);
-  const dropdownRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleSelectCustomer = (customer: any) => {
-    onSelect(customer);
-    setShowDropdown(false);
-  };
-
-  const filteredCustomers = customers.filter((c) =>
-    (c[searchKey] || "").toLowerCase().includes((value || "").toLowerCase())
-  ).sort((a, b) => (a[searchKey] || "").localeCompare(b[searchKey] || ""));
-
-  return (
-    <div className="flex flex-col w-full" ref={dropdownRef}>
-      <label className="text-xs font-bold text-gray-600 mb-1.5 uppercase tracking-wide">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <div className="relative">
-        <input
-          type="text"
-          name={name}
-          value={value}
-          onChange={(e) => { onChange(e); setShowDropdown(true); }}
-          onFocus={() => setShowDropdown(true)}
-          className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
-          placeholder={`Enter ${label.toLowerCase()}`}
-          autoComplete="off"
-        />
-        {showDropdown && filteredCustomers.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-            {filteredCustomers.map((customer) => (
-              <div
-                key={customer.id}
-                onClick={() => handleSelectCustomer(customer)}
-                className="px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm text-gray-900 border-b last:border-b-0 border-gray-100"
-              >
-                <div className="text-base font-semibold text-gray-900">{customer.name}</div>
-                <div className="text-sm text-gray-600">{customer.customer}</div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};

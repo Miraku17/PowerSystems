@@ -3,6 +3,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission, getPermissionScope } from "@/lib/permissions";
 import { CREDIT_LEAVE_TYPES } from "@/types";
+import { createNotifications } from "@/lib/notifications";
+import { getUserDisplayName } from "@/lib/users";
 
 // PATCH: Change leave request status (conditional, approved, rejected, or revoke back to pending)
 export const PATCH = withAuth(async (request, { user, params }) => {
@@ -216,6 +218,18 @@ export const PATCH = withAuth(async (request, { user, params }) => {
         { success: false, message: error.message },
         { status: 500 }
       );
+    }
+
+    // Notify the requester on terminal status transitions
+    if ((status === "approved" || status === "rejected") && data?.user_id) {
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: status === "approved" ? "leave.approved" : "leave.rejected",
+        recordId: id,
+        recipientId: data.user_id,
+        actorId: user.id,
+        actorName,
+      });
     }
 
     return NextResponse.json({ success: true, data });

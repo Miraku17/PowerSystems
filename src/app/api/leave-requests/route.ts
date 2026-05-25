@@ -4,6 +4,8 @@ import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission, getPermissionScope } from "@/lib/permissions";
 import { sameBranch } from "@/lib/address";
 import { CREDIT_LEAVE_TYPES } from "@/types";
+import { createNotifications } from "@/lib/notifications";
+import { getUserDisplayName } from "@/lib/users";
 
 // GET: List leave requests
 // - Users with leave.access see their own requests
@@ -160,6 +162,16 @@ export const POST = withAuth(async (request, { user }) => {
         { success: false, message: error.message },
         { status: 500 }
       );
+    }
+
+    if (data) {
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: "leave.submitted",
+        recordId: data.id,
+        actorId: user.id,
+        actorName,
+      });
     }
 
     return NextResponse.json({ success: true, data }, { status: 201 });

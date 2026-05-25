@@ -3,7 +3,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord } from "@/lib/approvals";
-import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames, getUserDisplayName } from "@/lib/users";
+import { createNotifications } from "@/lib/notifications";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -370,6 +371,15 @@ export const POST = withAuth(async (request, { user }) => {
         new_data: data[0],
         performed_by: user.id,
         performed_at: new Date().toISOString(),
+      });
+
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: 'form.submitted',
+        formType: 'job-order-request',
+        recordId: data[0].id,
+        actorId: user.id,
+        actorName,
       });
     }
 

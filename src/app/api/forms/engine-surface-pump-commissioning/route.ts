@@ -4,6 +4,8 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
+import { createNotifications } from "@/lib/notifications";
+import { getUserDisplayName } from "@/lib/users";
 import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
 import { assertJoInProgress } from "@/lib/jo-status";
 
@@ -319,6 +321,15 @@ export const POST = withAuth(async (request, { user }) => {
       await supabase.from('audit_logs').insert({ table_name: 'engine_surface_pump_commissioning_report', record_id: data[0].id, action: 'CREATE', old_data: null, new_data: data[0], performed_by: user.id, performed_at: new Date().toISOString() });
 
       await createApprovalRecord(supabase, 'engine_surface_pump_commissioning_report', data[0].id, user.id);
+
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: 'form.submitted',
+        formType: 'engine-surface-pump-commissioning',
+        recordId: data[0].id,
+        actorId: user.id,
+        actorName,
+      });
     }
 
     return NextResponse.json({ message: "Report submitted successfully", data }, { status: 201 });

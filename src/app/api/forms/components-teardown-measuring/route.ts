@@ -3,7 +3,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
-import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames, getUserDisplayName } from "@/lib/users";
+import { createNotifications } from "@/lib/notifications";
 import { assertJoInProgress } from "@/lib/jo-status";
 
 // --- GET: Fetch all components teardown measuring reports ---
@@ -530,6 +531,15 @@ export const POST = withAuth(async (request, { user }) => {
     });
 
     await createApprovalRecord(supabase, 'components_teardown_measuring_report', reportId, user.id);
+
+    const actorName = await getUserDisplayName(supabase, user.id);
+    await createNotifications(supabase, {
+      type: 'form.submitted',
+      formType: 'components-teardown-measuring',
+      recordId: reportId,
+      actorId: user.id,
+      actorName,
+    });
 
     return NextResponse.json(
       { message: "Components Teardown Measuring Report submitted successfully", data: mainData },

@@ -4,7 +4,8 @@ import { withAuth } from "@/lib/auth-middleware";
 import { checkRecordPermission, getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
-import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames, getUserDisplayName } from "@/lib/users";
+import { createNotifications } from "@/lib/notifications";
 import { assertJoInProgress } from "@/lib/jo-status";
 
 export const GET = withAuth(async (request, { user }) => {
@@ -400,6 +401,15 @@ export const POST = withAuth(async (request, { user }) => {
       });
 
       await createApprovalRecord(supabase, 'electric_surface_pump_teardown_report', data[0].id, user.id);
+
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: 'form.submitted',
+        formType: 'electric-surface-pump-teardown',
+        recordId: data[0].id,
+        actorId: user.id,
+        actorName,
+      });
     }
 
     return NextResponse.json(

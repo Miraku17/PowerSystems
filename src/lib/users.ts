@@ -51,3 +51,23 @@ export async function getUserDisplayNames(
     })
   );
 }
+
+/**
+ * Resolve a single user's display name. Falls back to email local-part
+ * if firstname/lastname are unset.
+ */
+export async function getUserDisplayName(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string> {
+  if (!userId) return '';
+  const { data, error } = await supabase
+    .from('users')
+    .select('firstname, lastname, email')
+    .eq('id', userId)
+    .maybeSingle();
+  if (error || !data) return '';
+  const full = `${data.firstname || ''} ${data.lastname || ''}`.trim();
+  if (full) return full;
+  return (data.email || '').split('@')[0] || '';
+}

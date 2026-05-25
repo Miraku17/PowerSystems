@@ -2,6 +2,26 @@ import { NextResponse } from "next/server";
 import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { hasPermission } from "@/lib/permissions";
+import { createNotifications, type FormType } from "@/lib/notifications";
+import { getUserDisplayName } from "@/lib/users";
+
+// Map approvals.report_table → notification FormType slug.
+// Only service reports flow through the approvals table; DTS and JO Requests
+// have their own status flows and aren't included here.
+const REPORT_TABLE_TO_FORM_TYPE: Record<string, FormType> = {
+  engine_inspection_receiving_report:        "engine-inspection-receiving",
+  engine_teardown_reports:                   "engine-teardown",
+  components_teardown_measuring_report:      "components-teardown-measuring",
+  engine_surface_pump_commissioning_report:  "engine-surface-pump-commissioning",
+  engine_surface_pump_service_report:        "engine-surface-pump-service",
+  submersible_pump_commissioning_report:     "submersible-pump-commissioning",
+  submersible_pump_service_report:           "submersible-pump-service",
+  submersible_pump_teardown_report:          "submersible-pump-teardown",
+  electric_surface_pump_commissioning_report:"electric-surface-pump-commissioning",
+  electric_surface_pump_service_report:      "electric-surface-pump-service",
+  electric_surface_pump_teardown_report:     "electric-surface-pump-teardown",
+  deutz_commissioning_report:                "deutz-commissioning",
+};
 
 const VALID_STATUSES = ["In-Progress", "Pending", "Close", "Cancelled"];
 
@@ -405,6 +425,24 @@ export const POST = withAuth(async (request, { params, user }) => {
       performed_by: user.id,
       performed_at: now,
     });
+
+    // Notification fan-out: notify the form creator on rejection (any level) or
+    // on the final (level-2) approval.
+    const formType = REPORT_TABLE_TO_FORM_TYPE[approval.report_table];
+    if (formType && approval.report_id) {
+      const isFinalApproval = action === "approve" && currentLevel === 2;
+      if (action === "reject" || isFinalApproval) {
+        const actorName = await getUserDisplayName(supabase, user.id);
+        await createNotifications(supabase, {
+          type: action === "approve" ? "form.approved" : "form.rejected",
+          formType,
+          recordId: approval.report_id,
+          actorId: user.id,
+          actorName,
+          reason: notes,
+        });
+      }
+    }
 
     const actionLabel = action === "approve" ? "approved" : "rejected";
     return NextResponse.json({

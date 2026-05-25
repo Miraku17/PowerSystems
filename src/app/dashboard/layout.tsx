@@ -26,6 +26,8 @@ import { useAuthStore } from "@/stores/authStore";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "@/hooks/usePermissions";
 import OfflineProvider from "@/components/OfflineProvider";
+import NotificationsRealtimeProvider from "@/components/NotificationsRealtimeProvider";
+import NotificationBell from "@/components/NotificationBell";
 import { CloudArrowUpIcon, ShieldCheckIcon, BookOpenIcon, DocumentChartBarIcon, PencilSquareIcon, TrashIcon, EyeIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 
 export default function DashboardLayout({
@@ -395,6 +397,7 @@ function DashboardLayoutInner({
 
   return (
     <OfflineProvider>
+    <NotificationsRealtimeProvider>
     <div className="min-h-screen bg-[#F8F9FA] flex font-sans">
       {/* Mobile sidebar backdrop */}
       {sidebarOpen && (
@@ -590,6 +593,7 @@ function DashboardLayoutInner({
               sidebarCollapsed ? "justify-center" : "gap-2.5"
             }`}
           >
+            <NotificationBell />
             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#2B4C7E] to-[#4A6FA5] flex items-center justify-center text-white font-bold text-xs shadow-inner ring-2 ring-blue-900/50">
               {userName.charAt(0).toUpperCase()}
             </div>
@@ -639,8 +643,11 @@ function DashboardLayoutInner({
               <Bars3Icon className="h-6 w-6" />
             </button>
             <span className="font-bold text-gray-800">Power Systems</span>
-            <div className="w-8 h-8 rounded-full bg-[#2B4C7E] flex items-center justify-center text-white text-sm font-bold shadow-sm">
-              {userName.charAt(0).toUpperCase()}
+            <div className="flex items-center gap-2">
+              <NotificationBell />
+              <div className="w-8 h-8 rounded-full bg-[#2B4C7E] flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                {userName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
@@ -651,6 +658,7 @@ function DashboardLayoutInner({
         </main>
       </div>
     </div>
+    </NotificationsRealtimeProvider>
     </OfflineProvider>
   );
 }

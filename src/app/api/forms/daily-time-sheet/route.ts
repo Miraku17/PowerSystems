@@ -3,8 +3,9 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { sanitizeFilename } from "@/lib/utils";
-import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames, getUserDisplayName } from "@/lib/users";
 import { assertJoInProgress, assertJoInProgressById } from "@/lib/jo-status";
+import { createNotifications } from "@/lib/notifications";
 
 export const GET = withAuth(async (request, { user }) => {
   try {
@@ -376,6 +377,18 @@ export const POST = withAuth(async (request, { user }) => {
         new_data: data[0],
         performed_by: user.id,
         performed_at: new Date().toISOString(),
+      });
+    }
+
+    // Fire-and-forget notification fan-out (errors swallowed by helper)
+    if (data && data[0]) {
+      const actorName = await getUserDisplayName(supabase, user.id);
+      await createNotifications(supabase, {
+        type: 'form.submitted',
+        formType: 'daily-time-sheet',
+        recordId: data[0].id,
+        actorId: user.id,
+        actorName,
       });
     }
 

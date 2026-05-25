@@ -3,7 +3,8 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import { getReadScopeFilter, hasPermission } from "@/lib/permissions";
 import { getApprovalsByTable, getApprovalForRecord, createApprovalRecord } from "@/lib/approvals";
-import { getUserAddresses, getUserDisplayNames } from "@/lib/users";
+import { getUserAddresses, getUserDisplayNames, getUserDisplayName } from "@/lib/users";
+import { createNotifications } from "@/lib/notifications";
 import { assertJoInProgress, assertJoInProgressById } from "@/lib/jo-status";
 
 // Helper to extract file path from Supabase storage URL
@@ -809,6 +810,15 @@ export const POST = withAuth(async (request, { user }) => {
     }
 
     await createApprovalRecord(supabase, 'engine_teardown_reports', report_id, user.id);
+
+    const actorName = await getUserDisplayName(supabase, user.id);
+    await createNotifications(supabase, {
+      type: 'form.submitted',
+      formType: 'engine-teardown',
+      recordId: report_id,
+      actorId: user.id,
+      actorName,
+    });
 
     return NextResponse.json({ success: true, data: completeReport }, { status: 201 });
   } catch (error: any) {

@@ -438,10 +438,23 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
         {/* Existing Attachments */}
         {attachmentList.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            {attachmentList.map((attachment) => (
+            {attachmentList.map((attachment) => {
+              const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_url || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name || '');
+              return (
               <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                 <div className="aspect-video bg-gray-100 relative">
-                  <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                  {isImage ? (
+                    <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                  ) : (
+                    <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="w-full h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <svg className="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        <p className="mt-1 text-xs text-blue-600">Click to view PDF</p>
+                      </div>
+                    </a>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleDeleteAttachment(attachment.id)}
@@ -466,7 +479,8 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                   />
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -482,7 +496,9 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
       <div>
         <div className="flex items-center mb-4"><div className="w-1 h-6 bg-blue-600 mr-2"></div><h4 className="text-sm font-bold text-[#2B4C7E] uppercase tracking-wider">{title}</h4></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {attachmentList.map((attachment) => (
+          {attachmentList.map((attachment) => {
+            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_url || '') || /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(attachment.file_name || '');
+            return (
             <div key={attachment.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm relative">
               <button
                 type="button"
@@ -495,7 +511,18 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                 </svg>
               </button>
               <div className="aspect-video bg-gray-100 relative">
-                <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                {isImage ? (
+                  <img src={attachment.file_url} alt={attachment.file_name || 'Attachment'} className="w-full h-full object-cover" />
+                ) : (
+                  <a href={attachment.file_url} target="_blank" rel="noopener noreferrer" className="w-full h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <svg className="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <p className="mt-1 text-xs text-blue-600">Click to view PDF</p>
+                    </div>
+                  </a>
+                )}
               </div>
               <div className="p-3 bg-white">
                 <input type="text" value={attachment.file_name || ''} onChange={(e) => {
@@ -504,7 +531,8 @@ export default function EditElectricSurfacePumpTeardown({ data, recordId, onClos
                 }} className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2" placeholder="Enter image title" />
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );

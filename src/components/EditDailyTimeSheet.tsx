@@ -671,7 +671,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                           id="attachment-upload"
                           name="attachment-upload"
                           type="file"
-                          accept="*/*"
+                          accept="image/*,application/pdf"
                           multiple
                           className="sr-only"
                           onChange={async (e) => {
@@ -684,6 +684,10 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                               }
                               const processed = [];
                               for (const file of files) {
+                                if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+                                  toast.error('Please select image or PDF files');
+                                  continue;
+                                }
                                 const compressed = file.type.startsWith('image/') ? await compressImageIfNeeded(file) : file;
                                 processed.push({ file: compressed, description: '' });
                               }

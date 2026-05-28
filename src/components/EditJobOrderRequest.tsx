@@ -448,6 +448,9 @@ export default function EditJobOrderRequest({ data, recordId, onClose, onSaved }
                     subtitle="Verified By"
                     autoFillForPositions={["Super Admin"]}
                     disabled={!canEditVerifiedBy}
+                    showAllUsers
+                    filterByPermission={isSuperAdmin ? undefined : "jo_signatory.verified_by"}
+                    lockIfDifferentUser
                   />
                 </div>
               </div>

@@ -110,7 +110,7 @@ export default function SignatorySelect({
   useEffect(() => {
     if (disabled) return;
     if (!isAutoFillEligible || !currentUserRecord) return;
-    if (value) return;
+    if (value === currentUserRecord.fullName) return;
     onChange(name, currentUserRecord.fullName);
     onSignatureChange(currentUserRecord.signature_url || "");
     // We intentionally exclude onChange/onSignatureChange from deps to avoid

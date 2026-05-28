@@ -374,7 +374,7 @@ export default function JobOrderRequestForm() {
               disabled={!canApproveByDeptHead}
               showAllUsers
               filterByPermission={isSuperAdmin ? undefined : "jo_signatory.approved_by"}
-              autoFillForPositions={["Super Admin"]}
+              autoFillForPositions={["Super Admin", "Admin 2"]}
             />
           </div>
         </div>
@@ -398,7 +398,7 @@ export default function JobOrderRequestForm() {
               disabled={!canReceiveByServiceDept}
               showAllUsers
               filterByPermission={isSuperAdmin ? undefined : "jo_signatory.service_dept"}
-              autoFillForPositions={["Super Admin"]}
+              autoFillForPositions={["Super Admin", "Admin 2"]}
             />
             {canReceiveByCreditCollection && (
               <SignatorySelect

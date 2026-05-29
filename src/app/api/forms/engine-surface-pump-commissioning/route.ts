@@ -378,6 +378,10 @@ export const PATCH = withAuth(async (request, { user }) => {
     if (currentRecord.acknowledged_by_signature && body.acknowledged_by_signature === "") await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
     else if (acknowledged_by_signature && acknowledged_by_signature !== currentRecord.acknowledged_by_signature) await deleteSignature(serviceSupabase, currentRecord.acknowledged_by_signature);
 
+    // approval_status lives in the approvals table, not this one — strip it
+    // so the PATCH doesn't try to write a non-existent column.
+    delete body.approval_status;
+
     const updateData: any = {
       ...body,
       jo_date: body.jo_date || null,

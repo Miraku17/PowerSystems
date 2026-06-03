@@ -111,12 +111,16 @@ export default function SignatorySelect({
     if (disabled) return;
     if (!isAutoFillEligible || !currentUserRecord) return;
     if (value === currentUserRecord.fullName) return;
+    // Don't overwrite a legitimately saved signature from a different user.
+    // lockIfDifferentUser signals that the saved value belongs to its owner and
+    // should not be replaced when a different user opens the form.
+    if (value && lockIfDifferentUser) return;
     onChange(name, currentUserRecord.fullName);
     onSignatureChange(currentUserRecord.signature_url || "");
     // We intentionally exclude onChange/onSignatureChange from deps to avoid
     // re-firing when callers create new closures every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAutoFillEligible, currentUserRecord?.id, value, name, disabled]);
+  }, [isAutoFillEligible, currentUserRecord?.id, value, name, disabled, lockIfDifferentUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

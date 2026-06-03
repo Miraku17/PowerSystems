@@ -25,7 +25,11 @@ const ADMIN = {
 
 const ALL_USERS = [USER1, USER2, ADMIN];
 
-function renderForCurrentUser(currentUserId: string, value = '') {
+function renderForCurrentUser(
+  currentUserId: string,
+  value = '',
+  lockIfDifferentUser = false,
+) {
   (useCurrentUser as jest.Mock).mockReturnValue({ id: currentUserId });
   const onChange = jest.fn();
   const onSignatureChange = jest.fn();
@@ -40,6 +44,7 @@ function renderForCurrentUser(currentUserId: string, value = '') {
       users={ALL_USERS as any}
       autoFillForPositions={["User 1", "User 2"]}
       showAllUsers
+      lockIfDifferentUser={lockIfDifferentUser}
     />,
   );
   return { ...utils, onChange, onSignatureChange };
@@ -66,10 +71,20 @@ describe('SignatorySelect autoFillForPositions', () => {
     expect(onSignatureChange).not.toHaveBeenCalled();
   });
 
-  it('User 1 with existing value: does NOT overwrite (preserves edits)', () => {
-    const { onChange, onSignatureChange } = renderForCurrentUser('u1', 'Someone Else');
+  // In edit-form contexts the field carries lockIfDifferentUser, which prevents
+  // auto-fill from overwriting a legitimately saved signature from another user.
+  it('User 1 with existing value + lockIfDifferentUser: does NOT overwrite (edit form)', () => {
+    const { onChange, onSignatureChange } = renderForCurrentUser('u1', 'Someone Else', true);
     expect(onChange).not.toHaveBeenCalled();
     expect(onSignatureChange).not.toHaveBeenCalled();
+  });
+
+  // Without lockIfDifferentUser (create form with persisted-store stale data),
+  // auto-fill replaces the stale value with the current user's own name.
+  it('User 1 with stale value (no lockIfDifferentUser): DOES overwrite (stale draft)', () => {
+    const { onChange, onSignatureChange } = renderForCurrentUser('u1', 'Someone Else');
+    expect(onChange).toHaveBeenCalledWith('service_technician_name', 'Tony Tester');
+    expect(onSignatureChange).toHaveBeenCalledWith('https://sigs.example/u1.png');
   });
 
   it('User 1: input is rendered as read-only (locked)', () => {

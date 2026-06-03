@@ -514,6 +514,7 @@ export default function EditDailyTimeSheet({ data, recordId, onClose, onSaved }:
                   users={users as FormUser[]}
                   subtitle="Logged-in User"
                   autoFillForPositions={["User 1", "User 2"]}
+                  lockIfDifferentUser
                 />
                 <SignatorySelect
                   label="Checked By"

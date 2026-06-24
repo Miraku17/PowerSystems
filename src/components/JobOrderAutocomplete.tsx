@@ -37,6 +37,7 @@ const JobOrderAutocomplete = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedJO, setSelectedJO] = useState<ApprovedJobOrder | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { approvedJOs, loading } = useApprovedJobOrders(
     showDropdown ? searchTerm : "",
@@ -73,10 +74,32 @@ const JobOrderAutocomplete = ({
   }, []);
 
   const handleSelect = (jo: ApprovedJobOrder) => {
+    if (blurTimerRef.current) {
+      clearTimeout(blurTimerRef.current);
+      blurTimerRef.current = null;
+    }
     setSelectedJO(jo);
     setSearchTerm("");
     setShowDropdown(false);
     onSelect(jo);
+  };
+
+  const handleBlur = () => {
+    const capturedSearch = searchTerm;
+    const capturedJOs = approvedJOs;
+    blurTimerRef.current = setTimeout(() => {
+      blurTimerRef.current = null;
+      if (!capturedSearch) return;
+      const exact = capturedJOs.find(
+        (jo) => jo.shop_field_jo_number === capturedSearch,
+      );
+      if (exact) {
+        handleSelect(exact);
+      } else {
+        setShowDropdown(false);
+        setSearchTerm("");
+      }
+    }, 150);
   };
 
   const handleClear = () => {
@@ -115,6 +138,7 @@ const JobOrderAutocomplete = ({
                 setShowDropdown(true);
               }}
               onFocus={() => setShowDropdown(true)}
+              onBlur={handleBlur}
               className="w-full bg-white border border-gray-300 text-gray-900 text-sm rounded-md focus:ring-blue-500 focus:border-blue-500 block p-2.5 transition-colors duration-200 ease-in-out shadow-sm"
               placeholder="Search by JO number or customer name"
               autoComplete="off"

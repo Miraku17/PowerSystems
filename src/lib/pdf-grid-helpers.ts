@@ -44,6 +44,46 @@ export function sanitizeLatin1(input: unknown): string {
     .replace(/[^\x00-\xFF]/g, "?");
 }
 
+export interface ExpenseRowLayout {
+  /** Wrapped job-description lines, in render order. Empty when there is no text. */
+  lines: string[];
+  /** Row height in mm — grows past `baseRowH` so every wrapped line has room. */
+  height: number;
+}
+
+/**
+ * Lay out the expense sub-rows of one Daily Time Sheet entry block.
+ *
+ * The JOB DESCRIPTION column is narrow (~28mm), so descriptions wrap after
+ * roughly 22 characters at font size 7. Rows must grow to fit every wrapped
+ * line — clipping to the first line silently drops what the user encoded.
+ *
+ * An entry with no expense items still yields one empty row so the block keeps
+ * its grid shape.
+ */
+export function layoutExpenseRows(
+  doc: jsPDF,
+  descriptions: Array<string | null | undefined>,
+  descWidth: number,
+  baseRowH: number,
+  descLineH: number,
+): { rows: ExpenseRowLayout[]; blockHeight: number } {
+  const source = descriptions.length > 0 ? descriptions : [null];
+
+  const rows = source.map((description) => {
+    const text = sanitizeLatin1(description).trim();
+    const lines: string[] = text
+      ? (doc.splitTextToSize(text, descWidth) as unknown as string[])
+      : [];
+    // First baseline sits at `descLineH + 1` inside the row; leave a descender
+    // margin below the last line so glyphs never touch the cell border.
+    const needed = lines.length * descLineH + 2.5;
+    return { lines, height: Math.max(baseRowH, needed) };
+  });
+
+  return { rows, blockHeight: rows.reduce((sum, r) => sum + r.height, 0) };
+}
+
 export interface GridHelpersConfig {
   leftMargin: number;
   contentWidth: number;

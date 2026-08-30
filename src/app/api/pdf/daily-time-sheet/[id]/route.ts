@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
 
-import { installTextSanitizer } from "@/lib/pdf-grid-helpers";
+import { installTextSanitizer, layoutExpenseRows } from "@/lib/pdf-grid-helpers";
 export const GET = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
@@ -281,12 +281,20 @@ export const GET = withAuth(async (request, { user, params }) => {
         breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner',
         car_odo: 'Car ODO', hotel_others: 'Hotel & Others',
       };
+      // JOB DESCRIPTION is the narrowest column (~28mm), so descriptions wrap.
+      // Each expense sub-row grows to fit its wrapped lines rather than clipping.
+      const descLineH = 3;
       for (const entry of entries) {
         const items = ((entry.daily_time_sheet_expense_items || []) as any[])
           .slice()
           .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-        const blockRows = Math.max(1, items.length);
-        const blockH = rowH * blockRows;
+        const { rows: expenseRows, blockHeight: blockH } = layoutExpenseRows(
+          doc,
+          items.map((it: any) => it.job_description),
+          W.desc - 2,
+          rowH,
+          descLineH,
+        );
 
         // Page break check
         if (yPos + blockH > pageHeight - 30) {
@@ -311,22 +319,24 @@ export const GET = withAuth(async (request, { user, params }) => {
 
         // Expense sub-rows
         const exStartX = bx;
-        for (let i = 0; i < blockRows; i++) {
+        let ry = yPos;
+        expenseRows.forEach((row, i) => {
           const item = items[i];
-          const ry = yPos + i * rowH;
-          doc.rect(exStartX, ry, W.type, rowH);
-          doc.rect(exStartX + W.type, ry, W.amount, rowH);
-          doc.rect(exStartX + W.type + W.amount, ry, W.desc, rowH);
+          doc.rect(exStartX, ry, W.type, row.height);
+          doc.rect(exStartX + W.type, ry, W.amount, row.height);
+          doc.rect(exStartX + W.type + W.amount, ry, W.desc, row.height);
           if (item) {
             doc.text(typeLabel[item.type] || item.type, exStartX + W.type / 2, ry + 4, { align: 'center' });
             const amountText = item.type === 'car_odo'
               ? `${item.departure_odo ?? ''}/${item.arrival_odo ?? ''}`
               : (item.amount != null ? `P${Number(item.amount).toFixed(2)}` : '');
             doc.text(amountText, exStartX + W.type + W.amount / 2, ry + 4, { align: 'center' });
-            const descLines = doc.splitTextToSize(item.job_description || '', W.desc - 2);
-            doc.text(descLines.slice(0, 1), exStartX + W.type + W.amount + 1, ry + 4);
+            if (row.lines.length) {
+              doc.text(row.lines, exStartX + W.type + W.amount + 1, ry + descLineH + 1);
+            }
           }
-        }
+          ry += row.height;
+        });
         yPos += blockH;
       }
 

@@ -3,7 +3,7 @@ import { getServiceSupabase } from "@/lib/supabase";
 import { withAuth } from "@/lib/auth-middleware";
 import jsPDF from "jspdf";
 
-import { installTextSanitizer, layoutExpenseRows } from "@/lib/pdf-grid-helpers";
+import { installTextSanitizer, layoutExpenseRows, wrapSpanCell } from "@/lib/pdf-grid-helpers";
 export const GET = withAuth(async (request, { user, params }) => {
   try {
     const supabase = getServiceSupabase();
@@ -288,12 +288,29 @@ export const GET = withAuth(async (request, { user, params }) => {
         const items = ((entry.daily_time_sheet_expense_items || []) as any[])
           .slice()
           .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+        // Cells that span the whole block. jsPDF does not clip, so these wrap
+        // too — INITIAL LOC / FINAL LOC are 24mm and real locations run wider
+        // ("Santiago isabela victory bus terminal" is 40mm), which used to draw
+        // straight across the neighbouring columns.
+        const spanCells: Array<{ w: number; text: string }> = [
+          { w: W.date,    text: formatDate(entry.entry_date) },
+          { w: W.start,   text: formatTime(entry.start_time) },
+          { w: W.initial, text: entry.initial_location || '' },
+          { w: W.stop,    text: formatTime(entry.stop_time) },
+          { w: W.final,   text: entry.final_location || '' },
+          { w: W.total,   text: entry.total_hours != null ? String(entry.total_hours) : '' },
+          { w: W.travel,  text: entry.is_travel ? 'Y' : '' },
+        ];
+        const wrappedSpans = spanCells.map((c) => wrapSpanCell(doc, c.text, c.w - 2, descLineH));
+        const spanNeeded = Math.max(0, ...wrappedSpans.map((s) => s.height));
+
         const { rows: expenseRows, blockHeight: blockH } = layoutExpenseRows(
           doc,
           items.map((it: any) => it.job_description),
           W.desc - 2,
           rowH,
           descLineH,
+          spanNeeded,
         );
 
         // Page break check
@@ -302,20 +319,18 @@ export const GET = withAuth(async (request, { user, params }) => {
           yPos = 20;
         }
 
-        // Time/location/total/travel cells (span blockH)
+        // Time/location/total/travel cells (span blockH), text vertically centred
         let bx = leftMargin;
-        const drawSpan = (w: number, text: string) => {
-          doc.rect(bx, yPos, w, blockH);
-          if (text) doc.text(text, bx + w / 2, yPos + 4, { align: 'center' });
-          bx += w;
-        };
-        drawSpan(W.date,    formatDate(entry.entry_date));
-        drawSpan(W.start,   formatTime(entry.start_time));
-        drawSpan(W.initial, entry.initial_location || '');
-        drawSpan(W.stop,    formatTime(entry.stop_time));
-        drawSpan(W.final,   entry.final_location || '');
-        drawSpan(W.total,   entry.total_hours != null ? String(entry.total_hours) : '');
-        drawSpan(W.travel,  entry.is_travel ? 'Y' : '');
+        spanCells.forEach((cell, i) => {
+          const { lines } = wrappedSpans[i];
+          doc.rect(bx, yPos, cell.w, blockH);
+          if (lines.length) {
+            const textH = lines.length * descLineH;
+            const top = yPos + Math.max(0, (blockH - textH) / 2) + descLineH;
+            doc.text(lines, bx + cell.w / 2, top, { align: 'center' });
+          }
+          bx += cell.w;
+        });
 
         // Expense sub-rows
         const exStartX = bx;

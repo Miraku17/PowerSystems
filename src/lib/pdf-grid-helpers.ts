@@ -67,6 +67,14 @@ export function layoutExpenseRows(
   descWidth: number,
   baseRowH: number,
   descLineH: number,
+  /**
+   * Floor for the whole block, used when a cell spanning the block (e.g. a
+   * wrapped INITIAL LOC) needs more height than the expense rows do. The
+   * shortfall goes on the last row so the spanning cells and the expense-row
+   * stack end at the same y — otherwise the grid's right-hand column would
+   * stop short of its own border.
+   */
+  minBlockHeight = 0,
 ): { rows: ExpenseRowLayout[]; blockHeight: number } {
   const source = descriptions.length > 0 ? descriptions : [null];
 
@@ -81,7 +89,39 @@ export function layoutExpenseRows(
     return { lines, height: Math.max(baseRowH, needed) };
   });
 
-  return { rows, blockHeight: rows.reduce((sum, r) => sum + r.height, 0) };
+  const rowsHeight = rows.reduce((sum, r) => sum + r.height, 0);
+  const blockHeight = Math.max(rowsHeight, minBlockHeight);
+  if (blockHeight > rowsHeight) {
+    rows[rows.length - 1].height += blockHeight - rowsHeight;
+  }
+
+  return { rows, blockHeight };
+}
+
+/**
+ * Wrap the text of a cell that spans a whole entry block (DATE, START,
+ * INITIAL LOC, STOP, FINAL LOC, TOTAL, TRVL).
+ *
+ * jsPDF does not clip text to a cell, so an unwrapped value simply draws over
+ * its neighbours — the real production location "Santiago isabela victory bus
+ * terminal" measures 40mm inside a 24mm column and runs through STOP. Callers
+ * feed the returned `height` to `layoutExpenseRows`' `minBlockHeight` so the
+ * block grows when a wrapped span needs more room than its expense rows.
+ *
+ * Returns no lines and zero height for empty text, so a blank cell never forces
+ * the block taller.
+ */
+export function wrapSpanCell(
+  doc: jsPDF,
+  text: string | null | undefined,
+  width: number,
+  lineH: number,
+): { lines: string[]; height: number } {
+  const clean = sanitizeLatin1(text).trim();
+  if (!clean) return { lines: [], height: 0 };
+
+  const lines = doc.splitTextToSize(clean, width) as unknown as string[];
+  return { lines, height: lines.length * lineH + 2.5 };
 }
 
 export interface GridHelpersConfig {

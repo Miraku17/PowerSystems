@@ -81,14 +81,19 @@ export default function SignatorySelect({
     autoFillForPositions.some(
       (p) => p.toLowerCase() === currentUserRecord!.position!.name.toLowerCase(),
     );
-  // When the dropdown is restricted to the current user (no `showAllUsers`),
-  // there is literally nothing else to pick — auto-fill with the logged-in
-  // user's name + signature instead of leaving the field empty until they
-  // click their own (only) option. Makes "Service Technician" and similar
-  // fields work for every position, not just an allow-list.
-  // Super Admin is exempt: they see all users so the field is never "current user only".
-  const isCurrentUserOnlyField = !showAllUsers && !isCurrentUserSuperAdmin && !!currentUserRecord;
-  const isAutoFillEligible = isPositionAutoFillEligible || isCurrentUserOnlyField;
+  // Auto-fill happens ONLY where a caller explicitly opted in via
+  // `autoFillForPositions`. There used to be an implicit fallback: when the
+  // dropdown was restricted to the current user (no `showAllUsers`), the field
+  // auto-filled their name + signature to save a click. But `showAllUsers`
+  // defaults to false, so that fallback fired on nearly every call site — it
+  // overrode the allow-list sitting beside it, and it signed approval boxes as
+  // a side effect of merely opening a form. Admin 2 found itself already signed
+  // as "Approved By", and Admin 1 as "Noted By", on every report they opened.
+  //
+  // Signing is a deliberate act, so the fallback is gone. Fields without an
+  // allow-list stay empty and unlocked; the dropdown still offers the user
+  // their own name to click.
+  const isAutoFillEligible = isPositionAutoFillEligible;
 
   // Lock the field when it already holds another user's signature. Super Admin
   // bypasses this so they can correct/replace any signature. A missing
